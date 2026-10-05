@@ -16,6 +16,7 @@ const PLAN: WeeklyPlan = [
 
 const SCHED: Schedule = {
   epoch: '2026-10-05',
+  validThrough: '2027-04-04',
   rotations: [{ from: '2026-01-01', types: ['queens'] }],
   versions: { queens: [{ from: '2026-01-01', version: 1 }] },
 };

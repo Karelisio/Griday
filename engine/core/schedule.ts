@@ -20,8 +20,19 @@ export interface VersionEntry {
 export interface Schedule {
   /** Jour n°1 (numérotation, début des archives). Sans effet sur la génération. */
   readonly epoch: ISODate;
+  /**
+   * Dernier jour pour lequel CE build garantit connaître le calendrier définitif.
+   * Toute entrée ajoutée plus tard doit avoir `from` > validThrough de chaque build déjà publié.
+   * Au-delà, l'UI invite à mettre à jour (les puzzles pourraient différer des joueurs à jour).
+   */
+  readonly validThrough: ISODate;
   readonly rotations: readonly RotationEntry[];
   readonly versions: Readonly<Record<PuzzleTypeId, readonly VersionEntry[]>>;
+}
+
+/** Object.hasOwn n'existe qu'à partir de Chrome 93 : les WebView Android anciens doivent fonctionner. */
+export function hasOwn(obj: object, key: PropertyKey): boolean {
+  return Object.prototype.hasOwnProperty.call(obj, key);
 }
 
 /** Dernière entrée dont `from` ≤ date (la première entrée s'applique aux dates antérieures). */
@@ -44,9 +55,14 @@ export function typeForDate(schedule: Schedule, date: ISODate): PuzzleTypeId {
 }
 
 export function versionForDate(schedule: Schedule, type: PuzzleTypeId, date: ISODate): number {
-  const entries = Object.hasOwn(schedule.versions, type) ? schedule.versions[type] : undefined;
+  const entries = hasOwn(schedule.versions, type) ? schedule.versions[type] : undefined;
   if (!entries) throw new Error(`Aucune version déclarée pour le type "${type}"`);
   return entryFor(entries, date).version;
+}
+
+/** Vrai si `today` dépasse la période garantie par ce build (inviter à mettre à jour). */
+export function isScheduleStale(schedule: Schedule, today: ISODate): boolean {
+  return isoToDays(today) > isoToDays(schedule.validThrough);
 }
 
 /** Numéro du jour (1 = epoch). */
@@ -58,6 +74,10 @@ export function dayNumber(schedule: Schedule, date: ISODate): number {
 export function validateSchedule(schedule: Schedule, knownVersions: (type: PuzzleTypeId) => readonly number[]): string[] {
   const errors: string[] = [];
   if (!isValidISODate(schedule.epoch)) errors.push(`epoch invalide : ${schedule.epoch}`);
+  if (!isValidISODate(schedule.validThrough)) errors.push(`validThrough invalide : ${schedule.validThrough}`);
+  else if (isValidISODate(schedule.epoch) && isoToDays(schedule.validThrough) < isoToDays(schedule.epoch)) {
+    errors.push('validThrough antérieur à epoch');
+  }
 
   const checkSorted = (label: string, entries: readonly { from: ISODate }[]) => {
     if (entries.length === 0) errors.push(`${label} : table vide`);
@@ -74,7 +94,7 @@ export function validateSchedule(schedule: Schedule, knownVersions: (type: Puzzl
   for (const [i, r] of schedule.rotations.entries()) {
     if (r.types.length === 0) errors.push(`rotations[${i}] : aucun type`);
     for (const t of r.types) {
-      const versions = Object.hasOwn(schedule.versions, t) ? schedule.versions[t] : undefined;
+      const versions = hasOwn(schedule.versions, t) ? schedule.versions[t] : undefined;
       if (!versions) errors.push(`rotations[${i}] : type sans versions "${t}"`);
       else if (
         versions.length > 0 &&

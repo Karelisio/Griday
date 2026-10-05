@@ -1,13 +1,11 @@
 /**
  * Solveur LOGIQUE de Queens (déductions humaines) et notation de difficulté.
  *
- * RÈGLE DE GEL — le générateur V1 accepte ou rejette des grilles d'après
- * rateQueens(p, QUEENS_TECHNIQUES_V1) : après publication, ce résultat ne doit JAMAIS changer.
- * - Ne jamais modifier QUEENS_TECHNIQUES_V1 (ordre, niveaux, poids, paliers).
- * - Ne jamais modifier le comportement d'une technique existante (définition, ordre de parcours,
- *   regroupement des éliminations en étapes, critère de choix).
- * - Nouvelle technique ou correction = NOUVEL identifiant + NOUVEAU profil (QUEENS_TECHNIQUES_V2…)
- *   employé par une nouvelle version du générateur. Les tests « golden » de solver.test.ts verrouillent V1.
+ * FICHIER FIGÉ (V1) — le générateur V1 accepte ou rejette des grilles d'après
+ * rateQueens(p, QUEENS_TECHNIQUES_V1) : ce fichier ne doit JAMAIS changer (freeze.test.ts).
+ * Les indices (hint.ts) l'utilisent aussi : pour les faire évoluer (nouvelle technique, ordre,
+ * performances), COPIER ce fichier en queens/solver.ts et brancher hint.ts sur la copie.
+ * Une V2 du générateur utilise sa propre copie (v2/solver.ts).
  *
  * Boucle : la PREMIÈRE technique du profil qui s'applique produit UNE étape, puis on repart du début
  * du profil. Poser une reine élimine aussitôt sa ligne, sa colonne, sa région et ses 8 voisines
@@ -43,9 +41,9 @@
  * Score : somme des poids des étapes. Le niveau max ne dépend pas des ordres de parcours (techniques
  * monotones : il vaut le plus petit k tel que les techniques de niveau ≤ k suffisent).
  */
-import type { DifficultyRating, DifficultyTier } from '../core/types';
-import { popcount32 } from './exact';
-import { MARK_CROSS, MARK_EMPTY, MARK_QUEEN, QUEENS_MAX_SIZE, type QueensMark, type QueensPuzzle } from './types';
+import type { DifficultyRating, DifficultyTier } from '../../core/types';
+import type { QueensMark, QueensPuzzle } from '../types';
+import { MARK_CROSS, MARK_EMPTY, MARK_QUEEN, popcount32, V1_MAX_SIZE as QUEENS_MAX_SIZE } from './util';
 
 export type QueensTechnique =
   | 'single'

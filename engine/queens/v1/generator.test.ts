@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { hashHex, rngFromString, Sfc32 } from '../core/prng';
-import { DIFFICULTY_TIERS } from '../core/types';
-import { encodeQueens, validateQueensStructure } from './encoding';
-import { solveQueensExact } from './exact';
+import { hashHex, rngFromString, Sfc32 } from '../../core/prng';
+import { DIFFICULTY_TIERS } from '../../core/types';
+import { encodeQueens, validateQueensStructure } from '../encoding';
+import { solveQueensExact } from '../exact';
 import {
   generateQueensCandidate,
   QUEENS_SHAPE_PRESETS,
   recommendedQueensPreset,
   type QueensShapeParams,
 } from './generator';
-import { isQueensSolution } from './rules';
-import type { QueensSolvedPuzzle } from './types';
+import { isQueensSolution } from '../rules';
+import type { QueensSolvedPuzzle } from '../types';
 
 const PRESETS = Object.keys(QUEENS_SHAPE_PRESETS);
 

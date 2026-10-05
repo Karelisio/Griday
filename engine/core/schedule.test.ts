@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SCHEDULE } from '../config';
 import { addDays, diffDays } from './date';
-import { dayNumber, typeForDate, validateSchedule, versionForDate, type Schedule } from './schedule';
+import { dayNumber, isScheduleStale, typeForDate, validateSchedule, versionForDate, type Schedule } from './schedule';
 import { PUZZLE_TYPE_IDS, type PuzzleTypeId } from './types';
 
 // Types fictifs (forcés par cast) pour tester des rotations à plusieurs types.
@@ -9,6 +9,7 @@ const T = (s: string): PuzzleTypeId => s as PuzzleTypeId;
 
 const MULTI = {
   epoch: '2026-01-05',
+  validThrough: '2027-06-30',
   rotations: [
     { from: '2026-01-01', types: ['alpha', 'beta', 'gamma'] },
     { from: '2026-03-01', types: ['beta', 'delta'] },
@@ -35,6 +36,7 @@ const known = (t: PuzzleTypeId): readonly number[] => KNOWN[t] ?? [];
 /** Copie profonde modifiable d'un calendrier (pour fabriquer des cas invalides). */
 type Mutable = {
   epoch: string;
+  validThrough: string;
   rotations: { from: string; types: string[] }[];
   versions: Record<string, { from: string; version: number }[]>;
 };
@@ -129,6 +131,8 @@ describe('validateSchedule', () => {
   // Chaque type d'erreur, isolément (liste exacte : pas d'erreur parasite).
   const cases: [string, (s: Mutable) => void, string[]][] = [
     ['epoch invalide', (s) => void (s.epoch = '2026-02-30'), ['epoch invalide : 2026-02-30']],
+    ['validThrough invalide', (s) => void (s.validThrough = '2027-02-30'), ['validThrough invalide : 2027-02-30']],
+    ['validThrough avant epoch', (s) => void (s.validThrough = '2026-01-04'), ['validThrough antérieur à epoch']],
     [
       'rotations vides',
       (s) => void (s.rotations = []),
@@ -230,6 +234,19 @@ describe('SCHEDULE officiel (engine/config.ts)', () => {
     expect(SCHEDULE.epoch).toBe('2026-10-05');
     expect(SCHEDULE.rotations[0]).toEqual({ from: '2026-01-01', types: ['queens'] });
     expect(SCHEDULE.versions.queens[0]).toEqual({ from: '2026-01-01', version: 1 });
+  });
+
+  it('validThrough : build à jour jusqu’à cette date incluse', () => {
+    expect(isScheduleStale(SCHEDULE, SCHEDULE.validThrough)).toBe(false);
+    expect(isScheduleStale(SCHEDULE, addDays(SCHEDULE.validThrough, 1))).toBe(true);
+    expect(isScheduleStale(SCHEDULE, SCHEDULE.epoch)).toBe(false);
+  });
+
+  it('gelé en profondeur (aucune mutation accidentelle à l’exécution)', () => {
+    expect(Object.isFrozen(SCHEDULE)).toBe(true);
+    expect(Object.isFrozen(SCHEDULE.rotations[0])).toBe(true);
+    expect(Object.isFrozen(SCHEDULE.rotations[0]!.types)).toBe(true);
+    expect(Object.isFrozen(SCHEDULE.versions.queens[0])).toBe(true);
   });
 
   it('puzzle n°1 = Queens v1 le lundi 2026-10-05', () => {

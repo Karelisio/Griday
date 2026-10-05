@@ -121,3 +121,16 @@ describe('isQueensSolution', () => {
     }
   });
 });
+
+describe('validation des marques', () => {
+  const p = decodeQueens('000122030112400515400555445555455555');
+  it('longueur ≠ n² ou marque hors {0,1,2} → RangeError (pas de faux « résolu »)', () => {
+    expect(() => checkQueensBoard(p, new Array(35).fill(MARK_EMPTY))).toThrow(RangeError);
+    expect(() => checkQueensBoard(p, new Array(37).fill(MARK_EMPTY))).toThrow(RangeError);
+    const bad = new Array(36).fill(MARK_EMPTY) as number[];
+    bad[3] = 7;
+    expect(() => checkQueensBoard(p, bad as QueensMark[])).toThrow(RangeError);
+    bad[3] = Number.NaN;
+    expect(() => checkQueensBoard(p, bad as QueensMark[])).toThrow(RangeError);
+  });
+});

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { rngFromString, type Rng } from '../core/prng';
 import { decodeQueens } from './encoding';
 import { getQueensHint, type QueensHint } from './hint';
-import { QUEENS_TECHNIQUES_V1, nextQueensStep, restrictQueensProfile, solveQueensLogically, type QueensProfile } from './solver';
+import { QUEENS_TECHNIQUES_V1, nextQueensStep, restrictQueensProfile, solveQueensLogically, type QueensProfile } from './v1/solver';
 import { randomQueensLayout, randomUniqueQueens } from './testing';
 import { MARK_CROSS, MARK_EMPTY, MARK_QUEEN, type QueensMark, type QueensPuzzle, type QueensSolvedPuzzle } from './types';
 
@@ -203,5 +203,15 @@ describe('getQueensHint sur grilles aléatoires', () => {
       fallbacks += playHints(p).kinds.reveal;
     }
     expect(fallbacks).toBeGreaterThan(0);
+  });
+});
+
+describe('validation des entrées', () => {
+  it('marque hors {0,1,2} ou mauvaise longueur → RangeError', () => {
+    const p = randomUniqueQueens(rngFromString('hint-validation'), 6)!;
+    const marks = new Array(36).fill(MARK_EMPTY) as number[];
+    marks[0] = 7;
+    expect(() => getQueensHint(p, marks as QueensMark[])).toThrow(RangeError);
+    expect(() => getQueensHint(p, new Array(35).fill(MARK_EMPTY))).toThrow(RangeError);
   });
 });

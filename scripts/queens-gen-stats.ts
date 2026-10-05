@@ -19,7 +19,7 @@
  */
 import { performance } from 'node:perf_hooks';
 import { rngFromString } from '../engine/core/prng';
-import { generateQueensCandidate, QUEENS_SHAPE_PRESETS } from '../engine/queens/generator';
+import { generateQueensCandidate, QUEENS_SHAPE_PRESETS } from '../engine/queens/v1/generator';
 import type { QueensPuzzle, QueensSolvedPuzzle } from '../engine/queens/types';
 
 interface Rating {
@@ -42,7 +42,7 @@ const show = Number(args.get('show') ?? 0);
 // Solveur logique facultatif (spécificateur calculé : le script fonctionne sans lui).
 let rate: RateFn | null = null;
 try {
-  const spec = '../engine/queens/solver';
+  const spec = '../engine/queens/v1/solver';
   const mod = (await import(spec)) as { rateQueens?: RateFn };
   if (typeof mod.rateQueens === 'function') rate = mod.rateQueens;
 } catch {

@@ -1,4 +1,4 @@
-import { MARK_QUEEN, type QueensMark, type QueensPuzzle } from './types';
+import { MARK_CROSS, MARK_EMPTY, MARK_QUEEN, type QueensMark, type QueensPuzzle } from './types';
 
 export interface QueensBoardCheck {
   /** Cases de reines en conflit (même ligne, colonne, région, ou contact), triées. */
@@ -22,8 +22,19 @@ function attacks(p: QueensPuzzle, a: number, b: number): boolean {
   );
 }
 
+/** Vérifie qu'un état joueur correspond à la grille (n² marques valant 0, 1 ou 2). */
+export function assertQueensMarks(p: QueensPuzzle, marks: readonly QueensMark[]): void {
+  const n = p.size;
+  if (marks.length !== n * n) throw new RangeError(`Queens : ${marks.length} marques pour ${n * n} cases`);
+  for (let i = 0; i < marks.length; i++) {
+    const m = marks[i];
+    if (m !== MARK_EMPTY && m !== MARK_CROSS && m !== MARK_QUEEN) throw new RangeError(`Queens : marque invalide ${String(m)} (case ${i})`);
+  }
+}
+
 /** Analyse l'état du joueur (détection de victoire et surlignage des conflits). */
 export function checkQueensBoard(p: QueensPuzzle, marks: readonly QueensMark[]): QueensBoardCheck {
+  assertQueensMarks(p, marks);
   const queens: number[] = [];
   marks.forEach((m, i) => {
     if (m === MARK_QUEEN) queens.push(i);

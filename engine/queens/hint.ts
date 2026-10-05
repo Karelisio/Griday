@@ -8,7 +8,8 @@
  * 3. Si aucune technique ne s'applique (grille non logique, profil réduit), on dévoile une reine
  *    de la solution (première ligne sans reine) : un indice est toujours disponible.
  */
-import { QUEENS_TECHNIQUES_V1, nextQueensStep, type QueensProfile, type QueensStep } from './solver';
+import { QUEENS_TECHNIQUES_V1, nextQueensStep, type QueensProfile, type QueensStep } from './v1/solver';
+import { assertQueensMarks } from './rules';
 import { MARK_CROSS, MARK_EMPTY, MARK_QUEEN, type QueensMark, type QueensSolvedPuzzle } from './types';
 
 export interface QueensReveal {
@@ -32,7 +33,7 @@ export function getQueensHint(
   profile: QueensProfile = QUEENS_TECHNIQUES_V1,
 ): QueensHint {
   const n = p.size;
-  if (marks.length !== n * n) throw new RangeError(`Queens : ${marks.length} marques pour ${n * n} cases`);
+  assertQueensMarks(p, marks);
   if (p.solution.length !== n) throw new RangeError(`Queens : solution de longueur ${p.solution.length}`);
 
   const mistakes: number[] = [];

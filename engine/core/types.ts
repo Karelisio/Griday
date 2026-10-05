@@ -80,6 +80,16 @@ export interface GeneratedPuzzle<P> {
   readonly puzzle: P;
 }
 
+/** Métadonnées d'un jour (sans génération). */
+export interface DailyInfo {
+  readonly date: ISODate;
+  readonly dayNumber: number;
+  readonly weekday: number;
+  readonly type: PuzzleTypeId;
+  readonly version: number;
+  readonly target: GenerationTarget;
+}
+
 export interface DailyPuzzle<P> extends GeneratedPuzzle<P> {
   readonly date: ISODate;
   /** Numéro du puzzle (1 = EPOCH). */

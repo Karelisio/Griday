@@ -1,11 +1,10 @@
 /**
  * Générateur de grilles Queens (structure seule : régions + solution unique).
  *
- * RÈGLE DE GEL : le puzzle du jour dépend de chaque tirage et de chaque ordre de parcours de ce
- * fichier (et des préréglages). Après publication, ne JAMAIS modifier ce comportement : toute
- * évolution = nouvelle version du générateur (nouveau fichier ou nouvelle fonction), activée à une
- * date future. Les encodages « golden » de generator.test.ts verrouillent la V1.
- * Dépendances figées par nature : Rng (prng.ts), canonicalizeRegions (format), popcount32 (pur).
+ * FICHIER FIGÉ (V1) : le puzzle du jour dépend de chaque tirage, ordre de parcours, préréglage et
+ * plafond de ce fichier. Ne JAMAIS le modifier (freeze.test.ts en vérifie l'empreinte) : toute
+ * évolution = copie dans v2/, activée à une date future.
+ * Dépendances : Rng (core/prng.ts, figé) et ./util.ts (utilitaires recopiés, figés).
  * Le solveur exhaustif d'exact.ts n'est PAS utilisé ici (il peut évoluer) : la recherche interne
  * ci-dessous est figée avec le générateur ; les tests vérifient l'unicité avec exact.ts.
  *
@@ -33,11 +32,10 @@
  * Tout est borné (pas, vérifications, réparations, nœuds de recherche) : budget épuisé → null.
  * Arithmétique entière, ordres de parcours fixes, aucun hasard hors `rng`.
  */
-import type { Rng } from '../core/prng';
-import type { DifficultyTier } from '../core/types';
-import { canonicalizeRegions } from './encoding';
-import { popcount32 } from './exact';
-import { QUEENS_MAX_SIZE, QUEENS_MIN_SIZE, type QueensSolvedPuzzle } from './types';
+import type { Rng } from '../../core/prng';
+import type { DifficultyTier } from '../../core/types';
+import type { QueensSolvedPuzzle } from '../types';
+import { canonicalizeRegions, popcount32, V1_MAX_SIZE as QUEENS_MAX_SIZE, V1_MIN_SIZE as QUEENS_MIN_SIZE } from './util';
 
 /** Réglages de forme. Les tailles sont relatives à n (taille moyenne d'une région = n cases). */
 export interface QueensShapeParams {

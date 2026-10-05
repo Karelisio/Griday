@@ -263,6 +263,7 @@ describe('generateDaily', () => {
   // Rotation alpha/beta ; alpha passe en v2 (autre plan hebdomadaire) le 2026-02-01.
   const SCHED = {
     epoch: '2026-01-05',
+    validThrough: '2027-01-05',
     rotations: [{ from: '2026-01-01', types: ['alpha', 'beta'] }],
     versions: {
       alpha: [

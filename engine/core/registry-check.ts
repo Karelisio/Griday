@@ -1,5 +1,5 @@
 import type { Registry } from './pipeline';
-import { validateSchedule, type Schedule } from './schedule';
+import { hasOwn, validateSchedule, type Schedule } from './schedule';
 import { DIFFICULTY_TIERS, PUZZLE_TYPE_IDS } from './types';
 
 /**
@@ -9,7 +9,7 @@ import { DIFFICULTY_TIERS, PUZZLE_TYPE_IDS } from './types';
 export function validateRegistry(registry: Registry, schedule: Schedule): string[] {
   const errors: string[] = [];
   for (const id of PUZZLE_TYPE_IDS) {
-    const def = Object.hasOwn(registry, id) ? registry[id] : undefined;
+    const def = hasOwn(registry, id) ? registry[id] : undefined;
     if (!def) {
       errors.push(`registre : type "${id}" absent`);
       continue;
@@ -42,6 +42,6 @@ export function validateRegistry(registry: Registry, schedule: Schedule): string
     }
   }
   const known = (t: (typeof PUZZLE_TYPE_IDS)[number]) =>
-    Object.hasOwn(registry, t) ? Object.keys(registry[t].versions).map(Number) : [];
+    hasOwn(registry, t) ? Object.keys(registry[t].versions).map(Number) : [];
   return [...errors, ...validateSchedule(schedule, known)];
 }

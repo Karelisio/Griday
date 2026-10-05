@@ -7,9 +7,9 @@ export interface PuzzleDataMap {
   queens: QueensSolvedPuzzle;
 }
 
-export const REGISTRY: { readonly [K in PuzzleTypeId]: PuzzleTypeDefinition<PuzzleDataMap[K]> } = {
+export const REGISTRY: { readonly [K in PuzzleTypeId]: PuzzleTypeDefinition<PuzzleDataMap[K]> } = Object.freeze({
   queens: QUEENS_DEFINITION,
-};
+});
 
 export type AnyGeneratedPuzzle = {
   [K in PuzzleTypeId]: GeneratedPuzzle<PuzzleDataMap[K]> & { readonly type: K };

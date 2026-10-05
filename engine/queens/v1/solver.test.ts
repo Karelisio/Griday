@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { hashHex, rngFromString } from '../core/prng';
-import { canonicalizeRegions, decodeQueens, validateQueensStructure } from './encoding';
-import { solveQueensExact } from './exact';
+import { hashHex, rngFromString } from '../../core/prng';
+import { canonicalizeRegions, decodeQueens, validateQueensStructure } from '../encoding';
+import { solveQueensExact } from '../exact';
 import {
   QUEENS_TECHNIQUES_V1,
   nextQueensStep,
@@ -14,8 +14,8 @@ import {
   type QueensUnitKind,
   type QueensUnitRef,
 } from './solver';
-import { randomQueensLayout, randomUniqueQueens } from './testing';
-import { MARK_CROSS, MARK_EMPTY, MARK_QUEEN, type QueensMark, type QueensPuzzle, type QueensSolvedPuzzle } from './types';
+import { randomQueensLayout, randomUniqueQueens } from '../testing';
+import { MARK_CROSS, MARK_EMPTY, MARK_QUEEN, type QueensMark, type QueensPuzzle, type QueensSolvedPuzzle } from '../types';
 
 // ─── Outils ──────────────────────────────────────────────────────────────────────────────────
 
