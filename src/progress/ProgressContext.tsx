@@ -8,7 +8,7 @@ import { useToday } from '../useToday';
 import { dailyStats, unlimitedStats } from './stats';
 import { loadProgressData, saveDailyHistory, saveStreak, saveUnlimitedHistory, type ProgressData, MAX_UNLIMITED_RESULTS } from './store';
 import { EMPTY_STREAK, MAX_FREEZES, applyDailySolve, settleStreak, summarizeStreak } from './streak';
-import type { DailyResult, DailyStats, StreakState, StreakSummary, UnlimitedResult, UnlimitedStats } from './types';
+import type { DailyMode, DailyResult, DailyStats, StreakState, StreakSummary, UnlimitedResult, UnlimitedStats } from './types';
 
 export interface ProgressValue {
   /** Données chargées (sinon valeurs vides). */
@@ -20,8 +20,11 @@ export interface ProgressValue {
   readonly summary: StreakSummary;
   readonly dailyStats: DailyStats;
   readonly unlimitedStats: UnlimitedStats;
-  /** Enregistre un puzzle du jour résolu (ignoré s'il l'est déjà). Indique si un gel a été gagné. */
-  readonly recordDaily: (result: DailyResult) => { readonly earnedFreeze: boolean };
+  /**
+   * Enregistre un puzzle du jour résolu (ignoré s'il l'est déjà). Indique si un gel a été gagné et le mode
+   * retenu (« daily » seulement s'il compte pour la série) ; `null` : rien n'a été enregistré.
+   */
+  readonly recordDaily: (result: DailyResult) => { readonly earnedFreeze: boolean; readonly mode: DailyMode | null };
   readonly recordUnlimited: (result: UnlimitedResult) => void;
   /** Ajoute un gel (récompense, étape publicité) ; faux si la réserve est pleine. */
   readonly addFreeze: () => boolean;
@@ -76,16 +79,16 @@ export function ProgressProvider({ initial, children }: { initial?: ProgressData
   const recordDaily = useCallback(
     (result: DailyResult) => {
       const current = dataRef.current;
-      if (!current || current.history.has(result.date)) return { earnedFreeze: false };
+      if (!current || current.history.has(result.date)) return { earnedFreeze: false, mode: null };
       const now = localISODate(new Date());
-      const mode = result.mode === 'daily' && diffDays(result.date, result.solvedOn) <= MAX_DAILY_DELAY ? 'daily' : 'archive';
+      const mode: DailyMode = result.mode === 'daily' && diffDays(result.date, result.solvedOn) <= MAX_DAILY_DELAY ? 'daily' : 'archive';
       const history = new Map(current.history).set(result.date, { ...result, mode });
       const applied = mode === 'daily' ? applyDailySolve(current.streak, solvedDays(history), result.date, now) : null;
       const streak = applied ? applied.state : current.streak;
       commit({ ...current, history, streak });
       void saveDailyHistory(history);
       if (streak !== current.streak) void saveStreak(streak);
-      return { earnedFreeze: applied?.earned ?? false };
+      return { earnedFreeze: applied?.earned ?? false, mode };
     },
     [commit],
   );

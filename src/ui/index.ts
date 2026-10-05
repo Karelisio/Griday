@@ -25,7 +25,7 @@ export { BottomSheet } from './BottomSheet';
 export type { BottomSheetProps } from './BottomSheet';
 export { Dialog } from './Dialog';
 export type { DialogProps } from './Dialog';
-export { SnackbarHost, useSnackbar } from './Snackbar';
+export { SnackbarHost, useOptionalSnackbar, useSnackbar } from './Snackbar';
 export type { SnackbarApi, SnackbarHostProps, SnackbarOptions } from './Snackbar';
 export { CircularProgress, LinearProgress } from './Progress';
 export type { CircularProgressProps, LinearProgressProps, ProgressVariant } from './Progress';

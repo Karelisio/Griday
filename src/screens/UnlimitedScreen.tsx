@@ -12,6 +12,7 @@ import { useGameSession } from '../game/core/useGameSession';
 import { isStoredGenerated } from '../game/core/validate';
 import { gameKind } from '../game/kinds';
 import { isGenerationTarget } from '../game/queens/validate';
+import { useMonetization } from '../monetization/MonetizationContext';
 import { UNLIMITED_CURRENT_KEY, UNLIMITED_PREFS_KEY, unlimitedProgressKey } from '../persistence';
 import { pushBackHandler } from '../platform';
 import { loadJSON, removeKey, saveJSON } from '../platform/storage';
@@ -193,14 +194,17 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
   };
 
   const { recordUnlimited } = useProgress();
+  const { notifySolved } = useMonetization();
   const played = current?.target;
   const playedType = current?.puzzle.type;
   const onSolved = useCallback(
     (g: GameState<unknown>) => {
       if (!played) return;
       recordUnlimited({ type: playedType, size: played.size, tier: played.tier, timeMs: Math.floor(g.elapsedMs), hintsUsed: g.hintsUsed, solvedOn: localISODate(new Date()) });
+      // Interstitiel : une partie illimitée résolue sur N (la cadence est gérée par la monétisation).
+      notifySolved({ mode: 'unlimited' });
     },
-    [played, playedType, recordUnlimited],
+    [played, playedType, recordUnlimited, notifySolved],
   );
   const kind = current ? gameKind(current.puzzle.type) : null;
   const api = useGameSession(kind?.rules ?? NO_RULES, {

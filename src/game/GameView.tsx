@@ -7,6 +7,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type
 import { useTranslation } from 'react-i18next';
 import type { Language } from '../i18n';
 import { formatDuration } from '../i18n/format';
+import { useMonetization } from '../monetization/MonetizationContext';
+import { hintNeedsReward } from '../monetization/rules';
 import { pushBackHandler } from '../platform';
 import { springs } from '../theme';
 import { BottomSheet, Button, Card, Dialog, ExtendedFab, IconButton, Icon, InfoChip, useSnackbar } from '../ui';
@@ -91,6 +93,7 @@ export function GameView<P>({ kind, puzzle, session: api, victoryExtra, victoryC
   const { t, i18n } = useTranslation();
   const lang = i18n.language as Language;
   const snackbar = useSnackbar();
+  const { unlimited, requestReward } = useMonetization();
   const { game } = api;
   const Board = kind.Board;
   const initial = useMemo(() => kind.rules.initial(puzzle), [kind, puzzle]);
@@ -121,12 +124,31 @@ export function GameView<P>({ kind, puzzle, session: api, victoryExtra, victoryC
     if (hintOpen && hint && game && game.marks !== hint.marks) setHintOpen(false);
   }, [game, hint, hintOpen]);
 
+  // Après une vidéo (longue attente), la vue doit toujours montrer la grille pour laquelle l'indice a été calculé.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const latestMarks = useRef(game?.marks);
+  latestMarks.current = game?.marks;
+
   const askHint = async () => {
     if (!game || hintLoading) return;
     setHintLoading(true);
     try {
       const info = await kind.hint(puzzle, game.marks, t, lang);
-      if (info.kind !== 'solved') api.noteHint(info.key);
+      if (info.kind !== 'solved') {
+        // Au-delà des indices gratuits, un NOUVEL indice se mérite par une vidéo (le même, redemandé, reste gratuit).
+        // Refus : rien n'est affiché ni compté ; les marques et le chronomètre ne sont jamais touchés.
+        if (api.isNewHint(info.key) && hintNeedsReward(game.hintsUsed, unlimited)) {
+          const rewarded = await requestReward('hint');
+          if (!rewarded || !mounted.current || latestMarks.current !== game.marks) return;
+        }
+        api.noteHint(info.key);
+      }
       setHint({ info, marks: game.marks });
       setHintOpen(true);
     } catch {

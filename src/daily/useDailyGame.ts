@@ -13,6 +13,7 @@ import { isStarted, type GameState } from '../game/core/state';
 import { useGameSession } from '../game/core/useGameSession';
 import { isStoredGenerated } from '../game/core/validate';
 import { gameKind } from '../game/kinds';
+import { useMonetization } from '../monetization/MonetizationContext';
 import { dailyProgressKey, dailyPuzzleKey, dailyStartedKey } from '../persistence';
 import { loadJSON, saveJSON } from '../platform/storage';
 import { useProgress } from '../progress/ProgressContext';
@@ -28,6 +29,7 @@ export interface UseDailyGameOptions {
 
 export function useDailyGame({ date, mode, visible, onRecorded }: UseDailyGameOptions) {
   const { recordDaily } = useProgress();
+  const { notifySolved } = useMonetization();
   const [info, setInfo] = useState<DailyInfo | null>(null);
   const [daily, setDaily] = useState<AnyDailyPuzzle | null>(null);
   const [error, setError] = useState(false);
@@ -81,7 +83,7 @@ export function useDailyGame({ date, mode, visible, onRecorded }: UseDailyGameOp
     (g: GameState<unknown>) => {
       if (!daily) return;
       const onTime = started?.on ? started.on === date : mode === 'daily';
-      const { earnedFreeze } = recordDaily({
+      const { earnedFreeze, mode: recorded } = recordDaily({
         date,
         type: daily.type,
         size: daily.target.size,
@@ -91,9 +93,12 @@ export function useDailyGame({ date, mode, visible, onRecorded }: UseDailyGameOp
         mode: onTime ? 'daily' : 'archive',
         solvedOn: localISODate(new Date()),
       });
+      // Interstitiel (un seul par puzzle du jour, géré par la monétisation) : seulement pour un résultat
+      // enregistré comme puzzle du jour, jamais pour une archive rejouée.
+      if (recorded === 'daily') notifySolved({ mode: 'daily', date });
       onRecorded?.(earnedFreeze);
     },
-    [daily, date, mode, started, recordDaily, onRecorded],
+    [daily, date, mode, started, recordDaily, notifySolved, onRecorded],
   );
 
   const { ready, history } = useProgress();

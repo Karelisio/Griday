@@ -1,14 +1,26 @@
-/** Carte héros de la série : jours consécutifs, record, gels disponibles et rappel du jour. */
+/** Carte héros de la série : jours consécutifs, record, gels disponibles (et gel offert) et rappel du jour. */
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { ISODate } from '../../engine/core/date';
 import type { Language } from '../i18n';
-import { formatNumber } from '../i18n/format';
+import { formatDate, formatNumber } from '../i18n/format';
 import { FREEZE_EVERY, MAX_FREEZES } from '../progress/streak';
 import type { StreakSummary } from '../progress/types';
-import { Card, Icon, InfoChip } from '../ui';
+import { Button, Card, Icon, InfoChip } from '../ui';
 import './stats.css';
 
-export function StreakCard({ summary }: { summary: StreakSummary }) {
+/** Gel de série offert (contre une vidéo, ou directement en Premium) : ce que la section des gels propose. */
+export interface FreezeAction {
+  /** Un gel peut être demandé maintenant (réserve non pleine, délai écoulé). */
+  readonly available: boolean;
+  /** Premier jour où un autre gel sera offert (délai non écoulé), sinon null. */
+  readonly nextOn: ISODate | null;
+  /** Sans vidéo (Premium, build sans publicité). */
+  readonly instant: boolean;
+  readonly onClaim: () => void;
+}
+
+export function StreakCard({ summary, freeze }: { summary: StreakSummary; freeze?: FreezeAction }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language as Language;
   const titleId = useId();
@@ -55,7 +67,35 @@ export function StreakCard({ summary }: { summary: StreakSummary }) {
           </span>
         </div>
         <p className="md-typescale-body-small streak-card__explain">{t('stats.freezes.explain', { every: FREEZE_EVERY, max: MAX_FREEZES })}</p>
+        {freeze ? <FreezeClaim freeze={freeze} full={freezes >= MAX_FREEZES} lang={lang} /> : null}
       </div>
     </Card>
+  );
+}
+
+/** Bouton « Obtenir un gel » ; sinon le prochain jour possible, ou la réserve pleine. */
+function FreezeClaim({ freeze, full, lang }: { freeze: FreezeAction; full: boolean; lang: Language }) {
+  const { t } = useTranslation();
+  if (freeze.available) {
+    return (
+      <Button variant="tonal" icon={freeze.instant ? 'ac_unit' : 'smart_display'} onClick={freeze.onClaim} className="streak-card__claim">
+        {t('stats.freezes.get')}
+      </Button>
+    );
+  }
+  if (full) {
+    return (
+      <p className="md-typescale-label-large streak-card__offer-note">
+        <Icon name="check_circle" size={20} />
+        {t('stats.freezes.full')}
+      </p>
+    );
+  }
+  if (freeze.nextOn === null) return null;
+  return (
+    <p className="md-typescale-label-large streak-card__offer-note">
+      <Icon name="schedule" size={20} />
+      {t('stats.freezes.next', { date: formatDate(freeze.nextOn, lang, 'long') })}
+    </p>
   );
 }

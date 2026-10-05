@@ -1,20 +1,34 @@
-/** Réglages : langue, thème, couleurs dynamiques, vibrations, croix automatiques, rappel quotidien, version. */
+/**
+ * Réglages : langue, thème, couleurs dynamiques, vibrations, croix automatiques, rappel quotidien, Premium
+ * (seulement dans un build avec publicités) et version.
+ */
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LanguagePreference } from '../i18n';
+import { useMonetization } from '../monetization/MonetizationContext';
 import { getAppVersion } from '../platform';
 import { notificationsAvailable } from '../platform/notifications';
 import { useEnableReminder } from '../reminders';
 import { useSettings } from '../settings/SettingsContext';
 import { isReminderTime, type ThemeMode } from '../settings/types';
 import { Icon, List, ListItem, SegmentedButton, Switch, useSnackbar } from '../ui';
+import { usePremiumActions } from './usePremiumActions';
 import './screens.css';
 import './SettingsScreen.reminder.css';
 
-export function SettingsScreen({ visible, dynamicSupported }: { visible: boolean; dynamicSupported: boolean }) {
+export interface SettingsScreenProps {
+  readonly visible: boolean;
+  readonly dynamicSupported: boolean;
+  /** Ouvre la page Premium (statut et achat). */
+  readonly onOpenPremium?: () => void;
+}
+
+export function SettingsScreen({ visible, dynamicSupported, onOpenPremium }: SettingsScreenProps) {
   const { t } = useTranslation();
   const { settings, update } = useSettings();
   const snackbar = useSnackbar();
+  const { adsEnabled, premium, privacyOptionsRequired, showPrivacyOptions } = useMonetization();
+  const { busy: premiumBusy, restore } = usePremiumActions();
   const enableReminder = useEnableReminder();
   const reminderAvailable = notificationsAvailable();
   const [version, setVersion] = useState('');
@@ -151,6 +165,36 @@ export function SettingsScreen({ visible, dynamicSupported }: { visible: boolean
           }
         />
       </List>
+
+      {adsEnabled && (
+        <>
+          <h2 className="md-typescale-title-small settings__section">{t('settings.premium.title')}</h2>
+          <List variant="segmented">
+            <ListItem
+              leading={<Icon name={premium ? 'verified' : 'workspace_premium'} />}
+              headline={premium ? t('premium.active') : t('settings.premium.upgrade')}
+              supporting={premium ? t('premium.thanks') : t('settings.premium.upgradeDescription')}
+              trailing={<Icon name="chevron_right" />}
+              onClick={onOpenPremium}
+            />
+            <ListItem
+              leading={<Icon name="restore" />}
+              headline={t('premium.restore')}
+              supporting={t('settings.premium.restoreDescription')}
+              disabled={premiumBusy}
+              onClick={() => void restore()}
+            />
+            {privacyOptionsRequired && (
+              <ListItem
+                leading={<Icon name="privacy_tip" />}
+                headline={t('settings.privacy.title')}
+                supporting={t('settings.privacy.description')}
+                onClick={() => void showPrivacyOptions()}
+              />
+            )}
+          </List>
+        </>
+      )}
 
       <h2 className="md-typescale-title-small settings__section">{t('settings.about.title')}</h2>
       <List variant="segmented">

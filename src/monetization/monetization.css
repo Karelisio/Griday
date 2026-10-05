@@ -1,6 +1,11 @@
 /* Dialogue des vidéos avec récompense. */
+.md-dialog.reward-dialog {
+  max-width: 400px;
+}
+
 .reward-dialog p {
   margin: 0;
+  text-wrap: pretty;
 }
 
 .reward-dialog__note {
@@ -8,7 +13,15 @@
   color: var(--md-sys-color-on-surface-variant);
 }
 
-/* Premium à gauche, Annuler / Regarder à droite. */
+/*
+ * Les trois boutons ne tiennent pas sur une ligne (360 px) : l'action principale, « Regarder »,
+ * occupe la première ligne ; en dessous, Premium à gauche et Annuler à droite. L'ordre de lecture et
+ * de tabulation suit l'ordre visuel.
+ */
+.reward-dialog .reward-dialog__watch {
+  flex: 1 1 100%;
+}
+
 .reward-dialog .reward-dialog__premium {
   margin-inline-end: auto;
 }

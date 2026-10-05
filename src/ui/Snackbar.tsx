@@ -40,6 +40,11 @@ export function useSnackbar(): SnackbarApi {
   return api;
 }
 
+/** Comme `useSnackbar`, mais `null` hors de `<SnackbarHost>` : pour un composant dont le message est facultatif. */
+export function useOptionalSnackbar(): SnackbarApi | null {
+  return useContext(SnackbarContext);
+}
+
 export interface SnackbarHostProps {
   readonly children?: ReactNode;
   /** Nom accessible du bouton de fermeture (ex. « Fermer »). Sans lui, pas de bouton de fermeture. */

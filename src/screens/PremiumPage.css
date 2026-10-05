@@ -1,0 +1,61 @@
+/* Page Premium : en-tête centré, avantages, achat, restauration des achats et code promo. */
+.premium__hero {
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.premium__emblem {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  margin-bottom: 8px;
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+/* Premium actif : même teinte que la carte de série et la carte de victoire. */
+.md-card.premium__status {
+  --md-card-container: var(--md-sys-color-primary-container);
+
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.premium__status p {
+  margin: 0;
+}
+
+.premium__benefits .md-list-item__leading {
+  color: var(--md-sys-color-primary);
+}
+
+.premium__buy,
+.premium__more {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.premium__more {
+  margin-top: 8px;
+}
+
+.premium__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.premium__note .md-icon {
+  flex: none;
+  margin-top: 1px;
+}

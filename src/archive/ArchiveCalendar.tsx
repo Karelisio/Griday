@@ -23,6 +23,7 @@ import {
   monthGrid,
   monthKey,
   monthOf,
+  playableDays,
   type CalendarCell,
   type MonthRef,
 } from './calendarModel';
@@ -39,14 +40,22 @@ export interface ArchiveCalendarProps {
   readonly first: ISODate;
   /** État d'un jour jouable. */
   readonly status: (date: ISODate) => DayStatus;
+  /**
+   * Jour verrouillé (vidéo ou Premium requis pour l'ouvrir) : cadenas sur la case, état « verrouillé » et entrée
+   * de légende (si le mois affiché en compte). Un jour verrouillé reste sélectionnable : à l'appelant de réagir.
+   */
+  readonly locked?: (date: ISODate) => boolean;
   readonly onSelect: (date: ISODate) => void;
 }
+
+/** État affiché d'un jour : celui de la partie, ou « verrouillé » (le cadenas prend le pas sur l'état de la partie). */
+type DayState = DayStatus | 'locked';
 
 /** Un lundi quelconque : donne le nom des jours de la semaine. */
 const MONDAY = '2024-01-01';
 /** Pastille de coin de chaque état (la couleur seule ne suffit pas à le distinguer). */
-const BADGES: Partial<Record<DayStatus, IconName>> = { solved: 'crown', late: 'check', frozen: 'ac_unit' };
-const LEGEND: readonly DayStatus[] = ['solved', 'late', 'frozen', 'progress'];
+const BADGES: Partial<Record<DayState, IconName>> = { solved: 'crown', late: 'check', frozen: 'ac_unit', locked: 'lock' };
+const LEGEND: readonly DayState[] = ['solved', 'late', 'frozen', 'progress'];
 /** Distance horizontale (px) d'un balayage de mois. */
 const SWIPE_DISTANCE = 56;
 
@@ -66,10 +75,11 @@ function createFormats(lang: Language) {
   };
 }
 
-export function ArchiveCalendar({ month, onMonthChange, today, first, status, onSelect }: ArchiveCalendarProps) {
+export function ArchiveCalendar({ month, onMonthChange, today, first, status, locked, onSelect }: ArchiveCalendarProps) {
   const { t, i18n } = useTranslation();
   const { spatial, effects } = useMotionTokens();
   const titleId = useId();
+  const unlockHintId = useId();
   const gridRef = useRef<HTMLDivElement>(null);
   const formats = useMemo(() => createFormats(i18n.language as Language), [i18n.language]);
   const weeks = useMemo(() => monthGrid(month), [month.year, month.month]);
@@ -129,12 +139,15 @@ export function ArchiveCalendar({ month, onMonthChange, today, first, status, on
   const [shown, setShown] = useState({ month, direction: 0 });
   if (diffMonths(shown.month, month) !== 0) setShown({ month, direction: Math.sign(diffMonths(shown.month, month)) });
 
+  const stateOf = (date: ISODate): DayState => (locked?.(date) ? 'locked' : status(date));
   const dayLabel = (date: ISODate, playable: boolean) => {
     const text = formats.day(date);
     if (!playable) return text;
-    const state = t(`archive.status.${status(date)}`);
+    const state = t(`archive.status.${stateOf(date)}`);
     return t(date === today ? 'archive.dayToday' : 'archive.day', { date: text, status: state });
   };
+  // « Verrouillé » n'apparaît dans la légende que si le mois affiché compte au moins un jour verrouillé.
+  const legend = locked && playableDays(month, first, today).some(locked) ? [...LEGEND, 'locked' as const] : LEGEND;
 
   return (
     <div className="archive-cal">
@@ -192,8 +205,9 @@ export function ArchiveCalendar({ month, onMonthChange, today, first, status, on
                     {cell.outside ? null : (
                       <Day
                         cell={cell}
-                        status={playable ? status(cell.date) : null}
+                        status={playable ? stateOf(cell.date) : null}
                         label={dayLabel(cell.date, playable)}
+                        unlockHintId={unlockHintId}
                         current={cell.date === today}
                         tabbable={cell.date === tabStop}
                         onSelect={onSelect}
@@ -207,8 +221,15 @@ export function ArchiveCalendar({ month, onMonthChange, today, first, status, on
         </motion.div>
       </div>
 
+      {/* Lue avec chaque jour verrouillé (aria-describedby) : ce que fait un toucher sur un cadenas. */}
+      {legend.includes('locked') && (
+        <span id={unlockHintId} className="md-sr-only">
+          {t('archive.unlockAction')}
+        </span>
+      )}
+
       <ul className="archive-cal__legend" role="list" aria-label={t('archive.legend')}>
-        {LEGEND.map((state) => {
+        {legend.map((state) => {
           const badge = BADGES[state];
           return (
             <li key={state} className="md-typescale-label-medium archive-cal__key" data-status={state}>
@@ -227,15 +248,17 @@ export function ArchiveCalendar({ month, onMonthChange, today, first, status, on
 interface DayProps {
   readonly cell: CalendarCell;
   /** État du jour ; `null` hors de l'intervalle jouable (bouton désactivé). */
-  readonly status: DayStatus | null;
+  readonly status: DayState | null;
   readonly label: string;
+  /** Description d'un jour verrouillé (l'action de déblocage). */
+  readonly unlockHintId: string;
   readonly current: boolean;
   readonly tabbable: boolean;
   readonly onSelect: (date: ISODate) => void;
 }
 
-/** Disque d'un jour : chiffre, pastille de coin (couronne, coche, flocon) ou point (partie entamée). */
-function Day({ cell, status, label, current, tabbable, onSelect }: DayProps) {
+/** Disque d'un jour : chiffre, pastille de coin (couronne, coche, flocon, cadenas) ou point (partie entamée). */
+function Day({ cell, status, label, unlockHintId, current, tabbable, onSelect }: DayProps) {
   const badge = status ? BADGES[status] : undefined;
   return (
     <button
@@ -247,6 +270,7 @@ function Day({ cell, status, label, current, tabbable, onSelect }: DayProps) {
       disabled={status === null}
       tabIndex={tabbable ? 0 : -1}
       aria-label={label}
+      aria-describedby={status === 'locked' ? unlockHintId : undefined}
       aria-current={current ? 'date' : undefined}
       onClick={() => onSelect(cell.date)}
     >

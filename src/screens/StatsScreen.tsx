@@ -17,6 +17,7 @@ import { StatTile } from '../stats/StatTile';
 import { StreakCard } from '../stats/StreakCard';
 import { TierChart } from '../stats/TierChart';
 import { TimeValue } from '../stats/TimeValue';
+import { useFreezeOffer } from '../stats/useFreezeOffer';
 import { Card, Icon, SegmentedButton } from '../ui';
 import './screens.css';
 import './StatsScreen.css';
@@ -57,6 +58,7 @@ export function StatsScreen({ visible }: { visible: boolean }) {
   const lang = i18n.language as Language;
   const progress = useProgress();
   const { ready, summary, history, unlimited: unlimitedResults } = progress;
+  const freeze = useFreezeOffer(summary.freezes);
   const [filter, setFilter] = useState<Filter>('all');
   // Types joués (dans l'ordre du registre) : le filtre n'apparaît qu'à partir de deux.
   const played = useMemo(() => {
@@ -91,7 +93,7 @@ export function StatsScreen({ visible }: { visible: boolean }) {
         <EmptyState />
       ) : (
         <>
-          <StreakCard summary={summary} />
+          <StreakCard summary={summary} freeze={freeze} />
 
           {played.length > 1 && (
             <SegmentedButton<Filter>

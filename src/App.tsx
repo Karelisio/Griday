@@ -1,15 +1,17 @@
-/** Coquille de l'app : thème Material You, progression, navigation (onglets + pages), retour Android, auto-vérification du moteur. */
+/** Coquille de l'app : thème Material You, progression, monétisation, navigation (onglets + pages), retour Android, auto-vérification du moteur. */
 import { AnimatePresence, motion, useIsPresent } from 'motion/react';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { engine } from './engine-client/client';
 import { resolveLanguage, setLanguage } from './i18n';
+import { MonetizationProvider, useMonetization } from './monetization/MonetizationContext';
 import { applySystemBarsStyle, getAppVersion, onSystemPalettesChanged, pushBackHandler, setHapticsEnabled, type SystemPalettes } from './platform';
 import { dailyProgressKey, dailyPuzzleKey, pruneStorage, selfCheckKey, UNLIMITED_CURRENT_KEY } from './persistence';
 import { loadJSON, removeKey, saveJSON } from './platform/storage';
 import { ScreenBoundary } from './ScreenBoundary';
 import { ArchiveGamePage } from './screens/ArchiveGamePage';
 import { ArchiveScreen } from './screens/ArchiveScreen';
+import { PremiumPage } from './screens/PremiumPage';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { StatsScreen } from './screens/StatsScreen';
 import { TodayScreen } from './screens/TodayScreen';
@@ -26,7 +28,7 @@ import { useToday } from './useToday';
 import './App.css';
 
 type Tab = 'today' | 'archive' | 'unlimited' | 'stats';
-type Page = { readonly kind: 'settings' } | { readonly kind: 'archive'; readonly date: ISODate };
+type Page = { readonly kind: 'settings' } | { readonly kind: 'premium' } | { readonly kind: 'archive'; readonly date: ISODate };
 
 export interface AppProps {
   readonly initialSettings: Settings;
@@ -61,7 +63,9 @@ function Themed({ systemLanguages, initialPalettes }: Omit<AppProps, 'initialSet
   return (
     <ThemeProvider mode={settings.theme} dynamic={settings.dynamicColor && palettes !== null} systemPalettes={palettes} onThemeApplied={onThemeApplied}>
       <SnackbarHost closeLabel={t('common.close')}>
-        <Shell dynamicSupported={palettes !== null} />
+        <MonetizationProvider>
+          <Shell dynamicSupported={palettes !== null} />
+        </MonetizationProvider>
       </SnackbarHost>
     </ThemeProvider>
   );
@@ -88,8 +92,11 @@ function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
 
   // Page secondaire : le retour (geste, bouton, flèche) la referme et rend le focus à son déclencheur.
   const opener = useRef<HTMLElement | null>(null);
+  const pageOpen = useRef(false);
+  pageOpen.current = page !== null;
   const openPage = useCallback((next: Page) => {
-    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    // Une page qui en remplace une autre (réglages → Premium) garde le déclencheur d'origine.
+    if (!pageOpen.current) opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setPage(next);
   }, []);
   const closePage = useCallback(() => {
@@ -97,6 +104,12 @@ function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
     requestAnimationFrame(() => opener.current?.isConnected && opener.current.focus());
   }, []);
   useEffect(() => (page ? pushBackHandler(closePage) : undefined), [page, closePage]);
+  // Le dialogue des vidéos (monétisation) propose Premium : il ouvre cette page.
+  const { setPremiumOpener } = useMonetization();
+  useEffect(() => {
+    setPremiumOpener(() => openPage({ kind: 'premium' }));
+    return () => setPremiumOpener(null);
+  }, [setPremiumOpener, openPage]);
   // Retour Android : depuis un autre onglet, revient à « Aujourd'hui » ; sinon le système gère (retour prédictif).
   useEffect(() => (!page && tab !== 'today' ? pushBackHandler(() => setTab('today')) : undefined), [tab, page]);
 
@@ -181,15 +194,15 @@ function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
       <AnimatePresence>
         {page && (
           <SecondaryPage key={page.kind === 'archive' ? `archive-${page.date}` : page.kind} onBack={closePage}>
-            {page.kind === 'settings' ? (
-              <ScreenBoundary visible>
-                <SettingsScreen visible dynamicSupported={dynamicSupported} />
-              </ScreenBoundary>
-            ) : (
-              <ScreenBoundary visible>
+            <ScreenBoundary visible>
+              {page.kind === 'settings' ? (
+                <SettingsScreen visible dynamicSupported={dynamicSupported} onOpenPremium={() => openPage({ kind: 'premium' })} />
+              ) : page.kind === 'premium' ? (
+                <PremiumPage visible />
+              ) : (
                 <ArchiveGamePage date={page.date} visible />
-              </ScreenBoundary>
-            )}
+              )}
+            </ScreenBoundary>
           </SecondaryPage>
         )}
       </AnimatePresence>

@@ -39,6 +39,13 @@
   --badge-fg: var(--md-sys-color-on-tertiary);
 }
 
+/* Verrouillé (vidéo ou Premium requis) : disque neutre, chiffre atténué mais lisible, cadenas en pastille discrète. */
+.archive-cal [data-status='locked'] {
+  --status-fg: var(--md-sys-color-on-surface-variant);
+  --badge-bg: var(--md-sys-color-surface-container-highest);
+  --badge-fg: var(--md-sys-color-on-surface-variant);
+}
+
 /* --- En-tête : mois précédent / titre / mois suivant --- */
 .archive-cal__header {
   display: flex;

@@ -1,10 +1,16 @@
-/** Archives : calendrier des puzzles passés (résolu, rattrapé, gelé, en cours) et résumé du mois affiché. */
+/**
+ * Archives : calendrier des puzzles passés (résolu, rattrapé, gelé, en cours, verrouillé) et résumé du mois affiché.
+ * Un jour ancien jamais commencé est verrouillé : une vidéo le débloque pour de bon (Premium : tout est ouvert).
+ */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SCHEDULE } from '../../engine/config';
 import { compareISO, type ISODate } from '../../engine/core/date';
 import { ArchiveCalendar } from '../archive/ArchiveCalendar';
 import { clampMonth, diffMonths, monthKey, monthOf, playableDays, type MonthRef } from '../archive/calendarModel';
+import { useMonetization } from '../monetization/MonetizationContext';
+import { FREE_ARCHIVE_DAYS } from '../monetization/config';
+import { archiveLocked } from '../monetization/rules';
 import { useProgress } from '../progress/ProgressContext';
 import { dayStatus } from '../progress/stats';
 import { loadStartedDays } from '../progress/store';
@@ -42,6 +48,22 @@ export function ArchiveScreen({ visible, onOpen }: { visible: boolean; onOpen: (
 
   const frozen = useMemo(() => new Set(streak.frozen), [streak.frozen]);
   const status = useCallback((date: ISODate) => dayStatus(date, history, frozen, started), [history, frozen, started]);
+
+  // Verrouillage : jamais pour un jour déjà commencé ou résolu, ni en Premium.
+  const { unlimited, unlocked, requestReward, unlockArchive } = useMonetization();
+  const locked = useCallback(
+    (date: ISODate) => archiveLocked(date, today, { unlimited, unlocked, played: history.has(date) || started.has(date) }),
+    [today, unlimited, unlocked, history, started],
+  );
+  const anyLocked = days.some(locked);
+  const select = async (date: ISODate) => {
+    if (locked(date)) {
+      // Jour verrouillé : la vidéo regardée, il est débloqué pour toujours puis ouvert.
+      if (!(await requestReward('archive'))) return;
+      unlockArchive(date);
+    }
+    onOpen(date);
+  };
   const solved = days.filter((date) => history.has(date)).length;
   // Résumé du mois ; texte à part pour un seul jour jouable (en anglais, le nom suit le total : « of 1 day »).
   const summary = t(days.length === 1 ? 'archive.summaryOneDay' : 'archive.summary', { count: solved, total: days.length });
@@ -71,7 +93,23 @@ export function ArchiveScreen({ visible, onOpen }: { visible: boolean; onOpen: (
           <p className="md-typescale-body-large">{t('archive.empty')}</p>
         </div>
       ) : (
-        <ArchiveCalendar month={month} onMonthChange={changeMonth} today={today} first={FIRST_DAY} status={status} onSelect={onOpen} />
+        <>
+          <ArchiveCalendar
+            month={month}
+            onMonthChange={changeMonth}
+            today={today}
+            first={FIRST_DAY}
+            status={status}
+            locked={locked}
+            onSelect={(date) => void select(date)}
+          />
+          {anyLocked && (
+            <p className="md-typescale-body-small archive__note">
+              <Icon name="lock" size={18} />
+              <span>{t('archive.lockedNote', { days: FREE_ARCHIVE_DAYS })}</span>
+            </p>
+          )}
+        </>
       )}
     </section>
   );

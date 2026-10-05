@@ -23,3 +23,20 @@
   max-width: 28em;
   margin: 0;
 }
+
+/* Règle de verrouillage, sous le calendrier (même largeur que lui). */
+.archive__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  padding-inline: 8px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.archive__note .md-icon {
+  flex: none;
+  margin-top: 1px;
+}
