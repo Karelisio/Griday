@@ -1,20 +1,35 @@
-/** Réglages : langue, thème, couleurs dynamiques, vibrations, croix automatiques, version. */
+/** Réglages : langue, thème, couleurs dynamiques, vibrations, croix automatiques, rappel quotidien, version. */
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LanguagePreference } from '../i18n';
 import { getAppVersion } from '../platform';
+import { notificationsAvailable } from '../platform/notifications';
+import { useEnableReminder } from '../reminders';
 import { useSettings } from '../settings/SettingsContext';
-import type { ThemeMode } from '../settings/types';
-import { Icon, List, ListItem, SegmentedButton, Switch } from '../ui';
+import { isReminderTime, type ThemeMode } from '../settings/types';
+import { Icon, List, ListItem, SegmentedButton, Switch, useSnackbar } from '../ui';
 import './screens.css';
+import './SettingsScreen.reminder.css';
 
 export function SettingsScreen({ visible, dynamicSupported }: { visible: boolean; dynamicSupported: boolean }) {
   const { t } = useTranslation();
   const { settings, update } = useSettings();
+  const snackbar = useSnackbar();
+  const enableReminder = useEnableReminder();
+  const reminderAvailable = notificationsAvailable();
   const [version, setVersion] = useState('');
   useEffect(() => {
     void getAppVersion().then(setVersion);
   }, []);
+
+  const toggleReminder = async (on: boolean) => {
+    if (!on) {
+      update({ reminder: false });
+      return;
+    }
+    // Refus : Android ne reposera pas la question, l'utilisateur doit autoriser les notifications dans ses réglages.
+    if ((await enableReminder()) === 'denied') snackbar.show({ message: t('reminder.denied'), duration: 8000 });
+  };
 
   return (
     <section className="screen" aria-labelledby="settings-title" hidden={!visible}>
@@ -97,6 +112,43 @@ export function SettingsScreen({ visible, dynamicSupported }: { visible: boolean
           supporting={t('settings.autoCross.description')}
           control
           trailing={<Switch checked={settings.autoCross} onChange={(autoCross) => update({ autoCross })} aria-label={t('settings.autoCross.title')} />}
+        />
+      </List>
+
+      <h2 className="md-typescale-title-small settings__section">{t('reminder.title')}</h2>
+      <List variant="segmented">
+        <ListItem
+          leading={<Icon name={settings.reminder ? 'notifications_active' : 'notifications'} />}
+          headline={t('reminder.enable')}
+          supporting={reminderAvailable ? t('reminder.description') : t('reminder.unavailable')}
+          disabled={!reminderAvailable}
+          control
+          trailing={
+            <Switch
+              checked={reminderAvailable && settings.reminder}
+              disabled={!reminderAvailable}
+              onChange={(on) => void toggleReminder(on)}
+              aria-label={t('reminder.enable')}
+            />
+          }
+        />
+        <ListItem
+          leading={<Icon name="schedule" />}
+          headline={t('reminder.time')}
+          disabled={!settings.reminder}
+          control
+          trailing={
+            <input
+              type="time"
+              className="reminder__time md-typescale-title-medium"
+              value={settings.reminderTime}
+              disabled={!settings.reminder}
+              aria-label={t('reminder.time')}
+              onChange={(event) => {
+                if (isReminderTime(event.target.value)) update({ reminderTime: event.target.value });
+              }}
+            />
+          }
         />
       </List>
 

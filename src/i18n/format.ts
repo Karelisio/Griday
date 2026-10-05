@@ -57,3 +57,9 @@ export function formatDuration(ms: number, lang: Language): string {
   out.push(unit(parts.seconds, 'second'));
   return out.join(' ');
 }
+
+/** Heure « HH:MM » au format local (« 19:00 » / « 7:00 PM »). */
+export function formatTimeOfDay(hhmm: string, lang: Language): string {
+  const [h = 0, m = 0] = hhmm.split(':').map(Number);
+  return new Intl.DateTimeFormat(BCP47[lang], { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' }).format(new Date(Date.UTC(2000, 0, 1, h, m)));
+}

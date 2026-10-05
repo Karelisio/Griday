@@ -9,7 +9,8 @@ Le code TypeScript associé est dans [`src/platform/`](../src/platform).
 | --- | --- |
 | `app/src/main/java/.../MainActivity.java` | Enregistre `MaterialYouPlugin` avant `super.onCreate`. Edge-to-edge sur toutes les versions (`setDecorFitsSystemWindows(false)`). WebView transparent : la couleur de fenêtre (claire/sombre) reste visible avant le premier rendu, sans flash blanc. |
 | `app/src/main/java/.../MaterialYouPlugin.java` | Plugin natif des couleurs dynamiques (voir plus bas). |
-| `app/src/main/AndroidManifest.xml` | `enableOnBackInvokedCallback="true"` (retour prédictif) et activité en portrait. |
+| `app/src/main/AndroidManifest.xml` | `enableOnBackInvokedCallback="true"` (retour prédictif) et activité en portrait. Rappel quotidien : `POST_NOTIFICATIONS` ; `SCHEDULE_EXACT_ALARM` (ajoutée par le plugin) **retirée** (`tools:node="remove"`) : Google Play réserve les alarmes exactes aux réveils et agendas, les rappels sont programmés en alarmes inexactes. |
+| `app/src/main/res/drawable/ic_stat_griday.xml` | Petite icône monochrome (couronne blanche) des notifications. |
 | `app/src/main/res/values*/styles.xml`, `colors.xml` | Barres système transparentes, sans voile de contraste (`values-v26`, `v27`, `v29`), découpage d'écran `shortEdges`. Écran de démarrage `Theme.SplashScreen` : fond violet de la marque (#5B4FC4) et icône de l'app. Un style redéfini dans `values-vNN` remplace entièrement celui de `values/` : d'où le parent `Base.*`. |
 | `app/src/main/res/drawable/ic_launcher_*.xml`, `mipmap-anydpi-v26/` | Icône adaptative **provisoire** (couronne sur grille 3x3) avec couche `monochrome` (icônes thématiques, Android 13+). Aussi utilisée comme icône du splash. |
 | `app/src/main/res/mipmap-*/ic_launcher*.png` | Replis pour Android 7.0 et 7.1 (pas d'icônes adaptatives avant 8.0), même dessin. |
@@ -19,7 +20,11 @@ Le code TypeScript associé est dans [`src/platform/`](../src/platform).
 
 À ne pas éditer (régénérés par `cap sync`) : `app/capacitor.build.gradle`, `capacitor.settings.gradle`, `app/src/main/assets/` (config, plugins, `public/`), `app/src/main/res/xml/config.xml`, `capacitor-cordova-android-plugins/`.
 
-`capacitor.config.ts` : `plugins.App.disableBackButtonHandler: true`, voir « Retour prédictif ».
+`capacitor.config.ts` : `plugins.App.disableBackButtonHandler: true`, voir « Retour prédictif » ; `plugins.LocalNotifications` (petite icône `ic_stat_griday`, couleur de la marque), pris en compte après `cap sync`.
+
+## Rappel quotidien
+
+`src/reminders/` planifie les 14 prochains rappels (un par jour à l'heure choisie, sauf aujourd'hui si le puzzle est résolu ou l'heure passée) et les reprogramme à l'ouverture, au retour au premier plan et à chaque changement (réglage, langue, victoire, série). Identifiant = date AAAAMMJJ. Après une mise à jour de l'app, Android efface les alarmes : elles reviennent à la prochaine ouverture. Le redémarrage du téléphone est géré par le plugin.
 
 ## Couleurs dynamiques
 

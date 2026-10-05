@@ -7,8 +7,11 @@ import { useDailyGame } from '../daily/useDailyGame';
 import { GameView } from '../game/GameView';
 import type { QueensGame } from '../game/queens/state';
 import type { Language } from '../i18n';
-import { formatClock, formatDate, formatNumber } from '../i18n/format';
+import { formatClock, formatDate, formatNumber, formatTimeOfDay } from '../i18n/format';
+import { notificationsAvailable } from '../platform/notifications';
 import { useProgress } from '../progress/ProgressContext';
+import { useEnableReminder } from '../reminders';
+import { useSettings } from '../settings/SettingsContext';
 import { ShareButton } from '../share/ShareButton';
 import { Button, Card, CircularProgress, Icon, InfoChip, useSnackbar } from '../ui';
 import { msUntilMidnight, useToday } from '../useToday';
@@ -115,6 +118,7 @@ export function TodayScreen({ visible }: { visible: boolean }) {
             <>
               {!newPuzzleWaiting && <NextPuzzleCountdown lang={lang} />}
               <div className="victory-card__actions">
+                <ReminderButton />
                 <ShareButton
                   result={{
                     kind: 'daily',
@@ -132,6 +136,25 @@ export function TodayScreen({ visible }: { visible: boolean }) {
         />
       )}
     </section>
+  );
+}
+
+/** Proposé une seule fois après une victoire : active le rappel quotidien (permission Android). */
+function ReminderButton() {
+  const { t, i18n } = useTranslation();
+  const { settings } = useSettings();
+  const snackbar = useSnackbar();
+  const enable = useEnableReminder();
+  if (settings.reminder || settings.reminderPrompted || !notificationsAvailable()) return null;
+  const onClick = async () => {
+    const outcome = await enable();
+    if (outcome === 'enabled') snackbar.show({ message: t('victory.reminderOn', { time: formatTimeOfDay(settings.reminderTime, i18n.language as Language) }) });
+    else if (outcome === 'denied') snackbar.show({ message: t('reminder.denied'), duration: 8000 });
+  };
+  return (
+    <Button variant="tonal" icon="notifications_active" onClick={() => void onClick()}>
+      {t('victory.remindMe')}
+    </Button>
   );
 }
 

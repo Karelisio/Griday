@@ -15,6 +15,7 @@ import { UnlimitedScreen } from './screens/UnlimitedScreen';
 import { SettingsProvider, useSettings } from './settings/SettingsContext';
 import type { Settings } from './settings/types';
 import { ProgressProvider, useProgress } from './progress/ProgressContext';
+import { useReminderSync } from './reminders';
 import type { ProgressData } from './progress/store';
 import { springs, ThemeProvider } from './theme';
 import { IconButton, NavigationBar, SnackbarHost, useSnackbar } from './ui';
@@ -80,6 +81,7 @@ function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
   const [tab, setTab] = useState<Tab>('today');
   const [page, setPage] = useState<Page | null>(null);
   const snackbar = useSnackbar();
+  useReminderSync();
 
   // Page secondaire : le retour (geste, bouton, flèche) la referme et rend le focus à son déclencheur.
   const opener = useRef<HTMLElement | null>(null);

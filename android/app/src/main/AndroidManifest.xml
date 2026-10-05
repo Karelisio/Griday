@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- enableOnBackInvokedCallback : retour prédictif (animation système du geste « retour »). -->
     <application
@@ -42,4 +43,13 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Rappel quotidien : Android 13+ demande l'autorisation à l'activation du rappel (déjà déclarée par le plugin). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!--
+        Alarmes exactes : Google Play les réserve aux applications de réveil et d'agenda. Les rappels n'ont pas besoin
+        de la minute exacte : on retire la permission que le plugin ajoute, ils sont programmés en alarmes inexactes
+        (isExactNotification: false, voir src/platform/notifications.ts).
+    -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />
 </manifest>

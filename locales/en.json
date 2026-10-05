@@ -85,6 +85,7 @@
     "show": "Show result",
     "share": "Share",
     "remindMe": "Remind me daily",
+    "reminderOn": "Daily reminder set for {{time}}",
     "archive": "Archive puzzle: it doesn’t count toward your streak."
   },
   "hint": {
@@ -206,12 +207,89 @@
     "copied": "Result copied to the clipboard"
   },
   "archive": {
-    "title": "Archive"
+    "title": "Archive",
+    "subtitle": "Puzzles from past days, to play whenever you like.",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "day": "{{date}}: {{status}}",
+    "dayToday": "{{date}} (today): {{status}}",
+    "status": {
+      "solved": "solved on the day",
+      "late": "solved later",
+      "frozen": "streak freeze used",
+      "progress": "in progress",
+      "none": "not played"
+    },
+    "legend": "Legend",
+    "summary_one": "{{solved}} of {{count}} day solved",
+    "summary_other": "{{solved}} of {{count}} days solved",
+    "emptyTitle": "No archives yet",
+    "empty": "Past puzzles will show up here starting tomorrow, so you can play or catch up on them whenever you like."
   },
   "stats": {
-    "title": "Statistics"
+    "title": "Statistics",
+    "solved": "Solved",
+    "average": "Average time",
+    "best": "Best time",
+    "puzzles_zero": "No puzzles",
+    "puzzles_one": "{{count}} puzzle",
+    "puzzles_other": "{{count}} puzzles",
+    "empty": {
+      "title": "No statistics yet",
+      "body": "Solve your first puzzle to see your times, your streak and your progress here."
+    },
+    "streak": {
+      "title": "Current streak",
+      "days_one": "day",
+      "days_other": "days",
+      "atRisk": "Solve today’s puzzle before midnight to keep your streak.",
+      "done": "Today’s puzzle solved!",
+      "start": "Solve today’s puzzle to start a streak."
+    },
+    "freezes": {
+      "title": "Streak freezes",
+      "count": "{{n}} of {{max}}",
+      "explain": "A freeze protects your streak when you miss a day. You earn one every {{every}} days of streak (up to {{max}})."
+    },
+    "daily": {
+      "title": "Daily puzzles",
+      "onTime": "On the day",
+      "noHint": "No hints",
+      "empty": "No daily puzzle solved yet."
+    },
+    "byTier": {
+      "title": "Average time by difficulty",
+      "item": "{{tier}}: {{time}}, {{puzzles}}",
+      "itemEmpty": "{{tier}}: no puzzles"
+    },
+    "recent": {
+      "title_one": "Your last time",
+      "title_other": "Your last {{count}} times",
+      "archive": "From the archive",
+      "label": "Times of your last {{n}} daily puzzles, from {{from}} to {{to}}: from {{min}} to {{max}}, the latest in {{last}}.",
+      "pick": "Pick a puzzle",
+      "needMore": "Solve at least two daily puzzles to see how your times evolve."
+    },
+    "unlimited": {
+      "empty": "No unlimited game solved yet."
+    },
+    "bySize": {
+      "title": "By size"
+    }
   },
   "reminder": {
-    "title": "Daily reminder"
+    "title": "Daily reminder",
+    "enable": "Enable reminder",
+    "description": "One notification a day, unless today’s puzzle is already solved",
+    "unavailable": "Available in the Android app",
+    "time": "Reminder time",
+    "denied": "Notifications are turned off for Griday. Allow them in Android settings (Apps › Griday › Notifications).",
+    "notification": {
+      "title": "Puzzle #{{n}} is ready",
+      "titleGeneric": "Your daily puzzle is ready",
+      "body": "A fresh grid to solve in a few minutes.",
+      "streak_one": "Keep your {{count}}-day streak going 🔥",
+      "streak_other": "Keep your {{count}}-day streak going 🔥"
+    }
   }
 }

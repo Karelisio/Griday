@@ -20,6 +20,11 @@ const config: CapacitorConfig = {
       insetsHandling: 'css',
       initialViewportFitValueHint: 'cover',
     },
+    LocalNotifications: {
+      // Rappel quotidien : petite icône monochrome (res/drawable/ic_stat_griday.xml) et couleur d'accent de la marque.
+      smallIcon: 'ic_stat_griday',
+      iconColor: '#5B4FC4',
+    },
   },
 };
 

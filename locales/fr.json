@@ -85,6 +85,7 @@
     "show": "Voir le résultat",
     "share": "Partager",
     "remindMe": "Me rappeler chaque jour",
+    "reminderOn": "Rappel activé chaque jour à {{time}}",
     "archive": "Puzzle d’archive : il ne compte pas pour la série."
   },
   "hint": {
@@ -206,12 +207,89 @@
     "copied": "Résultat copié dans le presse-papiers"
   },
   "archive": {
-    "title": "Archives"
+    "title": "Archives",
+    "subtitle": "Les puzzles des jours passés, à jouer quand vous voulez.",
+    "previousMonth": "Mois précédent",
+    "nextMonth": "Mois suivant",
+    "day": "{{date}} : {{status}}",
+    "dayToday": "{{date}} (aujourd’hui) : {{status}}",
+    "status": {
+      "solved": "résolu le jour même",
+      "late": "résolu plus tard",
+      "frozen": "gel de série utilisé",
+      "progress": "en cours",
+      "none": "non joué"
+    },
+    "legend": "Légende",
+    "summary_one": "{{solved}} sur {{count}} jour résolu",
+    "summary_other": "{{solved}} sur {{count}} jours résolus",
+    "emptyTitle": "Pas encore d’archives",
+    "empty": "Les puzzles passés s’afficheront ici dès demain, pour les jouer ou les rattraper quand vous voulez."
   },
   "stats": {
-    "title": "Statistiques"
+    "title": "Statistiques",
+    "solved": "Résolus",
+    "average": "Temps moyen",
+    "best": "Meilleur temps",
+    "puzzles_zero": "Aucun puzzle",
+    "puzzles_one": "{{count}} puzzle",
+    "puzzles_other": "{{count}} puzzles",
+    "empty": {
+      "title": "Pas encore de statistiques",
+      "body": "Résolvez votre premier puzzle pour voir ici vos temps, votre série et vos progrès."
+    },
+    "streak": {
+      "title": "Série en cours",
+      "days_one": "jour",
+      "days_other": "jours",
+      "atRisk": "Résolvez le puzzle du jour avant minuit pour garder votre série.",
+      "done": "Puzzle du jour résolu !",
+      "start": "Résolvez le puzzle du jour pour lancer une série."
+    },
+    "freezes": {
+      "title": "Gels de série",
+      "count": "{{n}} sur {{max}}",
+      "explain": "Un gel protège votre série quand vous manquez un jour. Vous en gagnez un tous les {{every}} jours de série ({{max}} au maximum)."
+    },
+    "daily": {
+      "title": "Puzzles du jour",
+      "onTime": "Le jour même",
+      "noHint": "Sans indice",
+      "empty": "Aucun puzzle du jour résolu pour l’instant."
+    },
+    "byTier": {
+      "title": "Temps moyen par difficulté",
+      "item": "{{tier}} : {{time}}, {{puzzles}}",
+      "itemEmpty": "{{tier}} : aucun puzzle"
+    },
+    "recent": {
+      "title_one": "Votre dernier temps",
+      "title_other": "Vos {{count}} derniers temps",
+      "archive": "En archive",
+      "label": "Temps de vos {{n}} derniers puzzles du jour, du {{from}} au {{to}} : de {{min}} à {{max}}, le dernier en {{last}}.",
+      "pick": "Choisir un puzzle",
+      "needMore": "Résolvez au moins deux puzzles du jour pour voir l’évolution de vos temps."
+    },
+    "unlimited": {
+      "empty": "Aucune partie illimitée résolue pour l’instant."
+    },
+    "bySize": {
+      "title": "Par taille"
+    }
   },
   "reminder": {
-    "title": "Rappel quotidien"
+    "title": "Rappel quotidien",
+    "enable": "Activer le rappel",
+    "description": "Une notification par jour, sauf si le puzzle du jour est déjà résolu",
+    "unavailable": "Disponible dans l’application Android",
+    "time": "Heure du rappel",
+    "denied": "Les notifications sont désactivées pour Griday. Autorisez-les dans les réglages d’Android (Applications › Griday › Notifications).",
+    "notification": {
+      "title": "Le puzzle n° {{n}} est prêt",
+      "titleGeneric": "Votre puzzle du jour est prêt",
+      "body": "Une nouvelle grille à résoudre en quelques minutes.",
+      "streak_one": "Gardez votre série de {{count}} jour 🔥",
+      "streak_other": "Gardez votre série de {{count}} jours 🔥"
+    }
   }
 }

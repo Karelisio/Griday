@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Petite icône des notifications (barre d'état) : couronne monochrome, comme l'icône de l'app. Seule la
+    transparence compte : le système la peint en blanc (barre d'état) ou avec `iconColor` (volet). Provisoire.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Corps de la couronne (trait de même couleur : angles arrondis) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.6"
+        android:strokeLineJoin="round"
+        android:pathData="M5.6,20L4,10.2L8.7,14.2L12,7.6L15.3,14.2L20,10.2L18.4,20z" />
+    <!-- Perles aux trois pointes -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M2.1,9.2a1.9,1.9 0 1 0 3.8,0a1.9,1.9 0 1 0 -3.8,0zM10.1,5.6a1.9,1.9 0 1 0 3.8,0a1.9,1.9 0 1 0 -3.8,0zM18.1,9.2a1.9,1.9 0 1 0 3.8,0a1.9,1.9 0 1 0 -3.8,0z" />
+</vector>

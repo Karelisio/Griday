@@ -1,0 +1,19 @@
+/* Heure du rappel : champ natif `time` (sélecteur du système) en pastille tonale, à droite de la ligne. */
+.reminder__time {
+  flex: none;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.reminder__time:disabled {
+  background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  cursor: default;
+}
