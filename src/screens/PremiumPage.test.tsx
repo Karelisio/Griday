@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initI18n, setLanguage } from '../i18n';
 import { PLAY_REDEEM_URL } from '../monetization/config';
+import type { RestoreOutcome } from '../monetization/purchases';
 import { MonetizationProvider } from '../monetization/MonetizationContext';
 import { setPurchaseServiceForTesting } from '../monetization/purchases';
 import { EMPTY_MONETIZATION, type MonetizationState } from '../monetization/state';
@@ -79,7 +80,6 @@ describe('page Premium', () => {
 
   it.each([
     ['cancelled', 'Achat annulé.'],
-    ['pending', 'Paiement en attente de validation. Premium s’activera dès qu’il sera confirmé.'],
     ['error', 'L’achat n’a pas pu aboutir. Réessayez plus tard.'],
   ] as const)('achat « %s » : message, Premium reste inactif', async (outcome, message) => {
     renderPage({ store: { buy: outcome } });
@@ -88,6 +88,19 @@ describe('page Premium', () => {
     await toast(message);
     expect(screen.queryByText('Premium est actif')).toBeNull();
     await waitFor(() => expect(buy().disabled).toBe(false)); // l’achat peut être retenté
+  });
+
+  it('paiement en attente : message, bouton bloqué avec l’explication (pas « indisponible »), puis Premium à la confirmation', async () => {
+    const store = renderPage({ store: { buy: 'pending' } })!;
+    await waitFor(() => expect(buy().disabled).toBe(false));
+    fireEvent.click(buy());
+    await toast('Paiement en attente de validation. Premium s’activera dès qu’il sera confirmé.');
+    await waitFor(() => expect(buy().disabled).toBe(true));
+    expect(buy().getAttribute('aria-describedby')).toBeTruthy();
+    expect(document.getElementById(buy().getAttribute('aria-describedby')!)?.textContent).toMatch(/Paiement en attente/);
+    expect(screen.queryByText(/L’achat n’est pas disponible/)).toBeNull();
+    act(() => store.setOwned(true)); // paiement confirmé
+    expect(await screen.findByText('Premium est actif')).toBeTruthy();
   });
 
   it('magasin en panne pendant l’achat : message d’erreur', async () => {
@@ -151,15 +164,15 @@ describe('page Premium', () => {
 
   it('une action à la fois : achat et restauration sont désactivés pendant l’attente', async () => {
     const store = renderPage({ store: { buy: 'cancelled' } })!;
-    let finish!: (owned: boolean) => void;
-    store.restore.mockImplementationOnce(() => new Promise<boolean>((resolve) => (finish = resolve)));
+    let finish!: (outcome: RestoreOutcome) => void;
+    store.restore.mockImplementationOnce(() => new Promise<RestoreOutcome>((resolve) => (finish = resolve)));
     await waitFor(() => expect(buy().disabled).toBe(false));
     fireEvent.click(button('Restaurer mes achats'));
     await waitFor(() => expect(buy().disabled).toBe(true));
     expect(button('Restaurer mes achats').disabled).toBe(true);
     fireEvent.click(buy()); // ignoré
     expect(store.buy).not.toHaveBeenCalled();
-    await act(async () => finish(false));
+    await act(async () => finish('notFound'));
     await waitFor(() => expect(buy().disabled).toBe(false));
     await toast('Aucun achat Premium trouvé sur ce compte Google Play.');
   });

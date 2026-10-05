@@ -17,7 +17,7 @@ const BENEFITS: readonly { readonly key: 'noAds' | 'hints' | 'archives' | 'freez
 
 export function PremiumPage({ visible }: { visible: boolean }) {
   const { t } = useTranslation();
-  const { premium, price, purchaseAvailable } = useMonetization();
+  const { premium, price, purchaseAvailable, purchasePending } = useMonetization();
   const { busy, buy, restore } = usePremiumActions();
   const unavailableId = useId();
 
@@ -57,17 +57,24 @@ export function PremiumPage({ visible }: { visible: boolean }) {
             icon="workspace_premium"
             iconFilled
             fullWidth
-            disabled={!purchaseAvailable || busy}
-            aria-describedby={purchaseAvailable ? undefined : unavailableId}
+            disabled={!purchaseAvailable || purchasePending || busy}
+            aria-describedby={purchaseAvailable && !purchasePending ? undefined : unavailableId}
             onClick={() => void buy()}
           >
             {price ? t('premium.buy', { price }) : t('premium.buyNoPrice')}
           </Button>
-          {!purchaseAvailable && (
+          {purchasePending ? (
             <p id={unavailableId} className="md-typescale-body-small premium__note">
-              <Icon name="cloud_off" size={18} />
-              <span>{t('premium.unavailable')}</span>
+              <Icon name="schedule" size={18} />
+              <span>{t('premium.pending')}</span>
             </p>
+          ) : (
+            !purchaseAvailable && (
+              <p id={unavailableId} className="md-typescale-body-small premium__note">
+                <Icon name="cloud_off" size={18} />
+                <span>{t('premium.unavailable')}</span>
+              </p>
+            )
           )}
         </div>
       )}

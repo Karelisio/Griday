@@ -50,7 +50,7 @@ export const FREE_ARCHIVE_DAYS = 7;
 export const FREEZE_REWARD_EVERY_DAYS = 7;
 /** Interstitiel en mode illimité : une partie résolue sur N. */
 export const INTERSTITIAL_UNLIMITED_EVERY = 3;
-/** Délai entre la victoire et l'interstitiel : l'animation de réussite se joue d'abord. */
-export const INTERSTITIAL_DELAY_MS = 1600;
+/** Pas d'interstitiel dans les N ms qui suivent une vidéo avec récompense (deux annonces d'affilée). */
+export const INTERSTITIAL_AFTER_REWARD_MS = 3 * 60_000;
 /** Page « Utiliser un code promo » du Play Store (les codes Premium s'y échangent). */
 export const PLAY_REDEEM_URL = 'https://play.google.com/redeem';

@@ -3,3 +3,8 @@ dist/
 coverage/
 *.log
 .DS_Store
+
+# Variables de build locales (identifiants AdMob, VITE_ADS…) : voir .env.example
+.env
+.env.*
+!.env.example

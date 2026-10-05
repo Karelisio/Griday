@@ -1,14 +1,31 @@
 import type { CapacitorConfig } from '@capacitor/cli';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 /**
  * APK personnel sans publicité (`VITE_ADS=false npx cap sync`) : les plugins de monétisation ne sont
  * pas intégrés au projet Android (ni SDK publicitaire, ni facturation Google Play).
  */
 const MONETIZATION_PLUGINS = ['@capacitor-community/admob', 'cordova-plugin-purchase'];
-const adsEnabled = process.env.VITE_ADS !== 'false';
-// (Lu depuis la racine du projet, d'où se lancent les commandes `cap`.)
-const dependencies = (JSON.parse(readFileSync('package.json', 'utf8')) as { dependencies: Record<string, string> }).dependencies;
+
+/**
+ * VITE_ADS comme Vite le voit en production : environnement d'abord, puis `.env.production.local`,
+ * `.env.local`, `.env.production`, `.env` (lus depuis la racine du projet, d'où se lancent les commandes `cap`).
+ */
+function viteAds(): string | undefined {
+  if (process.env.VITE_ADS !== undefined) return process.env.VITE_ADS;
+  for (const file of ['.env.production.local', '.env.local', '.env.production', '.env']) {
+    if (!existsSync(file)) continue;
+    const line = readFileSync(file, 'utf8')
+      .split(/\r?\n/)
+      .find((l) => /^\s*VITE_ADS\s*=/.test(l));
+    if (line) return line.slice(line.indexOf('=') + 1).trim().replace(/^(['"])(.*)\1$/, '$2');
+  }
+  return undefined;
+}
+
+const adsEnabled = viteAds() !== 'false';
+const pkg = JSON.parse(readFileSync('package.json', 'utf8')) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+const dependencies = { ...pkg.devDependencies, ...pkg.dependencies };
 
 const config: CapacitorConfig = {
   // Identifiant Play Store DÉFINITIF une fois publié.

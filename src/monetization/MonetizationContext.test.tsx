@@ -6,7 +6,7 @@ import { loadJSON, saveJSON } from '../platform/storage';
 import { SnackbarHost } from '../ui';
 import { installMatchMedia } from '../ui/testing';
 import { setAdsServiceForTesting } from './ads';
-import { INTERSTITIAL_DELAY_MS, INTERSTITIAL_UNLIMITED_EVERY } from './config';
+import { INTERSTITIAL_AFTER_REWARD_MS, INTERSTITIAL_UNLIMITED_EVERY } from './config';
 import { MonetizationProvider, useMonetization, type MonetizationValue } from './MonetizationContext';
 import { setPurchaseServiceForTesting } from './purchases';
 import { EMPTY_MONETIZATION, MONETIZATION_KEY, encodeMonetization, type MonetizationState } from './state';
@@ -282,9 +282,35 @@ describe('Premium', () => {
     await waitFor(() => expect(api).toMatchObject({ price: '3,49 €', purchaseAvailable: true }));
 
     await act(async () => {
-      await expect(api.restorePurchases()).resolves.toBe(true);
+      await expect(api.restorePurchases()).resolves.toBe('owned');
     });
     await waitFor(() => expect(api.premium).toBe(true));
+  });
+
+  it('paiement en attente (espèces, validation parentale) : signalé, Premium inactif jusqu’à confirmation', async () => {
+    const store = fakePurchases({ buy: 'pending' });
+    setPurchaseServiceForTesting(store);
+    renderProvider(EMPTY_MONETIZATION);
+    await waitFor(() => expect(api.purchaseAvailable).toBe(true));
+    await act(async () => {
+      await expect(api.buyPremium()).resolves.toBe('pending');
+    });
+    await waitFor(() => expect(api.purchasePending).toBe(true));
+    expect(api.premium).toBe(false);
+    act(() => {
+      store.update({ pending: false });
+      store.setOwned(true); // paiement confirmé
+    });
+    await waitFor(() => expect(api).toMatchObject({ premium: true, purchasePending: false }));
+  });
+
+  it('restauration : magasin injoignable ≠ aucun achat', async () => {
+    setPurchaseServiceForTesting(fakePurchases({ restore: 'unavailable' }));
+    renderProvider(EMPTY_MONETIZATION);
+    await act(async () => {
+      await expect(api.restorePurchases()).resolves.toBe('unavailable');
+    });
+    expect(api.premium).toBe(false);
   });
 
   it('sans magasin (navigateur) : achat indisponible, restauration vide', async () => {
@@ -292,7 +318,7 @@ describe('Premium', () => {
     expect(api).toMatchObject({ price: null, purchaseAvailable: false });
     await act(async () => {
       await expect(api.buyPremium()).resolves.toBe('error');
-      await expect(api.restorePurchases()).resolves.toBe(false);
+      await expect(api.restorePurchases()).resolves.toBe('unavailable');
     });
   });
 });
@@ -314,13 +340,15 @@ describe('état enregistré', () => {
     expect(api.freezeClaimedOn).toBeNull();
   });
 
-  it('avant la lecture du stockage, rien n’est écrit par-dessus l’état enregistré', async () => {
+  it('avant la lecture du stockage : les changements attendent, puis s’ajoutent à l’état enregistré', async () => {
     await saveJSON(MONETIZATION_KEY, encodeMonetization({ ...EMPTY_MONETIZATION, premium: true, unlocked: ['2026-10-08'] }));
     renderProvider();
-    act(() => api.unlockArchive('2026-10-09')); // état pas encore lu : ignoré
-    await waitFor(() => expect(api.premium).toBe(true));
-    expect([...api.unlocked]).toEqual(['2026-10-08']);
-    expect(await loadJSON(MONETIZATION_KEY)).toMatchObject({ premium: true, unlocked: ['2026-10-08'] });
+    expect(api.ready).toBe(false);
+    act(() => api.unlockArchive('2026-10-09')); // état pas encore lu : mis en attente
+    await waitFor(() => expect(api.ready).toBe(true));
+    expect(api.premium).toBe(true);
+    expect([...api.unlocked]).toEqual(['2026-10-08', '2026-10-09']);
+    expect(await loadJSON(MONETIZATION_KEY)).toMatchObject({ premium: true, unlocked: ['2026-10-08', '2026-10-09'] });
   });
 
   it('archives débloquées et gel réclamé : enregistrés, sans doublon', async () => {
@@ -340,114 +368,175 @@ describe('état enregistré', () => {
 });
 
 describe('annonces et consentement', () => {
-  /** Faux minuteries (setTimeout seul) : le démarrage différé des annonces et le délai des interstitiels. */
+  /** Faux minuteries : l'attente de la réponse du magasin et l'horloge (délai après une vidéo). */
   const fakeTimers = () => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
   const advance = (ms: number) => act(async () => void (await vi.advanceTimersByTimeAsync(ms)));
+  const settle = () => act(async () => void (await new Promise((r) => setTimeout(r, 0))));
+  const transition = () => act(async () => api.showPendingInterstitial());
+  /** App au premier plan ou en arrière-plan (navigateur : visibilitychange). */
+  const setVisible = (visible: boolean) => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => (visible ? 'visible' : 'hidden') });
+    act(() => void document.dispatchEvent(new Event('visibilitychange')));
+  };
+  afterEach(() => setVisible(true));
 
-  it('les annonces démarrent peu après l’ouverture, seulement en version gratuite', async () => {
+  it('consentement relu en silence dès que le magasin a répondu, en version gratuite seulement', async () => {
+    const ads = fakeAds();
+    setAdsServiceForTesting(ads);
+    setPurchaseServiceForTesting(fakePurchases({ owned: false }));
+    renderProvider(EMPTY_MONETIZATION);
+    await waitFor(() => expect(ads.start).toHaveBeenCalledTimes(1));
+    expect(ads.prepareInterstitial).not.toHaveBeenCalled(); // rien de chargé sans occasion
+  });
+
+  it('magasin muet : les annonces attendent sa réponse quelques secondes avant de démarrer', async () => {
     fakeTimers();
     const ads = fakeAds();
     setAdsServiceForTesting(ads);
+    const store = fakePurchases();
+    store.start.mockImplementation(async () => {}); // ne répond jamais
+    setPurchaseServiceForTesting(store);
     renderProvider(EMPTY_MONETIZATION);
+    await advance(5000);
     expect(ads.start).not.toHaveBeenCalled();
-    await advance(3000);
+    await advance(4000);
     expect(ads.start).toHaveBeenCalledTimes(1);
   });
 
-  it('Premium : le SDK n’est jamais démarré, aucun interstitiel', async () => {
-    fakeTimers();
+  it('acheteur Premium (nouvelle installation) : le magasin répond avant tout démarrage des annonces', async () => {
+    const ads = fakeAds();
+    setAdsServiceForTesting(ads);
+    setPurchaseServiceForTesting(fakePurchases({ owned: true }));
+    renderProvider(EMPTY_MONETIZATION);
+    await waitFor(() => expect(api.premium).toBe(true));
+    await settle();
+    expect(ads.start).not.toHaveBeenCalled();
+  });
+
+  it('Premium : ni démarrage des annonces, ni interstitiel', async () => {
     const ads = fakeAds();
     setAdsServiceForTesting(ads);
     renderProvider({ ...EMPTY_MONETIZATION, premium: true });
-    await advance(3000);
+    await settle();
     act(() => api.notifySolved({ mode: 'daily', date: '2026-10-07' }));
-    await advance(INTERSTITIAL_DELAY_MS * 2);
+    await transition();
     expect(ads.start).not.toHaveBeenCalled();
+    expect(ads.prepareInterstitial).not.toHaveBeenCalled();
     expect(ads.showInterstitial).not.toHaveBeenCalled();
   });
 
-  it('choix de confidentialité : proposés si le consentement l’exige, rouverts à la demande', async () => {
-    fakeTimers();
+  it('choix de confidentialité : proposés si le consentement l’exige, suivis quand ils changent, rouverts à la demande', async () => {
     const ads = fakeAds('rewarded', { privacyOptions: true });
     setAdsServiceForTesting(ads);
     renderProvider(EMPTY_MONETIZATION);
+    await waitFor(() => expect(api.privacyOptionsRequired).toBe(true));
+    act(() => ads.setPrivacyOptions(false));
     expect(api.privacyOptionsRequired).toBe(false);
-    await advance(3000);
+    act(() => ads.setPrivacyOptions(true));
     expect(api.privacyOptionsRequired).toBe(true);
-
     await act(async () => api.showPrivacyOptions());
     expect(ads.showPrivacyOptions).toHaveBeenCalledTimes(1);
   });
 
-  it('puzzle du jour résolu : un seul interstitiel, après le délai de l’animation de réussite', async () => {
-    fakeTimers();
+  it('puzzle du jour résolu : interstitiel préparé, montré à la transition suivante, une seule fois', async () => {
     const ads = fakeAds();
     setAdsServiceForTesting(ads);
     renderProvider(EMPTY_MONETIZATION);
-    await advance(3000);
+    await settle();
 
     act(() => api.notifySolved({ mode: 'daily', date: '2026-10-07' }));
-    await advance(INTERSTITIAL_DELAY_MS - 100);
-    expect(ads.showInterstitial).not.toHaveBeenCalled();
-    await advance(200);
+    await settle();
+    expect(ads.prepareInterstitial).toHaveBeenCalledTimes(1);
+    expect(ads.showInterstitial).not.toHaveBeenCalled(); // jamais sur une minuterie
+    await transition();
+    expect(ads.showInterstitial).toHaveBeenCalledTimes(1);
+    await transition(); // plus rien de dû
     expect(ads.showInterstitial).toHaveBeenCalledTimes(1);
 
     // Même puzzle (rattrapage au redémarrage…) : pas un second.
     act(() => api.notifySolved({ mode: 'daily', date: '2026-10-07' }));
-    await advance(INTERSTITIAL_DELAY_MS + 100);
+    await transition();
     expect(ads.showInterstitial).toHaveBeenCalledTimes(1);
 
     // Puzzle du lendemain : à nouveau un.
     act(() => api.notifySolved({ mode: 'daily', date: '2026-10-08' }));
-    await advance(INTERSTITIAL_DELAY_MS + 100);
+    await transition();
     expect(ads.showInterstitial).toHaveBeenCalledTimes(2);
     expect(await loadJSON(MONETIZATION_KEY)).toMatchObject({ dailyInterstitialFor: '2026-10-08' });
   });
 
   it(`mode illimité : une partie résolue sur ${INTERSTITIAL_UNLIMITED_EVERY}`, async () => {
-    fakeTimers();
     const ads = fakeAds();
     setAdsServiceForTesting(ads);
     renderProvider(EMPTY_MONETIZATION);
-    await advance(3000);
+    await settle();
 
     const shown: number[] = [];
     for (let i = 0; i < 2 * INTERSTITIAL_UNLIMITED_EVERY; i++) {
       act(() => api.notifySolved({ mode: 'unlimited' }));
-      await advance(INTERSTITIAL_DELAY_MS + 100);
+      await transition();
       shown.push(ads.showInterstitial.mock.calls.length);
     }
     expect(shown).toEqual([0, 0, 1, 1, 1, 2]);
     expect(await loadJSON(MONETIZATION_KEY)).toMatchObject({ unlimitedSolved: 6 });
   });
 
-  it('interstitiel périmé (app restée en arrière-plan) : sauté', async () => {
-    fakeTimers();
+  it('app en arrière-plan à la transition : interstitiel abandonné', async () => {
     const ads = fakeAds();
     setAdsServiceForTesting(ads);
     renderProvider(EMPTY_MONETIZATION);
-    await advance(3000);
-
+    await settle();
     act(() => api.notifySolved({ mode: 'daily', date: '2026-10-07' }));
-    // L'horloge saute de plusieurs secondes avant que la minuterie ne soit servie.
-    vi.setSystemTime(Date.now() + 60_000);
-    await advance(INTERSTITIAL_DELAY_MS + 100);
+    setVisible(false);
+    await transition();
+    setVisible(true);
+    await transition();
     expect(ads.showInterstitial).not.toHaveBeenCalled();
   });
 
-  it('Premium acheté entre la victoire et l’interstitiel : annulé', async () => {
-    fakeTimers();
+  it('dialogue des vidéos ouvert : pas d’interstitiel par-dessus', async () => {
+    const ads = fakeAds();
+    setAdsServiceForTesting(ads);
+    renderProvider(EMPTY_MONETIZATION);
+    await settle();
+    act(() => api.notifySolved({ mode: 'daily', date: '2026-10-07' }));
+    void ask('hint');
+    await dialog('Débloquer cet indice');
+    await transition();
+    expect(ads.showInterstitial).not.toHaveBeenCalled();
+  });
+
+  it('juste après une vidéo avec récompense : pas d’interstitiel (deux annonces d’affilée)', async () => {
+    const ads = fakeAds('rewarded');
+    setAdsServiceForTesting(ads);
+    renderProvider(EMPTY_MONETIZATION);
+    await settle();
+    const reward = ask('hint');
+    fireEvent.click(within(await dialog('Débloquer cet indice')).getByRole('button', { name: /^Regarder/ }));
+    expect(await reward).toBe(true);
+
+    act(() => api.notifySolved({ mode: 'daily', date: '2026-10-07' }));
+    await transition();
+    expect(ads.showInterstitial).not.toHaveBeenCalled();
+
+    // Bien plus tard, un nouveau puzzle du jour : de nouveau un interstitiel.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.now() + INTERSTITIAL_AFTER_REWARD_MS + 1000);
+    act(() => api.notifySolved({ mode: 'daily', date: '2026-10-08' }));
+    await transition();
+    expect(ads.showInterstitial).toHaveBeenCalledTimes(1);
+  });
+
+  it('Premium acheté entre la victoire et la transition : interstitiel annulé', async () => {
     const ads = fakeAds();
     setAdsServiceForTesting(ads);
     const store = fakePurchases();
     setPurchaseServiceForTesting(store);
     renderProvider(EMPTY_MONETIZATION);
-    await advance(3000);
-
+    await settle();
     act(() => api.notifySolved({ mode: 'daily', date: '2026-10-07' }));
-    await advance(300);
     act(() => store.setOwned(true));
-    await advance(INTERSTITIAL_DELAY_MS);
+    await transition();
     expect(ads.showInterstitial).not.toHaveBeenCalled();
   });
 });

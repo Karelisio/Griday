@@ -173,8 +173,11 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
     void saveJSON(UNLIMITED_PREFS_KEY, fitted);
   };
 
+  const { notifySolved, showPendingInterstitial } = useMonetization();
   const start = async () => {
     setPickerOpen(false);
+    // Interstitiel dû (une partie illimitée sur N) : à cette transition voulue, avant la nouvelle grille.
+    await showPendingInterstitial();
     setLoading(true);
     setError(false);
     try {
@@ -193,7 +196,6 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
   };
 
   const { recordUnlimited } = useProgress();
-  const { notifySolved } = useMonetization();
   const played = current?.target;
   const playedType = current?.puzzle.type;
   const onSolved = useCallback(

@@ -8,7 +8,6 @@ import { SettingsScreen } from '../screens/SettingsScreen';
 import { SnackbarHost } from '../ui';
 import { installMatchMedia } from '../ui/testing';
 import { setAdsServiceForTesting } from './ads';
-import { INTERSTITIAL_DELAY_MS } from './config';
 import { MonetizationProvider, useMonetization, type MonetizationValue } from './MonetizationContext';
 import { setPurchaseServiceForTesting } from './purchases';
 import { EMPTY_MONETIZATION } from './state';
@@ -58,7 +57,8 @@ describe('build sans publicité', () => {
 
     await advance(3000);
     act(() => api.notifySolved({ mode: 'daily', date: '2026-10-07' }));
-    await advance(INTERSTITIAL_DELAY_MS * 2);
+    await act(async () => api.showPendingInterstitial());
+    await advance(10_000);
     expect(ads.start).not.toHaveBeenCalled();
     expect(ads.showRewarded).not.toHaveBeenCalled();
     expect(ads.showInterstitial).not.toHaveBeenCalled();

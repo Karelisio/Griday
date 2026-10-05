@@ -1,17 +1,23 @@
 name: APK Android
 
-# Deux variantes à chaque push :
-# - « pub »   : publicités AdMob + achat Premium (blocs réels si les secrets sont définis, sinon blocs de test) ;
-# - « perso » : VITE_ADS=false, sans publicité ni achat (plugins de monétisation exclus du projet Android).
-# Signature : keystore de publication si les secrets ANDROID_KEYSTORE_* sont définis (APK + AAB de release),
-# sinon APK de debug (signé avec une clé de debug, installable directement).
-# Tag « v* » : les fichiers sont joints à une release GitHub.
+# À chaque push : l'APK « pub » (publicités AdMob + achat Premium).
+# - Release signée (APK + AAB) si les secrets ANDROID_KEYSTORE_* sont définis, avec les vrais identifiants AdMob ;
+#   sinon APK de debug (clé de debug, installable directement) et annonces de TEST uniquement.
+# - Tag « v* » : APK et AAB joints à une release GitHub.
+# L'APK « perso » (VITE_ADS=false : sans publicité ni achat, tout débloqué) n'est construit qu'à la demande
+# (lancement manuel, case « perso ») et n'est jamais joint à une release : sur un dépôt public, les artefacts
+# sont téléchargeables par tout compte GitHub.
 
 on:
   push:
     branches: ['**']
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      perso:
+        description: 'Construire aussi l’APK perso (sans pub, tout débloqué) — artefact visible de quiconque peut lire le dépôt'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -26,16 +32,15 @@ jobs:
     name: APK ${{ matrix.variant }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: write # release GitHub sur un tag
     strategy:
       fail-fast: false
       matrix:
-        variant: [pub, perso]
+        variant: ${{ fromJSON(inputs.perso && '["pub","perso"]' || '["pub"]') }}
     env:
       VITE_ADS: ${{ matrix.variant == 'perso' && 'false' || 'true' }}
-      VITE_ADMOB_REWARDED_ID: ${{ secrets.ADMOB_REWARDED_ID }}
-      VITE_ADMOB_INTERSTITIAL_ID: ${{ secrets.ADMOB_INTERSTITIAL_ID }}
       VITE_PREMIUM_PRODUCT_ID: ${{ vars.PREMIUM_PRODUCT_ID }}
-      ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
     steps:
       - uses: actions/checkout@v5
 
@@ -52,24 +57,42 @@ jobs:
 
       - run: npm ci
 
-      - name: Build web (${{ matrix.variant }})
-        run: npm run build
-
-      - name: Synchronisation Capacitor
-        run: npx cap sync android
-
-      - name: Keystore de publication
+      # Avant le build web : le type de build décide des identifiants AdMob (réels seulement en release signée).
+      - name: Keystore et identifiants AdMob
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
+          ADMOB_REWARDED_ID: ${{ secrets.ADMOB_REWARDED_ID }}
+          ADMOB_INTERSTITIAL_ID: ${{ secrets.ADMOB_INTERSTITIAL_ID }}
         run: |
           if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
             echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
             echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
             echo "BUILD_TYPE=release" >> "$GITHUB_ENV"
+            if [ "$VITE_ADS" = true ]; then
+              if [ -n "$ADMOB_APP_ID" ] && [ -n "$ADMOB_REWARDED_ID" ] && [ -n "$ADMOB_INTERSTITIAL_ID" ]; then
+                {
+                  echo "ADMOB_APP_ID=$ADMOB_APP_ID"
+                  echo "VITE_ADMOB_REWARDED_ID=$ADMOB_REWARDED_ID"
+                  echo "VITE_ADMOB_INTERSTITIAL_ID=$ADMOB_INTERSTITIAL_ID"
+                } >> "$GITHUB_ENV"
+              elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+                echo "::error::Release publiée sans identifiants AdMob (secrets ADMOB_APP_ID, ADMOB_REWARDED_ID, ADMOB_INTERSTITIAL_ID) : elle ne servirait que des annonces de test."
+                exit 1
+              else
+                echo "::warning::Release signée sans identifiants AdMob : annonces de test uniquement."
+              fi
+            fi
           else
-            echo "::notice::Pas de keystore (secret ANDROID_KEYSTORE_BASE64) : APK de debug."
+            echo "::notice::Pas de keystore (secret ANDROID_KEYSTORE_BASE64) : APK de debug, annonces de test."
             echo "BUILD_TYPE=debug" >> "$GITHUB_ENV"
           fi
+
+      - name: Build web (${{ matrix.variant }})
+        run: npm run build
+
+      - name: Synchronisation Capacitor
+        run: npx cap sync android
 
       - name: Gradle
         working-directory: android
@@ -103,20 +126,14 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  release:
-    name: Release GitHub
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: apk
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v5
-        with:
-          path: out
-          merge-multiple: true
-
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: out/*
-          generate_release_notes: true
+      # Release GitHub (CLI gh du runner, aucune action tierce) : seulement l'APK « pub ».
+      - name: Release GitHub
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.variant == 'pub'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" out/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" out/* --generate-notes --verify-tag
+          fi

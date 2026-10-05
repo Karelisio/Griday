@@ -41,22 +41,28 @@ function renderApp() {
 }
 
 describe('Premium dans l’application', () => {
-  it('réglages : « Passer à Premium » ouvre la page Premium, que le retour referme', async () => {
+  it('réglages : « Passer à Premium » ouvre la page Premium par-dessus ; le retour revient aux réglages, puis au jeu', async () => {
     renderApp();
     const gear = screen.getByRole('button', { name: 'Réglages' });
     gear.focus(); // un vrai toucher donne le focus au bouton : c'est lui que la fermeture doit retrouver
     fireEvent.click(gear);
     expect(await screen.findByRole('heading', { name: 'Premium', level: 2 })).toBeTruthy();
-    fireEvent.click(screen.getByText('Passer à Premium').closest('button')!);
+    const upgrade = screen.getByText('Passer à Premium').closest('button')!;
+    upgrade.focus();
+    fireEvent.click(upgrade);
 
     expect(await screen.findByRole('heading', { name: 'Griday Premium' })).toBeTruthy();
-    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Réglages' })).toBeNull());
     await waitFor(() => expect(screen.getByRole('button', { name: /^Passer à Premium pour 2,99\s€$/ }).hasAttribute('disabled')).toBe(false));
 
+    // Retour : les réglages, focus sur la ligne qui avait ouvert Premium.
     act(() => void dispatchBack());
     await waitFor(() => expect(premiumTitle()).toBeNull());
+    expect(screen.getByRole('heading', { name: 'Réglages' })).toBeTruthy();
+    await waitFor(() => expect(document.activeElement).toBe(upgrade));
+    // Retour : le jeu, focus sur l'engrenage.
+    act(() => void dispatchBack());
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Réglages' })).toBeNull());
     expect(screen.getByRole('heading', { name: 'Puzzle du jour' })).toBeTruthy();
-    // Le focus revient au déclencheur d'origine (l'engrenage), pas à une ligne des réglages disparue.
     await waitFor(() => expect(document.activeElement).toBe(gear));
   });
 

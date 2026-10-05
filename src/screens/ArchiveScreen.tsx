@@ -37,29 +37,35 @@ export function ArchiveScreen({ visible, onOpen }: { visible: boolean; onOpen: (
   const changeMonth = (next: MonthRef) => setPicked(diffMonths(next, current) === 0 ? null : next);
 
   // Parties entamées du mois affiché : relues à chaque retour sur l'écran et à chaque partie terminée.
-  const [started, setStarted] = useState<ReadonlySet<ISODate>>(() => new Set());
+  // (Rattachées à leur mois : celles d'un autre mois ne valent rien ici.)
+  const [startedOf, setStartedOf] = useState<{ readonly month: string; readonly days: ReadonlySet<ISODate> } | null>(null);
   useEffect(() => {
     if (!visible) return;
     let cancelled = false;
     void loadStartedDays(days).then((set) => {
-      if (!cancelled) setStarted(set);
+      if (!cancelled) setStartedOf({ month: key, days: set });
     });
     return () => {
       cancelled = true;
     };
-  }, [visible, days, history]);
+  }, [visible, days, key, history]);
+  const started = useMemo(() => startedOf?.days ?? new Set<ISODate>(), [startedOf]);
 
   const frozen = useMemo(() => new Set(streak.frozen), [streak.frozen]);
   const status = useCallback((date: ISODate) => dayStatus(date, history, frozen, started), [history, frozen, started]);
 
-  // Verrouillage : jamais pour un jour déjà commencé ou résolu, ni en Premium.
-  const { unlimited, unlocked, requestReward, unlockArchive } = useMonetization();
+  // Verrouillage : jamais pour un jour déjà commencé ou résolu, ni en Premium. Rien n'est verrouillé
+  // tant que les parties entamées du mois et l'état Premium ne sont pas connus (pas de cadenas fugace).
+  const { ready: monetizationReady, unlimited, unlocked, requestReward, unlockArchive } = useMonetization();
+  const locksKnown = monetizationReady && (unlimited || startedOf?.month === key);
   const locked = useCallback(
-    (date: ISODate) => archiveLocked(date, today, { unlimited, unlocked, played: history.has(date) || started.has(date) }),
-    [today, unlimited, unlocked, history, started],
+    (date: ISODate) => locksKnown && archiveLocked(date, today, { unlimited, unlocked, played: history.has(date) || started.has(date) }),
+    [locksKnown, today, unlimited, unlocked, history, started],
   );
   const anyLocked = days.some(locked);
   const select = async (date: ISODate) => {
+    // Verrous pas encore connus (fraction de seconde à l'ouverture) : le toucher attend.
+    if (!locksKnown) return;
     if (locked(date)) {
       // Jour verrouillé : la vidéo regardée, il est débloqué pour toujours puis ouvert.
       if (!(await requestReward('archive'))) return;

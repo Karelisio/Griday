@@ -42,7 +42,7 @@ Pile vide : le gestionnaire du plugin App est désactivé et Android joue l'anim
 - AdMob (`@capacitor-community/admob`) : vidéos avec récompense et interstitiels, consentement RGPD par l'UMP de Google. Code : `src/monetization/`.
 - Premium : produit non consommable Google Play (`cordova-plugin-purchase`, plugin Cordova intégré par Capacitor dans `capacitor-cordova-android-plugins/`).
 - Identifiants : application AdMob via `ADMOB_APP_ID` (Gradle) ; blocs d'annonces via `VITE_ADMOB_REWARDED_ID` et `VITE_ADMOB_INTERSTITIAL_ID` (build web). Sans eux, ou en développement, ce sont ceux **de test** de Google. Produit Premium : `VITE_PREMIUM_PRODUCT_ID` (défaut `griday_premium`).
-- APK personnel sans publicité : `VITE_ADS=false npm run build && VITE_ADS=false npx cap sync android`. `capacitor.config.ts` exclut alors les deux plugins de monétisation du projet (ni SDK publicitaire, ni facturation, ni permission `AD_ID`) et l'app débloque tout.
+- APK personnel sans publicité : `VITE_ADS=false npm run build && VITE_ADS=false npx cap sync android` (ou `VITE_ADS=false` dans `.env.local`, lu par Vite comme par `capacitor.config.ts`). `capacitor.config.ts` exclut alors les deux plugins de monétisation du projet (ni SDK publicitaire, ni facturation, ni permission `AD_ID`) et l'app débloque tout.
 
 ## Compiler
 
@@ -59,7 +59,7 @@ Version de release signée : définir `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE
 
 ### GitHub Actions (`.github/workflows/android.yml`)
 
-À chaque push, deux APK en artefacts : `pub` (publicités + Premium) et `perso` (`VITE_ADS=false`). Un tag `v*` les joint à une release GitHub.
+À chaque push, l'APK `pub` (publicités + Premium) en artefact : release signée avec les vrais identifiants AdMob si le keystore est fourni, sinon APK de debug avec annonces de test. Un tag `v*` joint APK et AAB à une release GitHub (refusée sans identifiants AdMob). L'APK `perso` (`VITE_ADS=false`) ne se construit qu'à la demande (lancement manuel, case « perso ») et n'est jamais publié : sur un dépôt public, les artefacts sont téléchargeables par tout compte GitHub.
 
 | Secret / variable | Rôle |
 | --- | --- |

@@ -48,8 +48,9 @@ const progress = (): ProgressData => ({
   streak: { ...EMPTY_STREAK, frozen: ['2026-11-04'], settledThrough: '2026-11-17' },
 });
 
-function renderScreen({ onOpen = () => {}, monetization = EMPTY_MONETIZATION }: { onOpen?: (date: ISODate) => void; monetization?: MonetizationState } = {}) {
-  return render(
+/** Rendu, puis attente des verrous : ils n'apparaissent qu'une fois les parties entamées du mois relues. */
+async function renderScreen({ onOpen = () => {}, monetization = EMPTY_MONETIZATION }: { onOpen?: (date: ISODate) => void; monetization?: MonetizationState } = {}) {
+  const view = render(
     <SnackbarHost closeLabel="Fermer">
       <ProgressProvider initial={progress()}>
         <MonetizationProvider initial={monetization}>
@@ -58,6 +59,10 @@ function renderScreen({ onOpen = () => {}, monetization = EMPTY_MONETIZATION }: 
       </ProgressProvider>
     </SnackbarHost>,
   );
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 0));
+  });
+  return view;
 }
 
 const day = (date: ISODate) => document.querySelector<HTMLButtonElement>(`button[data-date="${date}"]`)!;
@@ -69,7 +74,7 @@ const legend = () => [...document.querySelectorAll<HTMLElement>('.archive-cal__l
 describe('archives verrouillées', () => {
   it(`les ${FREE_ARCHIVE_DAYS} derniers jours sont libres ; les plus anciens non joués sont verrouillés (cadenas et statut)`, async () => {
     await saveJSON(dailyProgressKey('2026-11-05'), { marks: '0200000', past: ['0000000'] }); // partie entamée
-    renderScreen();
+    await renderScreen();
 
     expect(label('2026-11-18')).toBe(`mercredi 18 novembre 2026 (aujourd’hui), Reines${NBSP}: non joué`);
     expect(label('2026-11-11')).toBe(`mercredi 11 novembre 2026, Binairo${NBSP}: non joué`); // 7 jours : encore libre
@@ -92,23 +97,23 @@ describe('archives verrouillées', () => {
     expect(day('2026-11-19').disabled).toBe(true);
   });
 
-  it('un jour gelé mais jamais joué est verrouillé comme les autres (le cadenas prend le pas)', () => {
-    renderScreen();
+  it('un jour gelé mais jamais joué est verrouillé comme les autres (le cadenas prend le pas)', async () => {
+    await renderScreen();
     expect(label('2026-11-04')).toBe(`mercredi 4 novembre 2026, Reines${NBSP}: verrouillé`);
   });
 
-  it('légende et explication : « verrouillé » n’apparaît que si le mois affiché compte un jour verrouillé', () => {
-    renderScreen();
+  it('légende et explication : « verrouillé » n’apparaît que si le mois affiché compte un jour verrouillé', async () => {
+    await renderScreen();
     expect(legend().map((item) => item.textContent)).toEqual(['résolu à temps', 'résolu plus tard', 'gel de série utilisé', 'en cours', 'verrouillé']);
     expect(legend().at(-1)!.querySelector('svg')).not.toBeNull();
     expect(screen.getByText(`Les ${FREE_ARCHIVE_DAYS} derniers jours sont libres. Pour un puzzle plus ancien, une courte vidéo le débloque pour de bon. Premium ouvre toutes les archives.`)).toBeTruthy();
   });
 
-  it('un jour libre s’ouvre tout de suite, sans vidéo', () => {
+  it('un jour libre s’ouvre tout de suite, sans vidéo', async () => {
     const onOpen = vi.fn();
     const ads = fakeAds();
     setAdsServiceForTesting(ads);
-    renderScreen({ onOpen });
+    await renderScreen({ onOpen });
     fireEvent.click(day('2026-11-11'));
     fireEvent.click(day('2026-11-18'));
     fireEvent.click(day('2026-11-03')); // résolu
@@ -121,7 +126,7 @@ describe('archives verrouillées', () => {
     const onOpen = vi.fn();
     const ads = fakeAds('rewarded');
     setAdsServiceForTesting(ads);
-    renderScreen({ onOpen });
+    await renderScreen({ onOpen });
 
     fireEvent.click(day('2026-11-10'));
     const box = await rewardDialog();
@@ -148,7 +153,7 @@ describe('archives verrouillées', () => {
     const onOpen = vi.fn();
     const ads = fakeAds();
     setAdsServiceForTesting(ads);
-    renderScreen({ onOpen });
+    await renderScreen({ onOpen });
 
     fireEvent.click(day('2026-11-09'));
     fireEvent.click(within(await rewardDialog()).getByRole('button', { name: 'Annuler' }));
@@ -166,7 +171,7 @@ describe('archives verrouillées', () => {
   ] as const)('vidéo %s : message, le jour reste verrouillé et rien ne s’ouvre', async (outcome, message) => {
     const onOpen = vi.fn();
     setAdsServiceForTesting(fakeAds(outcome));
-    renderScreen({ onOpen });
+    await renderScreen({ onOpen });
 
     fireEvent.click(day('2026-11-09'));
     fireEvent.click(within(await rewardDialog()).getByRole('button', { name: 'Regarder' }));
@@ -178,20 +183,20 @@ describe('archives verrouillées', () => {
     expect(await loadJSON(MONETIZATION_KEY)).toBeUndefined();
   });
 
-  it('jour déjà débloqué (état enregistré) : ouvert sans vidéo, même après un redémarrage', () => {
+  it('jour déjà débloqué (état enregistré) : ouvert sans vidéo, même après un redémarrage', async () => {
     const onOpen = vi.fn();
     const ads = fakeAds();
     setAdsServiceForTesting(ads);
-    renderScreen({ onOpen, monetization: { ...EMPTY_MONETIZATION, unlocked: ['2026-11-08'] } });
+    await renderScreen({ onOpen, monetization: { ...EMPTY_MONETIZATION, unlocked: ['2026-11-08'] } });
     expect(label('2026-11-08')).toBe(`dimanche 8 novembre 2026, Reines${NBSP}: non joué`);
     fireEvent.click(day('2026-11-08'));
     expect(onOpen).toHaveBeenCalledWith('2026-11-08');
     expect(ads.showRewarded).not.toHaveBeenCalled();
   });
 
-  it('Premium : tout est ouvert, ni cadenas, ni légende, ni explication', () => {
+  it('Premium : tout est ouvert, ni cadenas, ni légende, ni explication', async () => {
     const onOpen = vi.fn();
-    renderScreen({ onOpen, monetization: { ...EMPTY_MONETIZATION, premium: true } });
+    await renderScreen({ onOpen, monetization: { ...EMPTY_MONETIZATION, premium: true } });
     expect(lockedDays()).toEqual([]);
     expect(label('2026-11-02')).toBe(`lundi 2 novembre 2026, Reines${NBSP}: non joué`);
     expect(legend().map((item) => item.dataset['status'])).toEqual(['solved', 'late', 'frozen', 'progress']);
@@ -201,18 +206,19 @@ describe('archives verrouillées', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('mois précédent : presque tout est verrouillé, sauf le 5 octobre déjà résolu', () => {
-    renderScreen();
+  it('mois précédent : presque tout est verrouillé, sauf le 5 octobre déjà résolu', async () => {
+    await renderScreen();
     fireEvent.click(screen.getByRole('button', { name: 'Mois précédent' }));
     expect(label('2026-10-05')).toBe(`lundi 5 octobre 2026, Reines${NBSP}: résolu à temps`);
-    expect(lockedDays()).toHaveLength(27 - 1); // du 5 au 31 octobre, moins le jour résolu
+    // Verrous du mois affichés une fois ses parties entamées relues.
+    await waitFor(() => expect(lockedDays()).toHaveLength(27 - 1)); // du 5 au 31 octobre, moins le jour résolu
     expect(lockedDays()).not.toContain('2026-10-05');
     expect(legend().at(-1)!.textContent).toBe('verrouillé');
   });
 
   it('anglais : statut, légende et explication traduits', async () => {
     await act(() => setLanguage('en'));
-    renderScreen();
+    await renderScreen();
     expect(label('2026-11-10')).toBe('Tuesday, November 10, 2026, Queens: locked');
     expect(legend().at(-1)!.textContent).toBe('locked');
     expect(screen.getByText(/The last 7 days are free/)).toBeTruthy();

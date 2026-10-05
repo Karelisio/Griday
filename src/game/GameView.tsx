@@ -294,7 +294,13 @@ export function GameView<P>({ kind, puzzle, session: api, victoryExtra, victoryC
               onClick={() => setResetOpen(true)}
             />
           </div>
-          <ExtendedFab icon="lightbulb" color="primary" onClick={() => void askHint()} disabled={hintLoading || sheetOpen}>
+          <ExtendedFab
+            // Indices gratuits épuisés : l'icône annonce qu'une courte vidéo sera proposée.
+            icon={hintNeedsReward(game.hintsUsed, unlimited) ? 'smart_display' : 'lightbulb'}
+            color="primary"
+            onClick={() => void askHint()}
+            disabled={hintLoading || sheetOpen}
+          >
             {t('game.hint')}
           </ExtendedFab>
         </div>

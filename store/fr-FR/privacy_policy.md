@@ -7,7 +7,7 @@ Griday est un jeu de logique quotidien. Cette page explique quelles données son
 ## Ce que Griday ne collecte pas
 
 - Pas de compte, pas de serveur Griday : les grilles sont générées sur votre téléphone.
-- Votre progression (résultats, série, statistiques, réglages) est enregistrée **uniquement sur votre appareil**. Désinstaller l’application l’efface.
+- Votre progression (résultats, série, statistiques, réglages) est enregistrée **sur votre appareil**, et nulle part ailleurs pour Griday. Si la sauvegarde Android est activée, elle est incluse dans votre sauvegarde Google personnelle (restaurée sur un nouvel appareil). Désinstaller l’application l’efface de l’appareil.
 - Le rappel quotidien est une notification locale, programmée sur votre téléphone, sans serveur.
 
 ## Publicités (version gratuite)

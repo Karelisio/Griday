@@ -13,4 +13,6 @@ ext {
     androidxJunitVersion = '1.3.0'
     androidxEspressoCoreVersion = '3.7.0'
     cordovaAndroidVersion = '14.0.1'
+    // AdMob : version figée (le plugin demande « 25.4.+ », une version mouvante d'un build à l'autre).
+    playServicesAdsVersion = '25.4.0'
 }

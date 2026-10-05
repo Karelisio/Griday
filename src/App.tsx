@@ -6,7 +6,7 @@ import { engine } from './engine-client/client';
 import { resolveLanguage, setLanguage } from './i18n';
 import { MonetizationProvider, useMonetization } from './monetization/MonetizationContext';
 import { applySystemBarsStyle, getAppVersion, onSystemPalettesChanged, pushBackHandler, setHapticsEnabled, type SystemPalettes } from './platform';
-import { dailyProgressKey, dailyPuzzleKey, pruneStorage, selfCheckKey, UNLIMITED_CURRENT_KEY } from './persistence';
+import { dailyProgressKey, dailyPuzzleKey, dailyStartedKey, pruneStorage, selfCheckKey, UNLIMITED_CURRENT_KEY } from './persistence';
 import { loadJSON, removeKey, saveJSON } from './platform/storage';
 import { ScreenBoundary } from './ScreenBoundary';
 import { ArchiveGamePage } from './screens/ArchiveGamePage';
@@ -29,6 +29,9 @@ import './App.css';
 
 type Tab = 'today' | 'archive' | 'unlimited' | 'stats';
 type Page = { readonly kind: 'settings' } | { readonly kind: 'premium' } | { readonly kind: 'archive'; readonly date: ISODate };
+const pageKey = (p: Page) => (p.kind === 'archive' ? `archive-${p.date}` : p.kind);
+/** Préfixe des clés « premier coup » d'un puzzle du jour (voir persistence.ts). */
+const STARTED_PREFIX = dailyStartedKey('');
 
 export interface AppProps {
   readonly initialSettings: Settings;
@@ -85,31 +88,57 @@ function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
   const { t } = useTranslation();
   const today = useToday();
   const [tab, setTab] = useState<Tab>('today');
-  const [page, setPage] = useState<Page | null>(null);
+  // Pages secondaires empilées (ex. partie d'archive → Premium) : le retour revient à la précédente.
+  const [pages, setPages] = useState<readonly Page[]>([]);
+  const page = pages.at(-1) ?? null;
   const snackbar = useSnackbar();
   useReminderSync();
   useReminderRevoked(() => snackbar.show({ message: t('reminder.revoked'), duration: 8000 }));
 
-  // Page secondaire : le retour (geste, bouton, flèche) la referme et rend le focus à son déclencheur.
-  const opener = useRef<HTMLElement | null>(null);
-  const pageOpen = useRef(false);
-  pageOpen.current = page !== null;
-  const openPage = useCallback((next: Page) => {
-    // Une page qui en remplace une autre (réglages → Premium) garde le déclencheur d'origine.
-    if (!pageOpen.current) opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    setPage(next);
+  // Page secondaire : le retour (geste, bouton, flèche) referme celle du dessus et rend le focus à son déclencheur.
+  const openers = useRef<(HTMLElement | null)[]>([]);
+  const pushPage = useCallback((next: Page) => {
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setPages((stack) => {
+      const top = stack.at(-1);
+      if (top && pageKey(top) === pageKey(next)) return stack;
+      // (Idempotent : un double appel de l'updater donne le même résultat.)
+      openers.current = [...openers.current.slice(0, stack.length), trigger];
+      return [...stack, next];
+    });
   }, []);
   const closePage = useCallback(() => {
-    setPage(null);
-    requestAnimationFrame(() => opener.current?.isConnected && opener.current.focus());
+    setPages((stack) => stack.slice(0, -1));
+    const opener = openers.current.pop() ?? null;
+    requestAnimationFrame(() => opener?.isConnected && opener.focus());
   }, []);
-  useEffect(() => (page ? pushBackHandler(closePage) : undefined), [page, closePage]);
+  const closeAllPages = useCallback(() => {
+    setPages([]);
+    openers.current = [];
+  }, []);
+  useEffect(() => (pages.length > 0 ? pushBackHandler(closePage) : undefined), [pages.length, closePage]);
+  // Interstitiel dû (partie résolue) : montré à une transition voulue par le joueur — changement d'onglet,
+  // réglages ou partie d'archive ouverts — jamais en ouvrant Premium.
+  const { setPremiumOpener, showPendingInterstitial, unlockArchive } = useMonetization();
+  const openPage = useCallback(
+    (next: Page) => {
+      pushPage(next);
+      if (next.kind !== 'premium') void showPendingInterstitial();
+    },
+    [pushPage, showPendingInterstitial],
+  );
+  const changeTab = useCallback(
+    (next: Tab) => {
+      setTab(next);
+      void showPendingInterstitial();
+    },
+    [showPendingInterstitial],
+  );
   // Le dialogue des vidéos (monétisation) propose Premium : il ouvre cette page.
-  const { setPremiumOpener } = useMonetization();
   useEffect(() => {
-    setPremiumOpener(() => openPage({ kind: 'premium' }));
+    setPremiumOpener(() => pushPage({ kind: 'premium' }));
     return () => setPremiumOpener(null);
-  }, [setPremiumOpener, openPage]);
+  }, [setPremiumOpener, pushPage]);
   // Retour Android : depuis un autre onglet, revient à « Aujourd'hui » ; sinon le système gère (retour prédictif).
   useEffect(() => (!page && tab !== 'today' ? pushBackHandler(() => setTab('today')) : undefined), [tab, page]);
 
@@ -122,7 +151,7 @@ function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
   }, []);
   // Toucher un rappel : retour au puzzle du jour, par-dessus toute page ouverte.
   useReminderOpened(() => {
-    setPage(null);
+    closeAllPages();
     goToday();
   });
   const openDay = useCallback(
@@ -137,6 +166,8 @@ function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
   const { history } = useProgress();
   const historyRef = useRef(history);
   historyRef.current = history;
+  const unlockArchiveRef = useRef(unlockArchive);
+  unlockArchiveRef.current = unlockArchive;
   useEffect(() => {
     const timer = setTimeout(() => {
       void (async () => {
@@ -148,7 +179,12 @@ function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
           const failures = known ?? (await engine.selfCheck());
           if (!known) await saveJSON(key, failures);
           if (failures.length > 0) snackbar.show({ message: tRef.current('errors.engineCheck'), duration: 10_000 });
-          await pruneStorage(localISODate(new Date()), version, new Set(historyRef.current.keys()));
+          const removed = await pruneStorage(localISODate(new Date()), version, new Set(historyRef.current.keys()));
+          // Partie entamée mais trop ancienne pour être gardée : le jour reste ouvert (jamais reverrouillé).
+          for (const key of removed) {
+            const date = key.startsWith(STARTED_PREFIX) ? key.slice(STARTED_PREFIX.length) : null;
+            if (date && !historyRef.current.has(date)) unlockArchiveRef.current(date);
+          }
         } catch (error) {
           console.error('Vérifications de démarrage', error);
         }
@@ -182,7 +218,7 @@ function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
         <NavigationBar
           aria-label={t('app.name')}
           value={tab}
-          onChange={(id) => setTab(id as Tab)}
+          onChange={(id) => changeTab(id as Tab)}
           destinations={[
             { id: 'today', label: t('nav.today'), icon: 'today' },
             { id: 'archive', label: t('nav.archive'), icon: 'calendar_month' },
@@ -192,34 +228,39 @@ function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
         />
       </div>
       <AnimatePresence>
-        {page && (
-          <SecondaryPage key={page.kind === 'archive' ? `archive-${page.date}` : page.kind} onBack={closePage}>
-            <ScreenBoundary visible>
-              {page.kind === 'settings' ? (
-                <SettingsScreen visible dynamicSupported={dynamicSupported} onOpenPremium={() => openPage({ kind: 'premium' })} />
-              ) : page.kind === 'premium' ? (
-                <PremiumPage visible />
-              ) : (
-                <ArchiveGamePage date={page.date} visible />
-              )}
-            </ScreenBoundary>
-          </SecondaryPage>
-        )}
+        {pages.map((p, i) => {
+          // Seule la page du dessus est active ; celles du dessous restent montées (partie en pause).
+          const active = i === pages.length - 1;
+          return (
+            <SecondaryPage key={pageKey(p)} onBack={closePage} active={active}>
+              <ScreenBoundary visible={active}>
+                {p.kind === 'settings' ? (
+                  <SettingsScreen visible={active} dynamicSupported={dynamicSupported} onOpenPremium={() => pushPage({ kind: 'premium' })} />
+                ) : p.kind === 'premium' ? (
+                  <PremiumPage visible={active} />
+                ) : (
+                  <ArchiveGamePage date={p.date} visible={active} />
+                )}
+              </ScreenBoundary>
+            </SecondaryPage>
+          );
+        })}
       </AnimatePresence>
     </div>
   );
 }
 
 /** Page secondaire plein écran (axe partagé horizontal M3) avec flèche de retour. */
-function SecondaryPage({ onBack, children }: { onBack: () => void; children: ReactNode }) {
+function SecondaryPage({ onBack, active, children }: { onBack: () => void; active: boolean; children: ReactNode }) {
   const { t } = useTranslation();
   const backRef = useRef<HTMLButtonElement>(null);
   const present = useIsPresent();
   useEffect(() => backRef.current?.focus(), []);
   return (
     <motion.div
-      // Pendant l'animation de sortie, la page ne capte plus les touchers.
-      style={{ pointerEvents: present ? 'auto' : 'none' }}
+      // Pendant l'animation de sortie, la page ne capte plus les touchers ; une page recouverte non plus.
+      style={{ pointerEvents: present && active ? 'auto' : 'none' }}
+      inert={!active}
       className="app-page"
       initial={{ opacity: 0, x: 48 }}
       animate={{ opacity: 1, x: 0 }}

@@ -6,6 +6,8 @@ import { isNativeAndroid } from '../platform';
 import { ADS_ENABLED, PREMIUM_PRODUCT_ID } from './config';
 
 export type BuyOutcome = 'purchased' | 'pending' | 'cancelled' | 'error';
+/** Restauration : Premium retrouvé, aucun achat sur ce compte, ou magasin injoignable (hors ligne…). */
+export type RestoreOutcome = 'owned' | 'notFound' | 'unavailable';
 
 export interface PurchaseService {
   /**
@@ -15,12 +17,20 @@ export interface PurchaseService {
   start(onOwned: (owned: boolean) => void): Promise<void>;
   /** Prix localisé (« 2,99 € »), null tant que le produit n'est pas chargé. */
   price(): string | null;
-  /** Achat possible maintenant (magasin prêt, produit chargé). */
+  /** Achat possible maintenant (magasin prêt, produit chargé, aucun paiement en attente). */
   available(): boolean;
+  /** Un paiement attend sa confirmation (espèces, validation parentale…) : Premium s'activera ensuite. */
+  pending(): boolean;
+  /**
+   * Achat : se résout une fois l'issue connue (reçu du magasin), y compris pour un paiement différé
+   * (« pending ») ; un produit déjà possédé (code promo, autre appareil) compte comme acheté.
+   */
   buy(): Promise<BuyOutcome>;
-  /** Relit les achats du compte Google Play ; vrai si Premium est possédé. */
-  restore(): Promise<boolean>;
-  /** Prix ou disponibilité modifiés. Renvoie la fonction de désabonnement. */
+  /** Relit les achats du compte Google Play. */
+  restore(): Promise<RestoreOutcome>;
+  /** Relecture silencieuse (retour au premier plan) : remboursement, code promo échangé ailleurs. */
+  refresh(): Promise<void>;
+  /** Prix, disponibilité ou paiement en attente modifiés. Renvoie la fonction de désabonnement. */
   onChange(listener: () => void): () => void;
 }
 
@@ -28,8 +38,10 @@ export const NO_PURCHASES: PurchaseService = {
   start: async () => {},
   price: () => null,
   available: () => false,
+  pending: () => false,
   buy: async () => 'error',
-  restore: async () => false,
+  restore: async () => 'unavailable',
+  refresh: async () => {},
   onChange: () => () => {},
 };
 

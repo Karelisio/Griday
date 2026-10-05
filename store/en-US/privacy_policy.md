@@ -7,7 +7,7 @@ Griday is a daily logic game. This page explains what data is processed when you
 ## What Griday does not collect
 
 - No account, no Griday server: grids are generated on your phone.
-- Your progress (results, streak, statistics, settings) is stored **only on your device**. Uninstalling the app erases it.
+- Your progress (results, streak, statistics, settings) is stored **on your device**, and nowhere else for Griday. If Android backup is turned on, it is included in your personal Google backup (restored on a new device). Uninstalling the app erases it from the device.
 - The daily reminder is a local notification, scheduled on your phone, with no server involved.
 
 ## Ads (free version)

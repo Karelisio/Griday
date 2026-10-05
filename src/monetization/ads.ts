@@ -10,24 +10,41 @@ import { ADS_ENABLED } from './config';
 /** Issue d'une vidéo avec récompense. */
 export type RewardOutcome = 'rewarded' | 'dismissed' | 'unavailable';
 
+/**
+ * Rien n'est chargé ni affiché sans une occasion réelle : pas de formulaire au lancement, pas
+ * d'annonce préchargée tant qu'aucune n'est due (Premium : jamais).
+ */
 export interface AdsService {
-  /** Consentement (UMP) puis démarrage du SDK et préchargement ; sans effet au-delà du premier appel. */
+  /** Lancement : état du consentement relu en silence (aucun formulaire, aucune annonce chargée). */
   start(): Promise<void>;
-  /** Montre une vidéo avec récompense (chargée au besoin). */
+  /**
+   * Vidéo avec récompense demandée par le joueur : consentement d'abord (formulaire s'il est requis et
+   * jamais recueilli), puis chargement et affichage.
+   */
   showRewarded(): Promise<RewardOutcome>;
-  /** Montre l'interstitiel s'il est prêt (jamais d'attente) ; vrai s'il a été vu. */
+  /** Un interstitiel est dû (partie résolue) : à charger dès maintenant si le consentement le permet déjà. */
+  prepareInterstitial(): void;
+  /**
+   * Moment d'interstitiel (transition voulue par le joueur) : le formulaire de consentement s'il est requis
+   * et jamais recueilli (à la place de l'annonce), sinon l'interstitiel s'il est prêt — jamais d'attente de
+   * chargement. Vrai si une annonce a été vue.
+   */
   showInterstitial(): Promise<boolean>;
   /** Le joueur doit pouvoir revoir ses choix de confidentialité (UMP, EEE / Royaume-Uni…). */
   privacyOptionsRequired(): boolean;
   showPrivacyOptions(): Promise<void>;
+  /** État modifié (consentement recueilli, choix de confidentialité exigés…). Renvoie le désabonnement. */
+  onChange(listener: () => void): () => void;
 }
 
 export const NO_ADS: AdsService = {
   start: async () => {},
   showRewarded: async () => 'unavailable',
+  prepareInterstitial: () => {},
   showInterstitial: async () => false,
   privacyOptionsRequired: () => false,
   showPrivacyOptions: async () => {},
+  onChange: () => () => {},
 };
 
 /** Développement dans le navigateur : vidéo simulée (une seconde), pas d'interstitiel. */
