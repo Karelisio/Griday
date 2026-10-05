@@ -1,5 +1,5 @@
 /** Coquille de l'app : thème Material You, progression, navigation (onglets + pages), retour Android, auto-vérification du moteur. */
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useIsPresent } from 'motion/react';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { engine } from './engine-client/client';
@@ -99,7 +99,17 @@ function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
   // Retour Android : depuis un autre onglet, revient à « Aujourd'hui » ; sinon le système gère (retour prédictif).
   useEffect(() => (!page && tab !== 'today' ? pushBackHandler(() => setTab('today')) : undefined), [tab, page]);
 
-  const openDay = useCallback((date: ISODate) => (date === today ? setTab('today') : openPage({ kind: 'archive', date })), [today, openPage]);
+  // Grille d'« Aujourd'hui » : un jour d'archive identique (partie de la veille en cours) s'ouvre
+  // dans l'onglet, jamais dans une seconde page (deux parties sur la même sauvegarde).
+  const [playingDate, setPlayingDate] = useState(today);
+  const goToday = useCallback(() => {
+    setTab('today');
+    requestAnimationFrame(() => document.getElementById('today-title')?.focus());
+  }, []);
+  const openDay = useCallback(
+    (date: ISODate) => (date === today || date === playingDate ? goToday() : openPage({ kind: 'archive', date })),
+    [today, playingDate, goToday, openPage],
+  );
 
   // Au démarrage (une seule fois, pas à chaque changement de langue) : auto-vérification du moteur
   // dans ce WebView (une fois par version de l'app), puis ménage du stockage.
@@ -137,7 +147,7 @@ function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
           <IconButton icon="settings" label={t('nav.settings')} onClick={() => openPage({ kind: 'settings' })} />
         </div>
         <ScreenBoundary visible={shown('today')} onReset={resetToday}>
-          <TodayScreen visible={shown('today')} />
+          <TodayScreen visible={shown('today')} playingDate={playingDate} onPlayingDateChange={setPlayingDate} />
         </ScreenBoundary>
         <ScreenBoundary visible={shown('archive')}>
           <ArchiveScreen visible={shown('archive')} onOpen={openDay} />
@@ -185,9 +195,12 @@ function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
 function SecondaryPage({ onBack, children }: { onBack: () => void; children: ReactNode }) {
   const { t } = useTranslation();
   const backRef = useRef<HTMLButtonElement>(null);
+  const present = useIsPresent();
   useEffect(() => backRef.current?.focus(), []);
   return (
     <motion.div
+      // Pendant l'animation de sortie, la page ne capte plus les touchers.
+      style={{ pointerEvents: present ? 'auto' : 'none' }}
       className="app-page"
       initial={{ opacity: 0, x: 48 }}
       animate={{ opacity: 1, x: 0 }}

@@ -23,7 +23,10 @@ type UnlimitedRow = [number, number, number, number, ISODate];
 
 export interface ProgressData {
   readonly history: ReadonlyMap<ISODate, DailyResult>;
+  /** Parties illimitées récentes (MAX_UNLIMITED_RESULTS au plus). */
   readonly unlimited: readonly UnlimitedResult[];
+  /** Total des parties illimitées résolues, y compris celles sorties de la liste (défaut : sa longueur). */
+  readonly unlimitedTotal?: number;
   readonly streak: StreakState;
 }
 
@@ -50,12 +53,13 @@ export function decodeDailyHistory(raw: unknown): Map<ISODate, DailyResult> {
   return out;
 }
 
-export function encodeUnlimitedHistory(results: readonly UnlimitedResult[]): { v: 1; results: UnlimitedRow[] } {
-  return { v: 1, results: results.slice(-MAX_UNLIMITED_RESULTS).map((r) => [r.size, r.tier, r.timeMs, r.hintsUsed, r.solvedOn]) };
+export function encodeUnlimitedHistory(results: readonly UnlimitedResult[], total = results.length): { v: 1; total: number; results: UnlimitedRow[] } {
+  const rows = results.slice(-MAX_UNLIMITED_RESULTS).map((r): UnlimitedRow => [r.size, r.tier, r.timeMs, r.hintsUsed, r.solvedOn]);
+  return { v: 1, total: Math.max(total, rows.length), results: rows };
 }
 
-export function decodeUnlimitedHistory(raw: unknown): UnlimitedResult[] {
-  if (!isRecord(raw) || raw['v'] !== 1 || !Array.isArray(raw['results'])) return [];
+export function decodeUnlimitedHistory(raw: unknown): { results: UnlimitedResult[]; total: number } {
+  if (!isRecord(raw) || raw['v'] !== 1 || !Array.isArray(raw['results'])) return { results: [], total: 0 };
   const out: UnlimitedResult[] = [];
   for (const row of raw['results'] as unknown[]) {
     if (!Array.isArray(row) || row.length !== 5) continue;
@@ -63,7 +67,8 @@ export function decodeUnlimitedHistory(raw: unknown): UnlimitedResult[] {
     if (!isSize(size) || !isTier(tier) || !isCount(timeMs) || !isCount(hintsUsed) || !isDate(solvedOn)) continue;
     out.push({ size, tier, timeMs, hintsUsed, solvedOn });
   }
-  return out.slice(-MAX_UNLIMITED_RESULTS);
+  const results = out.slice(-MAX_UNLIMITED_RESULTS);
+  return { results, total: Math.max(isCount(raw['total']) ? raw['total'] : 0, results.length) };
 }
 
 export function decodeStreak(raw: unknown): StreakState {
@@ -85,11 +90,13 @@ export async function loadProgressData(): Promise<ProgressData> {
     loadJSON<unknown>(UNLIMITED_HISTORY_KEY),
     loadJSON<unknown>(STREAK_KEY),
   ]);
-  return { history: decodeDailyHistory(daily), unlimited: decodeUnlimitedHistory(unlimited), streak: decodeStreak(streak) };
+  const { results, total } = decodeUnlimitedHistory(unlimited);
+  return { history: decodeDailyHistory(daily), unlimited: results, unlimitedTotal: total, streak: decodeStreak(streak) };
 }
 
 export const saveDailyHistory = (history: ReadonlyMap<ISODate, DailyResult>) => saveJSON(DAILY_HISTORY_KEY, encodeDailyHistory(history));
-export const saveUnlimitedHistory = (results: readonly UnlimitedResult[]) => saveJSON(UNLIMITED_HISTORY_KEY, encodeUnlimitedHistory(results));
+export const saveUnlimitedHistory = (results: readonly UnlimitedResult[], total: number) =>
+  saveJSON(UNLIMITED_HISTORY_KEY, encodeUnlimitedHistory(results, total));
 export const saveStreak = (state: StreakState) => saveJSON(STREAK_KEY, state);
 
 /** Partie sauvegardée entamée (au moins une marque ou un coup joué). */

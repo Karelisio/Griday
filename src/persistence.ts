@@ -4,6 +4,8 @@ import { listKeys, loadJSON, removeKey } from './platform/storage';
 
 export const dailyPuzzleKey = (date: ISODate) => `daily.puzzle.${date}`;
 export const dailyProgressKey = (date: ISODate) => `daily.progress.${date}`;
+/** Date locale du premier coup joué sur le puzzle du jour `date` (règle de la série). */
+export const dailyStartedKey = (date: ISODate) => `daily.started.${date}`;
 export const UNLIMITED_CURRENT_KEY = 'unlimited.current.v1';
 export const UNLIMITED_PREFS_KEY = 'unlimited.prefs.v1';
 export const unlimitedProgressKey = (token: string) => `unlimited.progress.${token}`;
@@ -25,11 +27,12 @@ export async function pruneStorage(today: ISODate, appVersion: string, solved: R
   const token = typeof current?.token === 'string' ? current.token : null;
   const age = (date: string) => (isValidISODate(date) ? diffDays(date, today) : Infinity);
   const stale = keys.filter((key) => {
-    const [, kind, id = ''] = /^(daily\.puzzle|daily\.progress|daily\.result|unlimited\.progress|selfcheck)\.(.+)$/.exec(key) ?? [];
+    const [, kind, id = ''] = /^(daily\.puzzle|daily\.progress|daily\.started|daily\.result|unlimited\.progress|selfcheck)\.(.+)$/.exec(key) ?? [];
     switch (kind) {
       case 'daily.puzzle':
         return age(id) > PUZZLE_CACHE_DAYS;
       case 'daily.progress':
+      case 'daily.started':
         return age(id) > PROGRESS_DAYS || (age(id) > 0 && solved.has(id));
       case 'daily.result':
         return true;

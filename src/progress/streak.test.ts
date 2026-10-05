@@ -112,4 +112,13 @@ describe('série de jours', () => {
     const state: StreakState = { ...EMPTY_STREAK, frozen: [day(2)], settledThrough: day(9) };
     expect(summarizeStreak(state, solved, day(10)).best).toBe(5);
   });
+
+  it('puzzle de la veille encore en cours après minuit : série maintenue en attente (pas rompue)', () => {
+    const solved = days(0, 1, 2);
+    const state = settleStreak(EMPTY_STREAK, solved, day(4)); // jour 3 en cours à minuit, aucun gel
+    expect(summarizeStreak(state, solved, day(4)).current).toBe(0);
+    expect(summarizeStreak(state, solved, day(4), day(3))).toMatchObject({ current: 3, atRisk: true });
+    // Au-delà du lendemain, la partie ne comptera plus : rien n'est maintenu.
+    expect(summarizeStreak(state, solved, day(5), day(3)).current).toBe(0);
+  });
 });

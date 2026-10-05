@@ -23,11 +23,14 @@ export interface ProgressValue {
   /** Enregistre un puzzle du jour résolu (ignoré s'il l'est déjà). Indique si un gel a été gagné. */
   readonly recordDaily: (result: DailyResult) => { readonly earnedFreeze: boolean };
   readonly recordUnlimited: (result: UnlimitedResult) => void;
-  /** Ajoute un gel (récompense) ; faux si la réserve est pleine. */
+  /** Ajoute un gel (récompense, étape publicité) ; faux si la réserve est pleine. */
   readonly addFreeze: () => boolean;
+  /** Puzzle de la veille encore en cours après minuit (la série l'attend), ou null. */
+  readonly setPendingDay: (date: ISODate | null) => void;
 }
 
-const EMPTY: ProgressData = { history: new Map(), unlimited: [], streak: EMPTY_STREAK };
+const EMPTY: ProgressData = { history: new Map(), unlimited: [], unlimitedTotal: 0, streak: EMPTY_STREAK };
+const totalOf = (d: ProgressData) => Math.max(d.unlimitedTotal ?? 0, d.unlimited.length);
 /** Résolu au plus tard le lendemain (minuit passé en cours de partie) : compte comme puzzle du jour. */
 const MAX_DAILY_DELAY = 1;
 
@@ -39,6 +42,7 @@ const Ctx = createContext<ProgressValue | null>(null);
 export function ProgressProvider({ initial, children }: { initial?: ProgressData; children: ReactNode }) {
   const today = useToday();
   const [data, setData] = useState<ProgressData | null>(initial ?? null);
+  const [pendingDay, setPendingDay] = useState<ISODate | null>(null);
   const dataRef = useRef(data);
   const commit = useCallback((next: ProgressData) => {
     dataRef.current = next;
@@ -91,8 +95,9 @@ export function ProgressProvider({ initial, children }: { initial?: ProgressData
       const current = dataRef.current;
       if (!current) return;
       const unlimited = [...current.unlimited, result].slice(-MAX_UNLIMITED_RESULTS);
-      commit({ ...current, unlimited });
-      void saveUnlimitedHistory(unlimited);
+      const unlimitedTotal = totalOf(current) + 1;
+      commit({ ...current, unlimited, unlimitedTotal });
+      void saveUnlimitedHistory(unlimited, unlimitedTotal);
     },
     [commit],
   );
@@ -114,14 +119,15 @@ export function ProgressProvider({ initial, children }: { initial?: ProgressData
       history: d.history,
       unlimited: d.unlimited,
       streak: d.streak,
-      summary: summarizeStreak(d.streak, solvedDays(d.history), today),
+      summary: summarizeStreak(d.streak, solvedDays(d.history), today, pendingDay),
       dailyStats: dailyStats(d.history.values()),
-      unlimitedStats: unlimitedStats(d.unlimited),
+      unlimitedStats: unlimitedStats(d.unlimited, totalOf(d)),
       recordDaily,
       recordUnlimited,
       addFreeze,
+      setPendingDay,
     };
-  }, [data, today, recordDaily, recordUnlimited, addFreeze]);
+  }, [data, today, pendingDay, recordDaily, recordUnlimited, addFreeze]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

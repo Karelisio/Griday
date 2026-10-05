@@ -78,6 +78,12 @@
   --md-button-content: var(--md-sys-color-on-primary-container);
 }
 
+/* Bouton plein sur le fond « primary-container » : couleurs inversées, sinon il s'y fond (sombre). */
+.victory-card .md-button--filled {
+  --md-button-container: var(--md-sys-color-on-primary-container);
+  --md-button-content: var(--md-sys-color-primary-container);
+}
+
 .victory-card .md-chip {
   --md-chip-icon: var(--md-sys-color-on-primary-container);
 }

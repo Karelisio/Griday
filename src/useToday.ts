@@ -5,8 +5,13 @@ import { onAppActiveChange } from './platform';
 
 export function useToday(): ISODate {
   const [today, setToday] = useState(() => localISODate(new Date()));
+  // Chaque réveil reprogramme le suivant, même si la date n'a pas changé (horloge corrigée, fuseau).
+  const [wake, setWake] = useState(0);
   useEffect(() => {
-    const refresh = () => setToday(localISODate(new Date()));
+    const refresh = () => {
+      setToday(localISODate(new Date()));
+      setWake((w) => w + 1);
+    };
     const now = new Date();
     const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
     const timer = setTimeout(refresh, Math.max(1000, midnight.getTime() - now.getTime()));
@@ -15,7 +20,7 @@ export function useToday(): ISODate {
       clearTimeout(timer);
       off();
     };
-  }, [today]);
+  }, [today, wake]);
   return today;
 }
 

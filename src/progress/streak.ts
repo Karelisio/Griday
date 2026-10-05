@@ -44,10 +44,14 @@ export function settleStreak(state: StreakState, solved: ReadonlySet<ISODate>, t
   return { ...state, freezes, frozen: [...frozen].sort(compareISO), settledThrough: yesterday };
 }
 
-/** Série en cours, record, gels : à appeler après `settleStreak`. */
-export function summarizeStreak(state: StreakState, solved: ReadonlySet<ISODate>, today: ISODate): StreakSummary {
+/**
+ * Série en cours, record, gels : à appeler après `settleStreak`. `pending` : puzzle de la veille
+ * encore en cours après minuit — il comptera s'il est fini, la série n'est donc pas encore rompue.
+ */
+export function summarizeStreak(state: StreakState, solved: ReadonlySet<ISODate>, today: ISODate, pending: ISODate | null = null): StreakSummary {
   const frozen = new Set(state.frozen);
-  const kept = (d: ISODate) => solved.has(d) || frozen.has(d);
+  const stillPlayable = pending !== null && diffDays(pending, today) === 1;
+  const kept = (d: ISODate) => solved.has(d) || frozen.has(d) || (stillPlayable && d === pending);
   const todaySolved = solved.has(today);
 
   let current = 0;

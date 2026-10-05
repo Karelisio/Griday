@@ -36,7 +36,8 @@
     "nextIn": "Prochain puzzle dans {{time}}",
     "updateAvailable": "Une mise à jour de Griday est peut-être disponible : installez-la pour continuer à jouer les mêmes grilles que tout le monde.",
     "newPuzzle": "Un nouveau puzzle du jour est disponible.",
-    "play": "Jouer",
+    "finishYesterday": "Un nouveau puzzle est disponible. Finissez celui d’hier maintenant : il compte encore pour votre série.",
+    "play": "Jouer le nouveau",
     "archiveTitle": "Puzzle n° {{n}}"
   },
   "unlimited": {
@@ -284,6 +285,7 @@
     "unavailable": "Disponible dans l’application Android",
     "time": "Heure du rappel",
     "denied": "Les notifications sont désactivées pour Griday. Autorisez-les dans les réglages d’Android (Applications › Griday › Notifications).",
+    "revoked": "Les notifications ont été désactivées dans les réglages d’Android : rappel quotidien coupé.",
     "notification": {
       "title": "Le puzzle n° {{n}} est prêt",
       "titleGeneric": "Votre puzzle du jour est prêt",

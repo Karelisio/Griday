@@ -23,6 +23,16 @@ export interface Settings {
 /** Heure « HH:MM » valide (00:00 à 23:59). */
 export const isReminderTime = (v: unknown): v is string => typeof v === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
 
+/** Plage proposée pour un rappel (assez tôt pour qu'il n'arrive jamais après minuit, même en retard). */
+const SUGGESTED_FROM = 7 * 60;
+const SUGGESTED_TO = 22 * 60 + 30;
+
+/** Heure de rappel proposée d'après l'heure de jeu : au quart d'heure inférieur, entre 07:00 et 22:30. */
+export function suggestReminderTime(now: Date): string {
+  const minutes = Math.min(SUGGESTED_TO, Math.max(SUGGESTED_FROM, Math.floor((now.getHours() * 60 + now.getMinutes()) / 15) * 15));
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+}
+
 export const DEFAULT_SETTINGS: Settings = {
   language: 'system',
   theme: 'system',

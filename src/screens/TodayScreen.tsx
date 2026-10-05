@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SCHEDULE } from '../../engine/config';
+import { diffDays, type ISODate } from '../../engine/core/date';
 import { isScheduleStale } from '../../engine/core/schedule';
 import { useDailyGame } from '../daily/useDailyGame';
 import { GameView } from '../game/GameView';
@@ -12,6 +13,7 @@ import { notificationsAvailable } from '../platform/notifications';
 import { useProgress } from '../progress/ProgressContext';
 import { useEnableReminder } from '../reminders';
 import { useSettings } from '../settings/SettingsContext';
+import { suggestReminderTime } from '../settings/types';
 import { ShareButton } from '../share/ShareButton';
 import { Button, Card, CircularProgress, Icon, InfoChip, useSnackbar } from '../ui';
 import { msUntilMidnight, useToday } from '../useToday';
@@ -22,23 +24,32 @@ const inProgress = (g: QueensGame | null) => g !== null && !g.solved && (g.past.
 
 /** Série de jours : flamme + nombre (texte complet pour les lecteurs d'écran). */
 export function StreakChip({ count }: { count: number }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
     <InfoChip icon="local_fire_department" className="streak-chip">
-      <span aria-hidden="true">{count}</span>
+      <span aria-hidden="true">{formatNumber(count, i18n.language as Language)}</span>
       <span className="md-sr-only">{t('streak.label', { count })}</span>
     </InfoChip>
   );
 }
 
-export function TodayScreen({ visible }: { visible: boolean }) {
+export interface TodayScreenProps {
+  readonly visible: boolean;
+  /**
+   * Date de la grille affichée (gérée par la coquille, qui renvoie ici une archive de même date) :
+   * suit le jour, sauf partie en cours au passage de minuit.
+   */
+  readonly playingDate: ISODate;
+  readonly onPlayingDateChange: (date: ISODate) => void;
+}
+
+export function TodayScreen({ visible, playingDate, onPlayingDateChange }: TodayScreenProps) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language as Language;
   const today = useToday();
-  const { summary } = useProgress();
+  const { summary, history, setPendingDay } = useProgress();
   const snackbar = useSnackbar();
-  // Date de la grille affichée : suit le jour, sauf partie en cours au passage de minuit.
-  const [playingDate, setPlayingDate] = useState(today);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const onRecorded = useCallback(
     (earnedFreeze: boolean) => {
       if (earnedFreeze) snackbar.show({ message: t('streak.freezeEarned'), duration: 8000 });
@@ -48,12 +59,25 @@ export function TodayScreen({ visible }: { visible: boolean }) {
   const { info, daily, error, retry, api } = useDailyGame({ date: playingDate, mode: 'daily', visible, onRecorded });
 
   // Minuit : nouvelle grille tout de suite, sauf si une partie est en cours (le joueur choisit).
-  const busy = useRef(false);
-  busy.current = inProgress(api.game);
+  const busy = inProgress(api.game);
+  const busyRef = useRef(busy);
+  busyRef.current = busy;
+  const playingRef = useRef(playingDate);
+  playingRef.current = playingDate;
   useEffect(() => {
-    setPlayingDate((current) => (current === today || busy.current ? current : today));
-  }, [today]);
+    if (playingRef.current !== today && !busyRef.current) onPlayingDateChange(today);
+  }, [today, onPlayingDateChange]);
   const newPuzzleWaiting = playingDate !== today;
+  // Puzzle de la veille encore en cours : il comptera s'il est fini, la série l'attend.
+  const yesterdayPending = newPuzzleWaiting && busy && diffDays(playingDate, today) === 1;
+  useEffect(() => {
+    setPendingDay(yesterdayPending ? playingDate : null);
+    return () => setPendingDay(null);
+  }, [yesterdayPending, playingDate, setPendingDay]);
+  const playToday = () => {
+    onPlayingDateChange(today);
+    requestAnimationFrame(() => titleRef.current?.focus());
+  };
 
   const stale = isScheduleStale(SCHEDULE, today);
 
@@ -66,7 +90,7 @@ export function TodayScreen({ visible }: { visible: boolean }) {
           </p>
           {summary.current > 0 && <StreakChip count={summary.current} />}
         </div>
-        <h1 id="today-title" className="md-typescale-headline-medium screen__title">
+        <h1 id="today-title" className="md-typescale-headline-medium screen__title" ref={titleRef} tabIndex={-1}>
           {t('today.title')}
         </h1>
         <p className="md-typescale-body-large screen__subtitle">{formatDate(playingDate, lang, 'long')}</p>
@@ -82,8 +106,8 @@ export function TodayScreen({ visible }: { visible: boolean }) {
       {newPuzzleWaiting && (
         <Card variant="filled" className="screen__notice screen__notice--action">
           <Icon name="today" />
-          <p className="md-typescale-body-medium">{t('today.newPuzzle')}</p>
-          <Button variant="filled" size="s" icon="play_arrow" onClick={() => setPlayingDate(today)}>
+          <p className="md-typescale-body-medium">{t(yesterdayPending ? 'today.finishYesterday' : 'today.newPuzzle')}</p>
+          <Button variant="filled" size="s" icon="play_arrow" onClick={playToday}>
             {t('today.play')}
           </Button>
         </Card>
@@ -123,7 +147,7 @@ export function TodayScreen({ visible }: { visible: boolean }) {
                 <ReminderButton />
                 <ShareButton
                   result={{
-                    kind: 'daily',
+                    kind: history.get(playingDate)?.mode === 'archive' ? 'archive' : 'daily',
                     n: daily.dayNumber,
                     size: daily.target.size,
                     tier: daily.target.tier,
@@ -144,13 +168,20 @@ export function TodayScreen({ visible }: { visible: boolean }) {
 /** Proposé une seule fois après une victoire : active le rappel quotidien (permission Android). */
 function ReminderButton() {
   const { t, i18n } = useTranslation();
-  const { settings } = useSettings();
+  const { settings, update } = useSettings();
   const snackbar = useSnackbar();
   const enable = useEnableReminder();
-  if (settings.reminder || settings.reminderPrompted || !notificationsAvailable()) return null;
+  // Proposé à une seule victoire : noté dès l'affichage, le bouton reste le temps de cette carte.
+  const [offered] = useState(() => !settings.reminder && !settings.reminderPrompted && notificationsAvailable());
+  useEffect(() => {
+    if (offered) update({ reminderPrompted: true });
+  }, [offered, update]);
+  if (!offered || settings.reminder) return null;
   const onClick = async () => {
+    const time = suggestReminderTime(new Date());
+    update({ reminderTime: time });
     const outcome = await enable();
-    if (outcome === 'enabled') snackbar.show({ message: t('victory.reminderOn', { time: formatTimeOfDay(settings.reminderTime, i18n.language as Language) }) });
+    if (outcome === 'enabled') snackbar.show({ message: t('victory.reminderOn', { time: formatTimeOfDay(time, i18n.language as Language) }) });
     else if (outcome === 'denied') snackbar.show({ message: t('reminder.denied'), duration: 8000 });
   };
   return (

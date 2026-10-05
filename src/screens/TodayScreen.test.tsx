@@ -23,7 +23,7 @@ function renderToday() {
       <ProgressProvider initial={{ history: new Map(), unlimited: [], streak: EMPTY_STREAK }}>
         <ThemeProvider mode="light" dynamic={false}>
           <SnackbarHost closeLabel="Fermer">
-            <TodayScreen visible />
+            <TodayScreen visible playingDate={localISODate(new Date())} onPlayingDateChange={() => undefined} />
           </SnackbarHost>
         </ThemeProvider>
       </ProgressProvider>

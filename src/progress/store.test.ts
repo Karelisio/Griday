@@ -47,12 +47,14 @@ describe('persistance de la progression', () => {
 
   it('mode illimité : aller-retour, entrées abîmées ignorées, taille bornée', () => {
     const u: UnlimitedResult = { size: 8, tier: 3, timeMs: 5000, hintsUsed: 0, solvedOn: '2026-10-05' };
-    expect(decodeUnlimitedHistory(JSON.parse(JSON.stringify(encodeUnlimitedHistory([u]))))).toEqual([u]);
-    expect(decodeUnlimitedHistory({ v: 1, results: [[8, 3, 5000, 0, '2026-10-05'], [8, 3, 'x', 0, '2026-10-05'], null] })).toHaveLength(1);
+    expect(decodeUnlimitedHistory(JSON.parse(JSON.stringify(encodeUnlimitedHistory([u]))))).toEqual({ results: [u], total: 1 });
+    expect(decodeUnlimitedHistory({ v: 1, results: [[8, 3, 5000, 0, '2026-10-05'], [8, 3, 'x', 0, '2026-10-05'], null] }).results).toHaveLength(1);
     const many = Array.from({ length: MAX_UNLIMITED_RESULTS + 10 }, (_, i) => ({ ...u, timeMs: i }));
     const kept = decodeUnlimitedHistory(encodeUnlimitedHistory(many));
-    expect(kept).toHaveLength(MAX_UNLIMITED_RESULTS);
-    expect(kept.at(-1)!.timeMs).toBe(MAX_UNLIMITED_RESULTS + 9);
+    expect(kept.results).toHaveLength(MAX_UNLIMITED_RESULTS);
+    expect(kept.results.at(-1)!.timeMs).toBe(MAX_UNLIMITED_RESULTS + 9);
+    // Le total compte aussi les parties sorties de la liste.
+    expect(kept.total).toBe(MAX_UNLIMITED_RESULTS + 10);
   });
 
   it('série : valeurs assainies', () => {

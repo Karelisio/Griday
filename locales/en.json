@@ -36,7 +36,8 @@
     "nextIn": "Next puzzle in {{time}}",
     "updateAvailable": "A Griday update may be available: install it to keep playing the same grids as everyone else.",
     "newPuzzle": "A new daily puzzle is available.",
-    "play": "Play",
+    "finishYesterday": "A new puzzle is out. Finish yesterday’s now: it still counts toward your streak.",
+    "play": "Play the new one",
     "archiveTitle": "Puzzle #{{n}}"
   },
   "unlimited": {
@@ -284,6 +285,7 @@
     "unavailable": "Available in the Android app",
     "time": "Reminder time",
     "denied": "Notifications are turned off for Griday. Allow them in Android settings (Apps › Griday › Notifications).",
+    "revoked": "Notifications were turned off in Android settings, so the daily reminder was disabled.",
     "notification": {
       "title": "Puzzle #{{n}} is ready",
       "titleGeneric": "Your daily puzzle is ready",

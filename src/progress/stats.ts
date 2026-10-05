@@ -34,13 +34,14 @@ export function dailyStats(results: Iterable<DailyResult>): DailyStats {
   };
 }
 
-export function unlimitedStats(results: readonly UnlimitedResult[]): UnlimitedStats {
+/** `total` : parties résolues depuis toujours (la liste ne garde que les plus récentes). */
+export function unlimitedStats(results: readonly UnlimitedResult[], total = results.length): UnlimitedStats {
   const sizes = [...new Set(results.map((r) => r.size))].sort((a, b) => a - b);
   const bySize: SizeStats[] = sizes.map((size) => {
     const of = results.filter((r) => r.size === size);
     return { size, count: of.length, ...times(of) };
   });
-  return { solved: results.length, noHint: results.filter((r) => r.hintsUsed === 0).length, averageMs: times(results).averageMs, bySize };
+  return { solved: Math.max(total, results.length), noHint: results.filter((r) => r.hintsUsed === 0).length, averageMs: times(results).averageMs, bySize };
 }
 
 /** État d'un jour passé ou présent dans le calendrier des archives. */

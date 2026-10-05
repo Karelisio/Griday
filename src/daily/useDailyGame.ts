@@ -3,14 +3,14 @@
  * dans le worker), partie sauvegardée, résultat enregistré à la victoire.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { localISODate, type ISODate } from '../../engine/core/date';
+import { isValidISODate, localISODate, type ISODate } from '../../engine/core/date';
 import type { DailyInfo } from '../../engine/core/types';
 import type { AnyDailyPuzzle } from '../../engine/registry';
 import { engine } from '../engine-client/client';
 import type { QueensGame } from '../game/queens/state';
 import { useQueensGame } from '../game/queens/useQueensGame';
 import { isStoredQueensPuzzle } from '../game/queens/validate';
-import { dailyProgressKey, dailyPuzzleKey } from '../persistence';
+import { dailyProgressKey, dailyPuzzleKey, dailyStartedKey } from '../persistence';
 import { loadJSON, saveJSON } from '../platform/storage';
 import { useProgress } from '../progress/ProgressContext';
 import type { DailyMode } from '../progress/types';
@@ -57,21 +57,37 @@ export function useDailyGame({ date, mode, visible, onRecorded }: UseDailyGameOp
     };
   }, [date, attempt]);
 
+  // Jour du premier coup : une partie commencée le jour même compte pour la série si elle est
+  // finie au plus tard le lendemain, qu'on la termine depuis « Aujourd'hui » ou les archives.
+  const [startedOn, setStartedOn] = useState<{ date: ISODate; on: ISODate | null } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setStartedOn(null);
+    void loadJSON<unknown>(dailyStartedKey(date)).then((v) => {
+      if (!cancelled) setStartedOn({ date, on: typeof v === 'string' && isValidISODate(v) ? v : null });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [date]);
+  const started = startedOn?.date === date ? startedOn : null;
+
   const onSolved = useCallback(
     (g: QueensGame) => {
       if (!daily) return;
+      const onTime = started?.on ? started.on === date : mode === 'daily';
       const { earnedFreeze } = recordDaily({
         date,
         size: daily.target.size,
         tier: daily.target.tier,
         timeMs: Math.floor(g.elapsedMs),
         hintsUsed: g.hintsUsed,
-        mode,
+        mode: onTime ? 'daily' : 'archive',
         solvedOn: localISODate(new Date()),
       });
       onRecorded?.(earnedFreeze);
     },
-    [daily, date, mode, recordDaily, onRecorded],
+    [daily, date, mode, started, recordDaily, onRecorded],
   );
 
   const { ready, history } = useProgress();
@@ -84,6 +100,16 @@ export function useDailyGame({ date, mode, visible, onRecorded }: UseDailyGameOp
     onSolved,
     solvedFallback: known ? { timeMs: known.timeMs, hintsUsed: known.hintsUsed } : null,
   });
+
+  // Premier coup : date notée une fois (après lecture de la valeur sauvegardée).
+  const game = api.game;
+  const playedOnce = game !== null && !game.solved && (game.past.length > 0 || game.marks.some((m) => m !== 0));
+  useEffect(() => {
+    if (!playedOnce || !started || started.on !== null) return;
+    const on = localISODate(new Date());
+    setStartedOn({ date, on });
+    void saveJSON(dailyStartedKey(date), on);
+  }, [playedOnce, started, date]);
 
   // Partie déjà résolue sans résultat enregistré (arrêt brutal juste après la victoire) : rattrapée.
   const solvedGame = api.game?.solved ? api.game : null;
