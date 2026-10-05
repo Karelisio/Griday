@@ -7,8 +7,12 @@ const h = vi.hoisted(() => ({
     requestPermissions: vi.fn(),
     getPending: vi.fn(),
     cancel: vi.fn(),
+    getDeliveredNotifications: vi.fn(),
+    removeDeliveredNotifications: vi.fn(),
     createChannel: vi.fn(),
+    deleteChannel: vi.fn(),
     schedule: vi.fn(),
+    addListener: vi.fn(),
   },
 }));
 
@@ -17,8 +21,10 @@ vi.mock('@capacitor/local-notifications', () => ({ LocalNotifications: h.plugin 
 
 import {
   cancelReminders,
+  clearDeliveredReminders,
   notificationPermission,
   notificationsAvailable,
+  onReminderOpened,
   requestNotificationPermission,
   scheduleReminders,
   type Reminder,
@@ -27,6 +33,8 @@ import {
 const { plugin } = h;
 const calls = () => Object.values(plugin).reduce((n, fn) => n + fn.mock.calls.length, 0);
 const order = (fn: ReturnType<typeof vi.fn>) => fn.mock.invocationCallOrder[0]!;
+/** Laisse s'achever l'enregistrement asynchrone d'un écouteur. */
+const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 const reminder = (id: number, hour = 19): Reminder => ({
   id,
   at: new Date(2026, 9, 5, hour),
@@ -34,6 +42,7 @@ const reminder = (id: number, hour = 19): Reminder => ({
   body: `Texte ${id}`,
 });
 const pending = (...ids: number[]) => ({ notifications: ids.map((id) => ({ id, title: '', body: '' })) });
+const delivered = (...ids: number[]) => ({ notifications: ids.map((id) => ({ id, title: `Titre ${id}`, body: `Texte ${id}` })) });
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
@@ -42,6 +51,7 @@ beforeEach(() => {
   plugin.checkPermissions.mockResolvedValue({ display: 'granted' });
   plugin.requestPermissions.mockResolvedValue({ display: 'granted' });
   plugin.getPending.mockResolvedValue(pending());
+  plugin.getDeliveredNotifications.mockResolvedValue(delivered());
   warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 });
 afterEach(() => warn.mockRestore());
@@ -122,6 +132,46 @@ describe('annulation', () => {
   });
 });
 
+describe('rappels déjà affichés', () => {
+  it('retire de la zone de notifications les rappels affichés, et eux seuls (plage des dates « AAAAMMJJ »)', async () => {
+    const shown = delivered(20261005, 7, 20261006, 123456789, 99991231, 18991231, -5);
+    plugin.getDeliveredNotifications.mockResolvedValue(shown);
+    await clearDeliveredReminders();
+    const [first, , second, , third] = shown.notifications;
+    expect(plugin.removeDeliveredNotifications).toHaveBeenCalledExactlyOnceWith({ notifications: [first, second, third] });
+    expect(plugin.cancel).not.toHaveBeenCalled(); // les rappels programmés ne sont pas touchés
+  });
+
+  it('les notifications sont renvoyées telles que le plugin les a décrites (étiquette comprise)', async () => {
+    const tagged = { id: 20261005, tag: 'rappel', title: 'Titre', body: 'Texte' };
+    plugin.getDeliveredNotifications.mockResolvedValue({ notifications: [tagged] });
+    await clearDeliveredReminders();
+    expect(plugin.removeDeliveredNotifications).toHaveBeenCalledExactlyOnceWith({ notifications: [tagged] });
+  });
+
+  it.each([[[]], [[7, 123456789]]])('rien à retirer (%j) : le plugin n’est pas appelé pour retirer', async (ids) => {
+    plugin.getDeliveredNotifications.mockResolvedValue(delivered(...ids));
+    await clearDeliveredReminders();
+    expect(plugin.getDeliveredNotifications).toHaveBeenCalledTimes(1);
+    expect(plugin.removeDeliveredNotifications).not.toHaveBeenCalled();
+  });
+
+  it('navigateur : sans effet', async () => {
+    h.native = false;
+    await expect(clearDeliveredReminders()).resolves.toBeUndefined();
+    expect(calls()).toBe(0);
+  });
+
+  it('erreur du plugin : ne lève pas, avertissement', async () => {
+    plugin.getDeliveredNotifications.mockRejectedValue(new Error('boom'));
+    await expect(clearDeliveredReminders()).resolves.toBeUndefined();
+    plugin.getDeliveredNotifications.mockResolvedValue(delivered(20261005));
+    plugin.removeDeliveredNotifications.mockRejectedValue(new Error('boom'));
+    await expect(clearDeliveredReminders()).resolves.toBeUndefined();
+    expect(warn).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe('programmation', () => {
   it('annule les anciens rappels, crée le canal, puis programme', async () => {
     plugin.getPending.mockResolvedValue(pending(20261004, 20261005));
@@ -132,6 +182,19 @@ describe('programmation', () => {
     expect(order(plugin.getPending)).toBeLessThan(order(plugin.cancel));
     expect(order(plugin.cancel)).toBeLessThan(order(plugin.createChannel));
     expect(order(plugin.createChannel)).toBeLessThan(order(plugin.schedule));
+  });
+
+  it('retire le canal « Default » que le plugin crée de lui-même, une fois le nôtre créé', async () => {
+    await scheduleReminders([reminder(20261005)], 'Rappel quotidien');
+    expect(plugin.deleteChannel).toHaveBeenCalledExactlyOnceWith({ id: 'default' });
+    expect(order(plugin.createChannel)).toBeLessThan(order(plugin.deleteChannel));
+    expect(plugin.schedule).toHaveBeenCalledTimes(1);
+  });
+
+  it('suppression du canal « Default » en échec : les rappels sont programmés quand même', async () => {
+    plugin.deleteChannel.mockRejectedValue(new Error('boom'));
+    expect(await scheduleReminders([reminder(20261005)], 'Rappel quotidien')).toBe('scheduled');
+    expect(plugin.schedule).toHaveBeenCalledTimes(1);
   });
 
   it('chaque rappel : instant précis, canal, petite icône, alarme inexacte tolérée en veille', async () => {
@@ -156,6 +219,7 @@ describe('programmation', () => {
     expect(await scheduleReminders([], 'Rappel quotidien')).toBe('scheduled');
     expect(plugin.cancel).toHaveBeenCalledTimes(1);
     expect(plugin.createChannel).not.toHaveBeenCalled();
+    expect(plugin.deleteChannel).not.toHaveBeenCalled();
     expect(plugin.schedule).not.toHaveBeenCalled();
   });
 
@@ -164,6 +228,7 @@ describe('programmation', () => {
     expect(await scheduleReminders([reminder(20261005)], 'Rappel quotidien')).toBe('denied');
     expect(plugin.schedule).not.toHaveBeenCalled();
     expect(plugin.createChannel).not.toHaveBeenCalled();
+    expect(plugin.deleteChannel).not.toHaveBeenCalled();
     expect(plugin.requestPermissions).not.toHaveBeenCalled();
   });
 
@@ -176,6 +241,7 @@ describe('programmation', () => {
   it('Android 7 (pas de canaux, appel rejeté) : les rappels sont programmés quand même', async () => {
     plugin.createChannel.mockRejectedValue(new Error('not available'));
     expect(await scheduleReminders([reminder(20261005)], 'Rappel quotidien')).toBe('scheduled');
+    expect(plugin.deleteChannel).not.toHaveBeenCalled(); // pas de canaux, donc pas de canal « Default » à retirer
     expect(plugin.schedule).toHaveBeenCalledTimes(1);
   });
 

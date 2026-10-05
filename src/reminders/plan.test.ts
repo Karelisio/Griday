@@ -141,6 +141,46 @@ describe('textes', () => {
   });
 });
 
+describe('rappel tardif (alarme inexacte livrée jusqu’à ~1 h en retard, peut-être après minuit)', () => {
+  const GENERIC_TITLE = 'Votre puzzle du jour est prêt';
+  const GENERIC_BODY = 'Une nouvelle grille à résoudre en quelques minutes.';
+
+  it.each(['23:00', '23:30', '23:59'])('à %s : titre et texte génériques, sans numéro de puzzle ni série', (time) => {
+    const reminders = plan({ time, streak: 5 });
+    expect(reminders).toHaveLength(14);
+    expect(reminders.map((r) => r.title)).toEqual(Array(14).fill(GENERIC_TITLE));
+    expect(reminders.map((r) => r.body)).toEqual(Array(14).fill(GENERIC_BODY));
+  });
+
+  it('génériques aussi en anglais', () => {
+    const reminders = plan({ time: '23:15', streak: 5, days: 3, ...english });
+    expect(reminders.map((r) => r.title)).toEqual(Array(3).fill('Your daily puzzle is ready'));
+    expect(reminders.map((r) => r.body)).toEqual(Array(3).fill('A fresh grid to solve in a few minutes.'));
+  });
+
+  it('puzzle du jour résolu et série en cours : le rappel de demain, tardif lui aussi, ne promet rien', () => {
+    const [first, second] = plan({ time: '23:00', todaySolved: true, streak: 6 });
+    expect(first!.id).toBe(20261006);
+    expect([first!.title, first!.body]).toEqual([GENERIC_TITLE, GENERIC_BODY]);
+    expect([second!.title, second!.body]).toEqual([GENERIC_TITLE, GENERIC_BODY]);
+  });
+
+  it('seul le texte change : mêmes jours, mêmes identifiants, même heure choisie', () => {
+    const late = plan({ time: '23:00' });
+    expect(late.map((r) => r.id)).toEqual(plan({ time: '22:59' }).map((r) => r.id));
+    expect(dates(late)).toEqual(Array.from({ length: 14 }, (_, i) => addDays(TODAY, i)));
+    for (const { at } of late) expect([at.getHours(), at.getMinutes()]).toEqual([23, 0]);
+  });
+
+  it('juste avant 23 h (22:59) : numéro du puzzle et série comme d’habitude', () => {
+    const [first, second] = plan({ time: '22:59', streak: 5 });
+    expect(plain(first!.title)).toBe('Le puzzle n° 1 est prêt');
+    expect(first!.body).toBe('Gardez votre série de 5 jours 🔥');
+    expect(plain(second!.title)).toBe('Le puzzle n° 2 est prêt');
+    expect(second!.body).toBe(GENERIC_BODY);
+  });
+});
+
 describe('heure locale et changements d’heure', () => {
   const savedTZ = process.env.TZ;
   afterEach(() => {

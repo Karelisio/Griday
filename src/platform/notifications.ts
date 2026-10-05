@@ -4,6 +4,7 @@
  */
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { subscribe } from './internal';
 
 /** Autorisation d'afficher des notifications. `unavailable` : navigateur, ou plugin inutilisable. */
 export type NotificationAccess = 'granted' | 'denied' | 'prompt' | 'unavailable';
@@ -21,6 +22,8 @@ export interface Reminder {
 export type ScheduleOutcome = 'scheduled' | 'denied' | 'unavailable';
 
 const CHANNEL_ID = 'daily-reminder';
+/** Canal que le plugin recrée à chaque démarrage (« Default » en anglais, son d'alarme) : nos rappels n'en ont pas l'usage. */
+const PLUGIN_CHANNEL_ID = 'default';
 const SMALL_ICON = 'ic_stat_griday';
 /** IMPORTANCE_DEFAULT : son et notification discrète, sans bandeau intrusif. */
 const CHANNEL_IMPORTANCE = 3;
@@ -69,6 +72,18 @@ export async function cancelReminders(): Promise<void> {
   }
 }
 
+/** Retire de la zone de notifications les rappels déjà affichés (ceux de notre plage d'identifiants). */
+export async function clearDeliveredReminders(): Promise<void> {
+  if (!notificationsAvailable()) return;
+  try {
+    const { notifications } = await LocalNotifications.getDeliveredNotifications();
+    const delivered = notifications.filter((n) => isReminderId(n.id));
+    if (delivered.length > 0) await LocalNotifications.removeDeliveredNotifications({ notifications: delivered });
+  } catch (error) {
+    console.warn('Notifications : retrait des rappels affichés impossible', error);
+  }
+}
+
 /**
  * Remplace les rappels programmés par `reminders` (`channelName` : nom localisé du canal Android).
  * Sans autorisation, ne programme rien : le plugin la réclamerait lui-même à l'utilisateur (Android 13+),
@@ -84,8 +99,10 @@ export async function scheduleReminders(reminders: readonly Reminder[], channelN
     try {
       // Android 8+ : le canal est obligatoire (recréé à chaque fois, son nom suit la langue).
       await LocalNotifications.createChannel({ id: CHANNEL_ID, name: channelName, importance: CHANNEL_IMPORTANCE });
+      // Le canal « Default » du plugin (anglais, son d'alarme) encombrerait les réglages d'Android : retiré, sans conséquence si l'appel échoue.
+      await LocalNotifications.deleteChannel({ id: PLUGIN_CHANNEL_ID });
     } catch {
-      // Android 7 n'a pas de canaux : le plugin y rejette l'appel, les notifications s'affichent sans.
+      // Android 7 n'a pas de canaux : le plugin y rejette les appels, les notifications s'affichent sans.
     }
     await LocalNotifications.schedule({
       notifications: reminders.map(({ id, at, title, body }) => ({
@@ -105,4 +122,18 @@ export async function scheduleReminders(reminders: readonly Reminder[], channelN
     console.warn('Notifications : programmation impossible', error);
     return 'unavailable';
   }
+}
+
+/**
+ * Notifie chaque appui sur un de nos rappels (les autres notifications sont ignorées), app au premier plan,
+ * en arrière-plan ou fermée : dans ce dernier cas le plugin retient l'appui jusqu'à l'abonnement.
+ * Sans effet hors natif. Renvoie la fonction de désabonnement.
+ */
+export function onReminderOpened(cb: () => void): () => void {
+  if (!notificationsAvailable()) return () => {};
+  return subscribe(() =>
+    LocalNotifications.addListener('localNotificationActionPerformed', ({ notification }) => {
+      if (notification && isReminderId(notification.id)) cb();
+    }),
+  );
 }

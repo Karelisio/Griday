@@ -1,4 +1,4 @@
-/** Rappel quotidien côté React : synchronisation des notifications programmées, et activation avec autorisation. */
+/** Rappel quotidien côté React : synchronisation des notifications programmées, activation avec autorisation, événements (rappel ouvert, autorisation retirée). */
 import type { TFunction } from 'i18next';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +6,14 @@ import { SCHEDULE } from '../../engine/config';
 import { dayNumber } from '../../engine/core/schedule';
 import type { Language } from '../i18n';
 import { onAppActiveChange } from '../platform';
-import { cancelReminders, notificationPermission, requestNotificationPermission, scheduleReminders } from '../platform/notifications';
+import {
+  cancelReminders,
+  clearDeliveredReminders,
+  notificationPermission,
+  onReminderOpened,
+  requestNotificationPermission,
+  scheduleReminders,
+} from '../platform/notifications';
 import { useProgress } from '../progress/ProgressContext';
 import { useSettings } from '../settings/SettingsContext';
 import type { Settings } from '../settings/types';
@@ -25,16 +32,24 @@ interface Snapshot {
   readonly update: (patch: Partial<Settings>) => void;
 }
 
+/** Abonnés à la coupure automatique du rappel (voir `useReminderRevoked`). */
+const revokedListeners = new Set<() => void>();
+
 /** Aligne les notifications programmées sur la situation courante (jamais d'erreur levée). */
 async function sync({ reminder, time, todaySolved, streak, t, lang, update }: Snapshot): Promise<void> {
   try {
     if (!reminder) {
       await cancelReminders();
-      return;
+    } else {
+      const plan = planReminders({ now: new Date(), time, todaySolved, streak, dayNumberOf: (date) => dayNumber(SCHEDULE, date), t, lang });
+      // Autorisation retirée dans les réglages d'Android : le réglage reflète la réalité (il suffira de le réactiver), et l'on prévient.
+      if ((await scheduleReminders(plan, t('reminder.title'))) === 'denied') {
+        update({ reminder: false });
+        for (const listener of revokedListeners) listener();
+      }
     }
-    const plan = planReminders({ now: new Date(), time, todaySolved, streak, dayNumberOf: (date) => dayNumber(SCHEDULE, date), t, lang });
-    // Autorisation retirée dans les réglages d'Android : le réglage reflète la réalité (il suffira de le réactiver).
-    if ((await scheduleReminders(plan, t('reminder.title'))) === 'denied') update({ reminder: false });
+    // Puzzle du jour résolu : les rappels déjà affichés (d'aujourd'hui ou des jours passés) n'ont plus lieu d'être.
+    if (todaySolved) await clearDeliveredReminders();
   } catch (error) {
     console.warn('Rappel : synchronisation impossible', error);
   }
@@ -101,6 +116,37 @@ export function useReminderSync(): void {
     return () => clearTimeout(timer);
     // `today` et `resumes` ne servent que de déclencheurs : nouveau jour, retour au premier plan.
   }, [request, ready, settings.reminder, settings.reminderTime, lang, today, summary.todaySolved, summary.current, resumes]);
+}
+
+/** Référence toujours sur la dernière valeur reçue : un abonnement fait une seule fois ne garde pas une fonction périmée. */
+function useLatest<T>(value: T): { readonly current: T } {
+  const ref = useRef(value);
+  ref.current = value;
+  return ref;
+}
+
+/**
+ * Appelle `callback` quand `useReminderSync` désactive le rappel parce qu'Android a retiré l'autorisation
+ * d'afficher des notifications (le réglage est alors déjà repassé à « désactivé ») : de quoi en informer
+ * l'utilisateur. À monter où l'on peut afficher un message, sans ordre à respecter avec `useReminderSync`.
+ */
+export function useReminderRevoked(callback: () => void): void {
+  const latest = useLatest(callback);
+  useEffect(() => {
+    const listener = () => latest.current();
+    revokedListeners.add(listener);
+    return () => void revokedListeners.delete(listener);
+  }, [latest]);
+}
+
+/**
+ * Appelle `callback` quand l'utilisateur ouvre l'app en touchant un rappel, app au premier plan, en arrière-plan
+ * ou fermée (le démarrage à froid est signalé dès le montage). À monter une fois, là où l'on peut changer
+ * d'onglet et refermer les pages secondaires.
+ */
+export function useReminderOpened(callback: () => void): void {
+  const latest = useLatest(callback);
+  useEffect(() => onReminderOpened(() => latest.current()), [latest]);
 }
 
 export type EnableOutcome = 'enabled' | 'denied' | 'unavailable';
