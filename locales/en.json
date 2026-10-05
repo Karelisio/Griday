@@ -29,6 +29,21 @@
       "howTo": "Tap a cell to place a queen, tap it twice for a cross. Drag your finger to cross out several cells.",
       "conflicts_one": "{{count}} queen in conflict",
       "conflicts_other": "{{count}} queens in conflict"
+    },
+    "binairo": {
+      "name": "Binairo",
+      "rules": "Fill the grid with suns and moons. Never more than two identical symbols in a row, horizontally or vertically. Every row and every column holds as many suns as moons. No two rows (or two columns) are ever identical.",
+      "howTo": "Tap an empty cell to place a sun, tap it again for a moon, and a third time to clear it. Cells with a bolder background are given: they never change.",
+      "conflicts_one": "{{count}} cell in conflict",
+      "conflicts_other": "{{count}} cells in conflict",
+      "symbol": {
+        "sun_one": "sun",
+        "sun_other": "suns",
+        "moon_one": "moon",
+        "moon_other": "moons",
+        "aSun": "a sun",
+        "aMoon": "a moon"
+      }
     }
   },
   "today": {
@@ -71,7 +86,14 @@
       "mistake": "mistake",
       "highlighted": "part of the hint",
       "attacked": "ruled out by a queen",
-      "ruledOut": "ruled out by the hint"
+      "ruledOut": "ruled out by the hint",
+      "labelPlain": "Row {{row}}, column {{col}}: {{state}}",
+      "sun": "sun",
+      "moon": "moon",
+      "given": "given cell",
+      "inConflict": "in conflict",
+      "proposedSun": "sun suggested by the hint",
+      "proposedMoon": "moon suggested by the hint"
     },
     "actions": "Game actions",
     "resetAction": "Clear"
@@ -139,6 +161,36 @@
       "solved": "The grid is already solved!",
       "attack_one": "A queen on the marked cell would remove every possible cell of {{unit}}, leaving it without a queen: this cell is ruled out.",
       "attack_other": "A queen on any of the {{count}} marked cells would remove every possible cell of {{unit}}, leaving it without a queen: these cells are ruled out."
+    },
+    "binairo": {
+      "title": {
+        "pair": "Pair",
+        "sandwich": "Sandwiched cell",
+        "count": "Quota reached",
+        "line": "Line analysis",
+        "unique": "No identical lines"
+      },
+      "pair": {
+        "row_one": "Two {{known}} side by side in {{line}}: a third one would make three in a row. The cell next to them must be {{placedOne}}.",
+        "row_other": "Two {{known}} side by side in {{line}}: a third one would make three in a row. The cells on either side of them must be {{placed}}.",
+        "column_one": "Two {{known}} stacked in {{line}}: a third one would make three in a row. The cell next to them must be {{placedOne}}.",
+        "column_other": "Two {{known}} stacked in {{line}}: a third one would make three in a row. The cells above and below them must be {{placed}}."
+      },
+      "sandwich": "In {{line}}, an empty cell is squeezed between two {{known}}: putting {{knownOne}} there would make three {{known}} in a row. It must hold {{placedOne}}.",
+      "count_one": "In {{line}} there are already {{half}} {{known}}, half of the cells. Since there must be as many {{known}} as {{placed}}, the last empty cell holds {{placedOne}}.",
+      "count_other": "In {{line}} there are already {{half}} {{known}}, half of the cells. Since there must be as many {{known}} as {{placed}}, every remaining empty cell holds {{placedOne}}.",
+      "line_one": "In {{line}}, try every way of filling the empty cells without breaking the rules: one cell always gets the same symbol. That is the marked cell.",
+      "line_other": "In {{line}}, try every way of filling the empty cells without breaking the rules: some cells always get the same symbol. Those are the marked cells.",
+      "unique_one": "Two rows or two columns are never identical. In {{line}}, the empty cells cannot all copy the symbols of {{otherLine}}, which is complete: that settles the symbol of the marked cell.",
+      "unique_other": "Two rows or two columns are never identical. In {{line}}, the empty cells cannot all copy the symbols of {{otherLine}}, which is complete: that settles the symbols of the marked cells.",
+      "contradiction": {
+        "rule": "Suppose the marked cell held {{knownOne}}: following the simple deductions, a rule would be broken in {{line}}. That is impossible, so this cell holds {{placedOne}}.",
+        "twins": "Suppose the marked cell held {{knownOne}}: following the simple deductions, {{line}} and {{otherLine}} would end up identical. That is not allowed, so this cell holds {{placedOne}}."
+      },
+      "reveal": "No simple deduction here: the marked cell holds {{placedOne}} in the solution.",
+      "mistake_one": "One cell is wrong: it is outlined on the grid. Fix it before going on.",
+      "mistake_other": "{{count}} cells are wrong: they are outlined on the grid. Fix them before going on.",
+      "solved": "The grid is already solved!"
     },
     "fix": "Fix"
   },

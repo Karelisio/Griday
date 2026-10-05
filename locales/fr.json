@@ -29,6 +29,21 @@
       "howTo": "Touchez une case pour poser une reine, touchez-la deux fois pour une croix. Glissez le doigt pour barrer plusieurs cases.",
       "conflicts_one": "{{count}} reine en conflit",
       "conflicts_other": "{{count}} reines en conflit"
+    },
+    "binairo": {
+      "name": "Binairo",
+      "rules": "Remplissez la grille de soleils et de lunes. Jamais plus de deux symboles identiques à la suite, en ligne comme en colonne. Chaque ligne et chaque colonne contient autant de soleils que de lunes. Deux lignes (ou deux colonnes) ne sont jamais identiques.",
+      "howTo": "Touchez une case vide pour y poser un soleil, touchez-la encore pour une lune, puis une troisième fois pour l’effacer. Les cases à fond plus soutenu sont données : elles ne changent pas.",
+      "conflicts_one": "{{count}} case en conflit",
+      "conflicts_other": "{{count}} cases en conflit",
+      "symbol": {
+        "sun_one": "soleil",
+        "sun_other": "soleils",
+        "moon_one": "lune",
+        "moon_other": "lunes",
+        "aSun": "un soleil",
+        "aMoon": "une lune"
+      }
     }
   },
   "today": {
@@ -71,7 +86,14 @@
       "mistake": "erreur",
       "highlighted": "concernée par l’indice",
       "attacked": "exclue par une reine",
-      "ruledOut": "exclue par l’indice"
+      "ruledOut": "exclue par l’indice",
+      "labelPlain": "Ligne {{row}}, colonne {{col}} : {{state}}",
+      "sun": "soleil",
+      "moon": "lune",
+      "given": "case donnée",
+      "inConflict": "en conflit",
+      "proposedSun": "soleil proposé par l’indice",
+      "proposedMoon": "lune proposée par l’indice"
     },
     "actions": "Actions de jeu",
     "resetAction": "Effacer"
@@ -139,6 +161,36 @@
       "solved": "La grille est déjà résolue !",
       "attack_one": "Une reine sur la case marquée retirerait toutes les cases possibles de {{unit}}, qui n’aurait alors plus de reine : cette case est exclue.",
       "attack_other": "Une reine sur n’importe laquelle des {{count}} cases marquées retirerait toutes les cases possibles de {{unit}}, qui n’aurait alors plus de reine : ces cases sont exclues."
+    },
+    "binairo": {
+      "title": {
+        "pair": "Paire",
+        "sandwich": "Case en sandwich",
+        "count": "Quota atteint",
+        "line": "Analyse de la ligne",
+        "unique": "Lignes toutes différentes"
+      },
+      "pair": {
+        "row_one": "Deux {{known}} côte à côte dans {{line}} : on ne peut pas en aligner trois. La case qui les borde est donc forcément {{placedOne}}.",
+        "row_other": "Deux {{known}} côte à côte dans {{line}} : on ne peut pas en aligner trois. Les cases qui les bordent sont donc forcément des {{placed}}.",
+        "column_one": "Deux {{known}} qui se suivent dans {{line}} : on ne peut pas en aligner trois. La case qui les borde est donc forcément {{placedOne}}.",
+        "column_other": "Deux {{known}} qui se suivent dans {{line}} : on ne peut pas en aligner trois. Les cases qui les bordent sont donc forcément des {{placed}}."
+      },
+      "sandwich": "Dans {{line}}, une case vide est coincée entre deux {{known}} : y mettre {{knownOne}} ferait trois {{known}} d’affilée. Elle contient donc {{placedOne}}.",
+      "count_one": "Dans {{line}}, il y a déjà {{half}} {{known}}, la moitié des cases. Comme il faut autant de {{known}} que de {{placed}}, la dernière case vide contient {{placedOne}}.",
+      "count_other": "Dans {{line}}, il y a déjà {{half}} {{known}}, la moitié des cases. Comme il faut autant de {{known}} que de {{placed}}, chaque case vide restante contient {{placedOne}}.",
+      "line_one": "Dans {{line}}, essayez toutes les façons de remplir les cases vides sans enfreindre les règles : une case reçoit toujours le même symbole. C’est la case marquée.",
+      "line_other": "Dans {{line}}, essayez toutes les façons de remplir les cases vides sans enfreindre les règles : certaines cases reçoivent toujours le même symbole. Ce sont les cases marquées.",
+      "unique_one": "Deux lignes ou deux colonnes ne sont jamais identiques. Dans {{line}}, les cases vides ne peuvent pas toutes reprendre les symboles de {{otherLine}}, qui est complète : cela impose le symbole de la case marquée.",
+      "unique_other": "Deux lignes ou deux colonnes ne sont jamais identiques. Dans {{line}}, les cases vides ne peuvent pas toutes reprendre les symboles de {{otherLine}}, qui est complète : cela impose le symbole des cases marquées.",
+      "contradiction": {
+        "rule": "Supposons {{knownOne}} dans la case marquée : en enchaînant les déductions simples, on enfreindrait une règle dans {{line}}. C’est impossible, donc cette case contient {{placedOne}}.",
+        "twins": "Supposons {{knownOne}} dans la case marquée : en enchaînant les déductions simples, {{line}} et {{otherLine}} deviendraient identiques. C’est interdit, donc cette case contient {{placedOne}}."
+      },
+      "reveal": "Aucune déduction simple ici : la case marquée contient {{placedOne}} dans la solution.",
+      "mistake_one": "Une case est fausse : elle est encadrée sur la grille. Corrigez-la avant de continuer.",
+      "mistake_other": "{{count}} cases sont fausses : elles sont encadrées sur la grille. Corrigez-les avant de continuer.",
+      "solved": "La grille est déjà résolue !"
     },
     "fix": "Corriger"
   },

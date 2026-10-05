@@ -1,4 +1,5 @@
 /** Exécution d'un appel moteur (dans le worker, ou en repli sur le fil principal). */
+import { getBinairoHint } from '../../engine/binairo/hint';
 import { versionForDate } from '../../engine/core/schedule';
 import { getDailyInfo, getDailyPuzzle, getUnlimitedPuzzle, engineSelfCheck, REGISTRY, SCHEDULE } from '../../engine/index';
 import { getQueensHint } from '../../engine/queens/hint';
@@ -22,6 +23,8 @@ export function handleEngineCall(call: EngineCall): unknown {
     }
     case 'queensHint':
       return getQueensHint(call.puzzle, call.marks);
+    case 'binairoHint':
+      return getBinairoHint(call.puzzle, call.marks);
     case 'selfCheck':
       return engineSelfCheck();
   }

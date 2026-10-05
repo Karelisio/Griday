@@ -2,6 +2,8 @@
  * Client du moteur : génération et indices dans un Web Worker (l'UI ne gèle jamais),
  * repli sur le fil principal si les workers sont indisponibles (tests, très vieux WebView).
  */
+import type { BinairoHint } from '../../engine/binairo/hint';
+import type { BinairoCell, BinairoSolvedPuzzle } from '../../engine/binairo/types';
 import type { ISODate } from '../../engine/core/date';
 import type { DailyInfo, GenerationTarget, PuzzleTypeId } from '../../engine/core/types';
 import type { QueensHint } from '../../engine/queens/hint';
@@ -81,6 +83,10 @@ class EngineClient {
 
   queensHint(puzzle: QueensSolvedPuzzle, marks: readonly QueensMark[]): Promise<QueensHint> {
     return this.call({ kind: 'queensHint', puzzle, marks });
+  }
+
+  binairoHint(puzzle: BinairoSolvedPuzzle, marks: readonly BinairoCell[]): Promise<BinairoHint> {
+    return this.call({ kind: 'binairoHint', puzzle, marks });
   }
 
   selfCheck(): Promise<string[]> {

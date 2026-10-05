@@ -1,0 +1,361 @@
+/*
+ * Grille Binairo — tokens M3 (variables --md-sys-*) avec valeurs de repli.
+ *
+ * Deux symboles, distincts SANS la couleur (le soleil est un disque à rayons, la lune un croissant) et AVEC :
+ * chaque case garde une tuile teintée (ambre pour le soleil, azur pour la lune) et un symbole de l'encre
+ * assortie. Les couleurs sont posées en ligne sur .bb (--bb-sun-*, --bb-moon-*) par palette.ts, qui les règle
+ * sur des tons HCT fixes : le contraste ne dépend pas du thème (vérifié par BinairoBoard.test.tsx).
+ * - symbole sur sa tuile, case donnée comprise : ≥ 4,5:1 ;
+ * - symbole « fantôme » de l'indice sur une tuile vide : ≥ 3:1 (opacité GHOST_ALPHA, BinairoBoard.tsx) ;
+ * - liseré d'une case vide sur sa tuile : ≥ 3:1 (rôle `outline`, opacité EDGE_ALPHA de BinairoBoard.tsx) ;
+ * - états (conflit, erreur, pivot, case de l'indice, focus clavier) : anneaux à deux tons, liseré coloré à
+ *   l'extérieur et liseré `currentColor` (encre de la case) à l'intérieur, qui garantit le contraste même si
+ *   la couleur de rôle est proche de la tuile.
+ * Une case donnée est plus soutenue (tuile plus marquée, trait plus épais) et ne réagit pas au toucher.
+ */
+.bb {
+  --bb-gap: 3px;
+  --bb-pad: 6px;
+  /* Rayon des tuiles : 11,6 px à 6 × 6, 9,8 px à 8 × 8, 6,2 px à 12 × 12. */
+  --bb-radius: max(4px, calc(17px - var(--bb-n, 8) * 0.9px));
+  /* Anneaux d'état : épaisseur du liseré coloré / du liseré `currentColor`, retrait par rapport à la tuile.
+     Ils s'affinent avec la taille de la grille (6 × 6 : 3 / 2 / 2 px ; 12 × 12 : 1,5 / 1,25 / 0 px). */
+  --bb-ring-outer: clamp(1.5px, calc(3px - (var(--bb-n, 8) - 6) * 0.25px), 3px);
+  --bb-ring-inner: clamp(1.25px, calc(2px - (var(--bb-n, 8) - 6) * 0.125px), 2px);
+  --bb-ring-inset: clamp(0px, calc(2px - (var(--bb-n, 8) - 6) * 0.33px), 2px);
+  --bb-empty: var(--md-sys-color-surface-container-lowest, #ffffff);
+  --bb-hl: var(--md-sys-color-primary, #533de0);
+  --bb-hl-other: var(--md-sys-color-tertiary, #99366d);
+  --bb-error: var(--md-sys-color-error, #b41340);
+  /* Valeurs de repli des symboles (clair) : posées en ligne par le composant. */
+  --bb-sun-tile: #ffddb8;
+  --bb-sun-ink: #724600;
+  --bb-sun-given-tile: #ffb960;
+  --bb-sun-given-ink: #4d2e00;
+  --bb-moon-tile: #cfe5ff;
+  --bb-moon-ink: #005487;
+  --bb-moon-given-tile: #99cbff;
+  --bb-moon-given-ink: #00375b;
+  position: relative;
+  /* Les z-index internes (anneaux, symboles, cadres) restent dans le plateau. */
+  isolation: isolate;
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--bb-pad);
+  border-radius: var(--md-sys-shape-corner-extra-large, 28px);
+  overflow: hidden;
+  background: var(--md-sys-color-surface-container-high, #e5e1e9);
+  box-shadow: var(--md-sys-elevation-level1, 0 1px 3px rgb(0 0 0 / 0.18));
+  /* Toucher unique, pas de glisser-peindre : la page peut défiler depuis la grille, sans zoom au double toucher. */
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: box-shadow 300ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Thème sombre : tuile vide un cran plus claire que le noir pur. */
+.bb[data-dark] {
+  --bb-empty: var(--md-sys-color-surface-container-low, #131318);
+}
+
+/* Grandes grilles (cases d'environ 25 px) : espacements plus fins. */
+.bb[data-dense] {
+  --bb-gap: 2px;
+  --bb-pad: 5px;
+}
+
+.bb--disabled .bb__grid {
+  pointer-events: none;
+}
+
+.bb--celebrate {
+  box-shadow:
+    0 0 0 4px var(--md-sys-color-primary, #533de0),
+    var(--md-sys-elevation-level3, 0 6px 20px rgb(0 0 0 / 0.25));
+}
+
+/* Le champ est carré (la hauteur de la grille vient de son rapport, jamais d'un pourcentage) : le plateau l'est donc aussi. */
+.bb__field {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.bb__grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: repeat(var(--bb-n), minmax(0, 1fr));
+  gap: var(--bb-gap);
+  outline: none;
+}
+
+.bb__row {
+  display: grid;
+  grid-template-columns: repeat(var(--bb-n), minmax(0, 1fr));
+  gap: var(--bb-gap);
+}
+
+/* --- Tuile --- */
+.bb__cell {
+  /* Liseré d'une tuile vide (rôle `outline` à EDGE_ALPHA = 85 %) : la case vide se distingue du plateau à ≥ 3:1. */
+  --bb-edge: color-mix(in srgb, var(--md-sys-color-outline, #78767b) 85%, transparent);
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  border-radius: var(--bb-radius);
+  background-color: var(--bb-empty);
+  /* Couches de fond, de haut en bas : teinte d'indice, rayures de conflit (--bb-wash, --bb-stripes). */
+  background-image: var(--bb-wash, none), var(--bb-stripes, none);
+  color: var(--md-sys-color-on-surface, #1d1b20);
+  /* Couche d'état (survol, appui) par-dessus un liseré qui signale la case vide. */
+  box-shadow:
+    inset 0 0 0 999px var(--bb-state, transparent),
+    inset 0 0 0 1px var(--bb-edge);
+  cursor: pointer;
+  transition:
+    background-color 200ms cubic-bezier(0.2, 0, 0, 1),
+    transform 120ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Pas de contour natif : le focus clavier a son propre double anneau (plus bas). Le sélecteur avec
+   `:focus-visible` l'emporte sur la règle globale de tokens.css, quel que soit l'ordre des feuilles. */
+.bb__cell,
+.bb__cell:focus-visible {
+  outline: none;
+}
+
+@media (hover: hover) {
+  .bb__cell:not(.bb__cell--given):hover {
+    --bb-state: color-mix(in srgb, currentColor 8%, transparent);
+  }
+}
+
+.bb__cell:not(.bb__cell--given):active {
+  --bb-state: color-mix(in srgb, currentColor 12%, transparent);
+  transform: scale(0.94);
+}
+
+.bb__cell--given {
+  cursor: default;
+}
+
+/* Soleil et lune : tuile teintée + symbole assorti (plus soutenus sur une case donnée). */
+.bb__cell--sun,
+.bb__cell--moon {
+  --bb-edge: transparent;
+}
+
+.bb__cell--sun {
+  background-color: var(--bb-sun-tile);
+  color: var(--bb-sun-ink);
+}
+
+.bb__cell--moon {
+  background-color: var(--bb-moon-tile);
+  color: var(--bb-moon-ink);
+}
+
+.bb__cell--sun.bb__cell--given {
+  background-color: var(--bb-sun-given-tile);
+  color: var(--bb-sun-given-ink);
+}
+
+.bb__cell--moon.bb__cell--given {
+  background-color: var(--bb-moon-given-tile);
+  color: var(--bb-moon-given-ink);
+}
+
+/* --- Symboles --- */
+.bb__sym {
+  position: relative;
+  z-index: 2;
+  grid-area: 1 / 1;
+  width: 68%;
+  height: 68%;
+  fill: currentColor;
+  pointer-events: none;
+}
+
+.bb[data-dense] .bb__sym {
+  width: 72%;
+  height: 72%;
+}
+
+/* Soleil : disque plein et rayons arrondis. Lune : croissant plein, contour fin qui l'épaissit un peu. */
+.bb__rays {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.3;
+  stroke-linecap: round;
+}
+
+.bb__crescent {
+  stroke: currentColor;
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+
+.bb__cell--given .bb__rays {
+  stroke-width: 2.8;
+}
+
+.bb__cell--given .bb__crescent {
+  stroke-width: 1.6;
+}
+
+/* Symbole « fantôme » d'un indice, sur une tuile vide teintée aux trois quarts de la couleur du symbole : contour
+   pointillé et remplissage léger.
+   `pathLength` (30 pour le disque, 60 pour le croissant) est un multiple de la période des tirets (5) :
+   le pointillé se referme proprement. L'opacité (GHOST_ALPHA) est posée par le composant. */
+.bb__cell--ghost-sun {
+  --bb-edge: transparent;
+  background-color: color-mix(in srgb, var(--bb-sun-tile) 75%, var(--bb-empty));
+  color: var(--bb-sun-ink);
+}
+
+.bb__cell--ghost-moon {
+  --bb-edge: transparent;
+  background-color: color-mix(in srgb, var(--bb-moon-tile) 75%, var(--bb-empty));
+  color: var(--bb-moon-ink);
+}
+
+.bb__sym--ghost .bb__disc,
+.bb__sym--ghost .bb__crescent {
+  fill-opacity: 0.35;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-dasharray: 3 2;
+}
+
+.bb__sym--ghost .bb__rays {
+  stroke-width: 2.1;
+}
+
+/* --- Surbrillance d'indice : lignes concernées, cases fausses --- */
+.bb__cell--line {
+  --bb-tint: color-mix(in srgb, var(--bb-hl) 16%, transparent);
+}
+
+.bb__cell--other {
+  --bb-tint: color-mix(in srgb, var(--bb-hl-other) 16%, transparent);
+}
+
+.bb__cell--mistake {
+  --bb-tint: color-mix(in srgb, var(--bb-error) 22%, transparent);
+}
+
+/* La teinte des lignes ne couvre que les cases vides : une tuile de soleil ou de lune garde sa couleur, et la
+   case que l'indice remplit n'est pas teintée (son anneau suffit). */
+.bb__cell--line:not(.bb__cell--sun, .bb__cell--moon, .bb__cell--hinted),
+.bb__cell--other:not(.bb__cell--sun, .bb__cell--moon, .bb__cell--hinted),
+.bb__cell--mistake {
+  --bb-wash: linear-gradient(var(--bb-tint), var(--bb-tint));
+}
+
+/* Conflit : rayures discrètes (repère sans couleur) ; l'anneau porte le signal principal. */
+.bb__cell--conflict {
+  --bb-stripes: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--bb-error) 16%, transparent) 0 3px, transparent 3px 9px);
+}
+
+/* Cadre de la ligne (ou colonne) de l'indice : rectangle arrondi qui longe le contour des tuiles. La grille a des
+   interstices, d'où le calcul : pas d'une tuile = (100 % + interstice) / n, la tuile mesure pas − interstice. */
+.bb__frame {
+  --bb-pitch: calc((100% + var(--bb-gap)) / var(--bb-n));
+  position: absolute;
+  z-index: 3;
+  left: calc(var(--c0) * var(--bb-pitch));
+  top: calc(var(--r0) * var(--bb-pitch));
+  width: calc((var(--c1) - var(--c0) + 1) * var(--bb-pitch) - var(--bb-gap));
+  height: calc((var(--r1) - var(--r0) + 1) * var(--bb-pitch) - var(--bb-gap));
+  border-radius: calc(var(--bb-radius) + 2px);
+  box-shadow: 0 0 0 calc(var(--bb-gap) * 0.9) var(--bb-frame-color);
+  pointer-events: none;
+}
+
+.bb__frame--line {
+  --bb-frame-color: var(--bb-hl);
+}
+
+.bb__frame--other {
+  --bb-frame-color: var(--bb-hl-other);
+}
+
+/* --- Anneaux d'état (::before), sous le symbole --- */
+.bb__cell--pivot::before,
+.bb__cell--hinted::before,
+.bb__cell--conflict::before,
+.bb__cell--mistake::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  inset: calc(var(--bb-ring-inset) + var(--bb-ring-outer));
+  border: var(--bb-ring-inner) solid currentColor;
+  border-radius: max(2px, calc(var(--bb-radius) - var(--bb-ring-inset) - var(--bb-ring-outer)));
+  box-shadow: 0 0 0 var(--bb-ring-outer) var(--bb-ring-color);
+}
+
+.bb__cell--pivot,
+.bb__cell--hinted {
+  --bb-ring-color: var(--bb-hl);
+}
+
+/* Après `hinted` : l'erreur prime sur l'indice si les deux se cumulent. */
+.bb__cell--conflict,
+.bb__cell--mistake {
+  --bb-ring-color: var(--bb-error);
+}
+
+/* Pivot du raisonnement : anneau plus léger que celui de la case que l'indice remplit. */
+.bb__cell--pivot:not(.bb__cell--hinted, .bb__cell--conflict, .bb__cell--mistake)::before {
+  border-width: calc(var(--bb-ring-inner) * 0.75);
+  box-shadow: 0 0 0 calc(var(--bb-ring-outer) * 0.7) var(--bb-ring-color);
+}
+
+/* Case que l'indice remplit : seul le liseré coloré pulse, le liseré `currentColor` reste plein. */
+.bb__cell--hinted::before {
+  animation: bb-pulse 1.2s cubic-bezier(0.2, 0, 0, 1) infinite;
+}
+
+@keyframes bb-pulse {
+  50% {
+    box-shadow: 0 0 0 var(--bb-ring-outer) color-mix(in srgb, var(--bb-ring-color) 30%, transparent);
+  }
+}
+
+/* --- Focus clavier (::after, au-dessus des anneaux d'état) : double anneau `currentColor` + secondaire --- */
+.bb__cell:focus-visible::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  inset: calc(var(--bb-ring-inset) + var(--bb-ring-outer));
+  border: var(--bb-ring-inner) solid currentColor;
+  border-radius: max(2px, calc(var(--bb-radius) - var(--bb-ring-inset) - var(--bb-ring-outer)));
+  box-shadow: 0 0 0 var(--bb-ring-outer) var(--md-sys-color-secondary, #6747b0);
+}
+
+/* Case déjà cerclée par un état : l'anneau clavier se loge à l'intérieur de l'anneau d'état. */
+.bb__cell--pivot:focus-visible::after,
+.bb__cell--hinted:focus-visible::after,
+.bb__cell--conflict:focus-visible::after,
+.bb__cell--mistake:focus-visible::after {
+  inset: calc(var(--bb-ring-inset) + 2 * var(--bb-ring-outer) + var(--bb-ring-inner));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bb,
+  .bb__cell {
+    transition: none;
+  }
+  .bb__cell:not(.bb__cell--given):active {
+    transform: none;
+  }
+  .bb__cell--hinted::before {
+    animation: none;
+  }
+}
