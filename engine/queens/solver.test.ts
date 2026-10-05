@@ -179,14 +179,21 @@ function combinations<T>(items: readonly T[], k: number): T[][] {
 }
 
 /**
- * Ensembles bloqués : k sources (régions ou lignes) dont les candidates tiennent dans k cibles.
- * `all` : tous les k de 2 à m−2 ; sinon k ≤ ⌊m/2⌋ dans l'ordre documenté (k, forme, lexicographique).
+ * Ensembles bloqués : k sources dont les candidates tiennent dans k cibles, six familles.
+ * `all` : tous les k de 2 à m−2 ; sinon k ≤ ⌊m/2⌋ dans l'ordre documenté (k, famille, lexicographique).
  */
 function refLocked(st: RefState, all: boolean): (RefApp & { level: number })[] {
   const n = st.p.size;
   const m = n - st.queen.filter(Boolean).length;
   const target = (kind: QueensUnitKind, x: number): number => (kind === 'row' ? rowOf(st, x) : kind === 'column' ? colOf(st, x) : st.p.regions[x]!);
-  const forms: [QueensUnitKind, QueensUnitKind][] = [['region', 'row'], ['region', 'column'], ['row', 'region'], ['column', 'region']];
+  const forms: [QueensUnitKind, QueensUnitKind][] = [
+    ['region', 'row'],
+    ['region', 'column'],
+    ['row', 'region'],
+    ['column', 'region'],
+    ['row', 'column'],
+    ['column', 'row'],
+  ];
   const out: (RefApp & { level: number })[] = [];
   for (let k = 2; k <= (all ? m - 2 : Math.floor(m / 2)); k++) {
     for (const [srcKind, dstKind] of forms) {
@@ -235,6 +242,9 @@ function refContradictions(st: RefState): { x: number; fail: QueensUnitRef; chai
   });
   return out.sort((a, b) => a.chain.length - b.chain.length || a.x - b.x);
 }
+
+/** Famille d'un ensemble bloqué impliquant des régions (les 4 familles d'origine). */
+const isRegionFamily = (s: RefApp | QueensStep): boolean => s.units[0]?.kind === 'region' || s.targets[0]?.kind === 'region';
 
 const core = (s: RefApp | QueensStep) => ({ technique: s.technique, place: s.place, eliminate: s.eliminate, units: s.units, targets: s.targets });
 
@@ -308,6 +318,14 @@ const A = board(['aabbb', 'aabcc', 'dabcc', 'ddeec', 'ddeee']);
 const B = board(['aabbcc', 'aabbcc', 'dddccc', 'ddeeff', 'ddeeff', 'ddeeff']);
 // 8×8 : régions a, b, c enfermées dans les lignes 0–2 (triplet bloqué), sans paire nulle part.
 const C = board(['aabbccdd', 'aabbccdd', 'aabbccdd', 'eeffgggd', 'eeffgghd', 'effgghhd', 'eefghhhh', 'eeegghhh']);
+// 8×8 en trois bandes ; avec D_MARKS, les lignes 2 et 5 n'ont plus que les colonnes 1 et 6
+// (quatre cases de quatre régions distinctes : ni attaque ni famille « régions »).
+const D_ROWS = ['aaabbccc', 'aabbbccc', 'aabbbccc', 'dddeefff', 'ddeeefff', 'ddeeefff', 'gggghhhh', 'gggggghh'];
+const D_MARKS = ['........', '........', 'x.xxxx.x', '........', '........', 'x.xxxx.x', '........', '........'];
+const D = board(D_ROWS);
+const transpose = (rows: readonly string[]): string[] => rows.map((_, c) => rows.map((r) => r[c]).join(''));
+// 10×10 réelle (solution unique) : niveau 6 sans la famille lignes↔colonnes, niveau 4 avec.
+const RC_REAL = '0000011223001111122200011122224441155552644111555544477775554477775588447777758897777878889999788888';
 
 describe('techniques (grilles construites)', () => {
   it('single : région, puis ligne, puis colonne', () => {
@@ -424,6 +442,82 @@ describe('techniques (grilles construites)', () => {
     expect(nextQueensStep(C, blank(8), restrictQueensProfile(QUEENS_TECHNIQUES_V1, 4))).toBeNull();
   });
 
+  it('locked-pair lignes→colonnes : seule déduction possible avant la contradiction', () => {
+    const marks = grid(D_MARKS);
+    const step = nextQueensStep(D, marks);
+    expect(step).toEqual({
+      technique: 'locked-pair',
+      level: 4,
+      place: [],
+      eliminate: [1, 6, 9, 14, 25, 30, 33, 38, 49, 54, 57, 62],
+      units: [unit('row', 2), unit('row', 5)],
+      targets: [unit('column', 1), unit('column', 6)],
+      cells: [17, 22, 41, 46],
+      chain: [],
+    });
+    // Référence : rien de plus facile, aucune famille « régions » à aucun k ; seules des contradictions sinon.
+    const st = refState(D, marks);
+    checkStep(st, step!);
+    expect(refLocked(st, true).filter(isRegionFamily)).toEqual([]);
+    expect(refContradictions(st).length).toBeGreaterThan(0);
+    expect(nextQueensStep(D, marks, restrictQueensProfile(QUEENS_TECHNIQUES_V1, 3))).toBeNull();
+  });
+
+  it('locked-pair colonnes→lignes : même grille transposée', () => {
+    const p = board(transpose(D_ROWS));
+    const marks = grid(transpose(D_MARKS));
+    const step = nextQueensStep(p, marks);
+    expect(step).toEqual({
+      technique: 'locked-pair',
+      level: 4,
+      place: [],
+      eliminate: [8, 9, 11, 12, 14, 15, 48, 49, 51, 52, 54, 55],
+      units: [unit('column', 2), unit('column', 5)],
+      targets: [unit('row', 1), unit('row', 6)],
+      cells: [10, 13, 50, 53],
+      chain: [],
+    });
+    const st = refState(p, marks);
+    checkStep(st, step!);
+    expect(refLocked(st, true).filter(isRegionFamily)).toEqual([]);
+  });
+
+  it('à k égal, les familles « régions » passent avant les familles lignes↔colonnes', () => {
+    // D avec (6,0) dans la région d : la paire régions g, h → lignes 6, 7 élimine (6,0).
+    const p = board(['aaabbccc', 'aabbbccc', 'aabbbccc', 'dddeefff', 'ddeeefff', 'ddeeefff', 'dggghhhh', 'gggggghh']);
+    const marks = grid(D_MARKS);
+    const step = nextQueensStep(p, marks)!;
+    expect(step).toMatchObject({
+      technique: 'locked-pair',
+      eliminate: [48],
+      units: [unit('region', 6), unit('region', 7)],
+      targets: [unit('row', 6), unit('row', 7)],
+    });
+    checkStep(refState(p, marks), step);
+    // La paire lignes 2, 5 → colonnes 1, 6 vient juste après.
+    expect(nextQueensStep(p, applyStep(p, marks, step))).toMatchObject({
+      technique: 'locked-pair',
+      units: [unit('row', 2), unit('row', 5)],
+      targets: [unit('column', 1), unit('column', 6)],
+    });
+  });
+
+  it("famille lignes↔colonnes sur une grille réelle 10×10 : niveau 4 au lieu d'une contradiction", () => {
+    const p = decodeQueens(RC_REAL);
+    expect(solveQueensExact(p, 2).count).toBe(1);
+    expect(rateQueens(p)).toMatchObject({ solvable: true, tier: 3, maxLevel: 4, hardest: 'locked-pair' });
+    const res = solveQueensLogically(p);
+    const i = res.steps.findIndex((s) => s.technique.startsWith('locked') && !isRegionFamily(s));
+    expect(res.steps[i]).toMatchObject({ technique: 'locked-pair', units: [unit('column', 2), unit('column', 6)], targets: [unit('row', 2), unit('row', 5)] });
+    // Jusque-là, le chemin est celui des 4 familles d'origine ; ici, elles ne trouvent rien : il faudrait une contradiction.
+    let marks = blank(10);
+    for (const step of res.steps.slice(0, i)) marks = applyStep(p, marks, step);
+    const st = refState(p, marks);
+    expect(refLocked(st, true).filter(isRegionFamily)).toEqual([]);
+    expect(refContradictions(st).length).toBeGreaterThan(0);
+    crossCheck(p);
+  });
+
   it('contradiction : hypothèse réfutée par propagation (grille réelle 5×5 à solution unique)', () => {
     // 00000 / 00012 / 33412 / 33412 / 33111 ; état atteint par le solveur avant sa 7e étape.
     const p = decodeQueens('0000000012334123341233111');
@@ -446,7 +540,7 @@ describe('techniques (grilles construites)', () => {
   });
 
   it('les grilles construites passent la vérification croisée complète', () => {
-    for (const p of [A, B, C]) crossCheck(p);
+    for (const p of [A, B, C, D, board(transpose(D_ROWS))]) crossCheck(p);
   });
 });
 
@@ -703,6 +797,14 @@ const GOLDEN: readonly [string, Omit<ReturnType<typeof rateQueens>, 'solvable'>,
   ['0000011233445501123244500112225555551122555556622675755666667775868666777788866677788886667778988866', { tier: 4, score: 46, hardest: 'locked-set', steps: 16, maxLevel: 5, levelCounts: [0, 10, 2, 3, 0, 1, 0] }, '93806cd97814ed86f26650aabd43275a'],
   ['0000011222000111112231111445223144444555314445455533444555667744445886744994598874499999987999999988', { tier: 4, score: 430, hardest: 'contradiction', steps: 34, maxLevel: 6, levelCounts: [0, 10, 0, 10, 1, 2, 11] }, '6284b63c80e66350fae728c67e449001'],
   ['0011112222000111122340511111224051111226445511226644411176664488116666444881116644888181164988888866', { tier: 1, score: 10, hardest: 'single', steps: 10, maxLevel: 1, levelCounts: [0, 10, 0, 0, 0, 0, 0] }, 'ab5767275ac26d070600141f0a93381b'],
+  // Familles lignes↔colonnes (colonnes 7,8 → lignes 2,4).
+  ['000000122003000224033055224330052244335556664735566644833536646833336646883366666', { tier: 4, score: 81, hardest: 'contradiction', steps: 20, maxLevel: 6, levelCounts: [0, 9, 2, 7, 1, 0, 1] }, '1f0da090ef413ff31ce3099600d48c5a'],
+  // Lignes 1,4,6 → colonnes 3,4,5 (k = 3).
+  ['0001222222011111112201333122240533333264555533344455755444445575777744877577444477777774447777777499', { tier: 4, score: 82, hardest: 'contradiction', steps: 19, maxLevel: 6, levelCounts: [0, 10, 3, 4, 0, 1, 1] }, '0d78488935ec57d1f91b2c6f1c83610a'],
+  // Lignes 3,4 → colonnes 5,8.
+  ['0011222233000122433311112243331514224336551444433657777448365557778866557776866655776666665977776666', { tier: 4, score: 170, hardest: 'contradiction', steps: 26, maxLevel: 6, levelCounts: [0, 10, 3, 6, 4, 0, 3] }, 'acfa36a3b2df6f10110bb0d747a53281'],
+  // RC_REAL : colonnes 2,6 → lignes 2,5 (niveau 6 sans cette famille).
+  [RC_REAL, { tier: 3, score: 70, hardest: 'locked-pair', steps: 22, maxLevel: 4, levelCounts: [0, 10, 3, 6, 3, 0, 0] }, '80ce79652c7961756b5ad78f4e68115b'],
 ];
 
 describe('golden V1 (figé)', () => {

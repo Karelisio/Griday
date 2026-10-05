@@ -28,9 +28,12 @@
  *   candidates croissant, puis ordre des unités.
  * - locked-pair (4, 10) : k = 2 ; locked-set (5, 20) : 3 ≤ k ≤ ⌊m/2⌋ (m = reines manquantes).
  *   k unités sources dont les candidates tiennent dans k unités cibles → les autres candidates des cibles
- *   sont éliminées. Pour chaque k croissant, formes : régions→lignes, régions→colonnes, lignes→régions,
- *   colonnes→régions ; combinaisons en ordre lexicographique. Dualité : k sources d'une forme ⇔ m−k
- *   sources de la forme duale (mêmes éliminations), d'où k ≤ ⌊m/2⌋ ; k = 1 ou m−1 relève du niveau 2.
+ *   sont éliminées. Pour chaque k croissant, familles (sources→cibles) : régions→lignes, régions→colonnes,
+ *   lignes→régions, colonnes→régions, lignes→colonnes, colonnes→lignes ; combinaisons en ordre
+ *   lexicographique. La famille se lit dans l'étape (genre de `units` → genre de `targets`).
+ *   Dualité (régions→lignes ⇔ lignes→régions, régions→colonnes ⇔ colonnes→régions, lignes→colonnes ⇔
+ *   colonnes→lignes) : k sources ⇔ m−k sources de la famille duale (mêmes éliminations), d'où k ≤ ⌊m/2⌋ ;
+ *   k = 1 ou m−1 relève du niveau 2 (familles « régions ») ou 1 (lignes↔colonnes : une seule candidate).
  * - contradiction (6, 30) : hypothèse « reine en X », propagée par single, region-line, line-region
  *   (une étape à la fois, dans cet ordre) jusqu'au point fixe ; si une unité se vide, X est éliminée.
  *   Toutes les hypothèses avancent en parallèle : on retient la réfutation la plus COURTE (en étapes),
@@ -177,6 +180,11 @@ const ROW = 1;
 const COLUMN = 2;
 const KIND_NAMES: readonly QueensUnitKind[] = ['region', 'row', 'column'];
 
+// Familles d'ensembles bloqués (sources → cibles), dans l'ordre de parcours.
+const FORM_SRC = [REGION, REGION, ROW, COLUMN, ROW, COLUMN] as const;
+const FORM_DST = [ROW, COLUMN, REGION, REGION, COLUMN, ROW] as const;
+const FORMS = FORM_SRC.length;
+
 // État = Int32Array : masques des unités résolues, nombre de reines, candidates, reines.
 const S_ROWS = 0;
 const S_COLS = 1;
@@ -278,9 +286,9 @@ function createCtx(p: QueensPuzzle): Ctx {
     inter: new Int32Array(n),
     counts: new Int32Array(3 * n),
     cells: new Int32Array(total),
-    lockIdx: new Int32Array(4 * n),
-    lockMask: new Int32Array(4 * n),
-    lockCount: new Int32Array(4),
+    lockIdx: new Int32Array(FORMS * n),
+    lockMask: new Int32Array(FORMS * n),
+    lockCount: new Int32Array(FORMS),
     hypViews: null,
     hypCells: null,
     hypAlive: null,
@@ -548,10 +556,6 @@ function attackUnit(ctx: Ctx, s: Int32Array, kind: number, idx: number): boolean
   return setFinding(ctx, -1, kind, 1 << idx, -1, 0);
 }
 
-// Formes des ensembles bloqués : sources → cibles.
-const FORM_SRC = [REGION, REGION, ROW, COLUMN] as const;
-const FORM_DST = [ROW, COLUMN, REGION, REGION] as const;
-
 /** L4 / L5 — k unités sources tenant dans k unités cibles, kMin ≤ k ≤ min(kMax, ⌊m/2⌋). */
 function findLocked(ctx: Ctx, s: Int32Array, kMin: number, kMax: number): boolean {
   const n = ctx.n;
@@ -587,18 +591,24 @@ function findLocked(ctx: Ctx, s: Int32Array, kMin: number, kMax: number): boolea
       regsMask |= 1 << ctx.region[r * n + ctz(low)]!;
     }
     pushSource(ctx, 2, r, regsMask);
+    pushSource(ctx, 4, r, s[S_CAND + r]!);
   }
   const colsDone = s[S_COLS]!;
   for (let c = 0; c < n; c++) {
     if ((colsDone >>> c) & 1) continue;
     let regsMask = 0;
+    let rowsMask = 0;
     for (let r = 0; r < n; r++) {
-      if ((s[S_CAND + r]! >>> c) & 1) regsMask |= 1 << ctx.region[r * n + c]!;
+      if ((s[S_CAND + r]! >>> c) & 1) {
+        regsMask |= 1 << ctx.region[r * n + c]!;
+        rowsMask |= 1 << r;
+      }
     }
     pushSource(ctx, 3, c, regsMask);
+    pushSource(ctx, 5, c, rowsMask);
   }
   for (let k = kMin; k <= kHi; k++) {
-    for (let form = 0; form < 4; form++) {
+    for (let form = 0; form < FORMS; form++) {
       if (lockedSearch(ctx, s, form, k, 0, 0, 0, 0)) return true;
     }
   }
@@ -637,7 +647,7 @@ function lockedSearch(
 /** Éliminations d'un ensemble bloqué (sources `set`, cibles `targets`) ; vrai si non vide. */
 function lockedElim(ctx: Ctx, s: Int32Array, form: number, set: number, targets: number): boolean {
   const n = ctx.n;
-  const regionsMask = form < 2 ? set : targets;
+  const regionsMask = form < 2 ? set : form < 4 ? targets : 0;
   let any = 0;
   for (let i = 0; i < n; i++) {
     let inRegions = 0;
@@ -652,7 +662,9 @@ function lockedElim(ctx: Ctx, s: Int32Array, form: number, set: number, targets:
     if (form === 0) e = (targets >>> i) & 1 ? m & ~inRegions : 0;
     else if (form === 1) e = m & targets & ~inRegions;
     else if (form === 2) e = (set >>> i) & 1 ? 0 : m & inRegions;
-    else e = m & inRegions & ~set;
+    else if (form === 3) e = m & inRegions & ~set;
+    else if (form === 4) e = (set >>> i) & 1 ? 0 : m & targets;
+    else e = (targets >>> i) & 1 ? m & ~set : 0;
     ctx.elim[i] = e;
     any |= e;
   }
