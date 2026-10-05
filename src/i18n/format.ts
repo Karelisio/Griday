@@ -2,7 +2,8 @@
 import type { ISODate } from '../../engine/core/date';
 import type { Language } from './index';
 
-const BCP47: Record<Language, string> = { fr: 'fr-FR', en: 'en-US' };
+/** Étiquette BCP 47 des formats Intl par langue de l'app. */
+export const BCP47: Readonly<Record<Language, string>> = { fr: 'fr-FR', en: 'en-US' };
 
 /** Date civile ISO formatée sans décalage de fuseau (construite à midi UTC, affichée en UTC). */
 export function formatDate(date: ISODate, lang: Language, style: 'full' | 'long' | 'medium' | 'weekday' = 'long'): string {

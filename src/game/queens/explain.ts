@@ -6,6 +6,7 @@ import type { QueensHint } from '../../../engine/queens/hint';
 import type { QueensStep, QueensUnitRef } from '../../../engine/queens/v1/solver';
 import { MARK_EMPTY, type QueensMark, type QueensPuzzle } from '../../../engine/queens/types';
 import type { Language } from '../../i18n';
+import { BCP47 } from '../../i18n/format';
 
 export interface HintHighlight {
   /** Cases des unités qui portent le raisonnement (région, ligne, colonne). */
@@ -28,7 +29,6 @@ export interface HintExplanation {
   readonly highlight: HintHighlight;
 }
 
-const BCP47: Record<Language, string> = { fr: 'fr-FR', en: 'en-US' };
 
 export function unitCells(p: QueensPuzzle, u: QueensUnitRef): number[] {
   const n = p.size;

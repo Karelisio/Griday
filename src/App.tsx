@@ -9,6 +9,7 @@ import { dailyProgressKey, dailyPuzzleKey, pruneStorage, selfCheckKey, UNLIMITED
 import { loadJSON, removeKey, saveJSON } from './platform/storage';
 import { ScreenBoundary } from './ScreenBoundary';
 import { ArchiveGamePage } from './screens/ArchiveGamePage';
+import { ArchiveScreen } from './screens/ArchiveScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { TodayScreen } from './screens/TodayScreen';
 import { UnlimitedScreen } from './screens/UnlimitedScreen';
@@ -179,7 +180,7 @@ function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
   );
 }
 
-// Provisoire : remplacés par les écrans Archives et Statistiques en cours de réalisation.
+// Provisoire : remplacé par l'écran Statistiques en cours de réalisation.
 function PendingScreen({ visible, titleKey }: { visible: boolean; titleKey: string }) {
   const { t } = useTranslation();
   return (
@@ -190,7 +191,6 @@ function PendingScreen({ visible, titleKey }: { visible: boolean; titleKey: stri
     </section>
   );
 }
-const ArchiveScreen = ({ visible }: { visible: boolean; onOpen: (date: ISODate) => void }) => <PendingScreen visible={visible} titleKey="archive.title" />;
 const StatsScreen = ({ visible }: { visible: boolean }) => <PendingScreen visible={visible} titleKey="stats.title" />;
 
 /** Page secondaire plein écran (axe partagé horizontal M3) avec flèche de retour. */

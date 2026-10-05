@@ -7,6 +7,7 @@ import { useEffect, useId, useMemo, useRef, useState, type FocusEvent, type Keyb
 import { useTranslation } from 'react-i18next';
 import { addDays, type ISODate } from '../../engine/core/date';
 import type { Language } from '../i18n';
+import { BCP47 } from '../i18n/format';
 import type { DayStatus } from '../progress/types';
 import { useMotionTokens } from '../theme/motion';
 import { Icon, IconButton, type IconName } from '../ui';
@@ -41,7 +42,6 @@ export interface ArchiveCalendarProps {
   readonly onSelect: (date: ISODate) => void;
 }
 
-const LOCALES: Record<Language, string> = { fr: 'fr-FR', en: 'en-US' };
 /** Un lundi quelconque : donne le nom des jours de la semaine. */
 const MONDAY = '2024-01-01';
 /** Pastille de coin de chaque état (la couleur seule ne suffit pas à le distinguer). */
@@ -53,7 +53,7 @@ const SWIPE_DISTANCE = 56;
 /** Formats Intl d'une langue : dates construites à midi UTC et affichées en UTC (aucun décalage de fuseau). */
 function createFormats(lang: Language) {
   const format = (options: Intl.DateTimeFormatOptions) => {
-    const intl = new Intl.DateTimeFormat(LOCALES[lang], { ...options, timeZone: 'UTC' });
+    const intl = new Intl.DateTimeFormat(BCP47[lang], { ...options, timeZone: 'UTC' });
     return (date: ISODate) => intl.format(new Date(`${date}T12:00:00Z`));
   };
   const title = format({ month: 'long', year: 'numeric' });
