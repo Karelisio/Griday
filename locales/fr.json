@@ -230,6 +230,10 @@
   },
   "stats": {
     "title": "Statistiques",
+    "filter": {
+      "label": "Type de puzzle",
+      "all": "Tous"
+    },
     "solved": "Résolus",
     "average": "Temps moyen",
     "best": "Meilleur temps",

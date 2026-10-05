@@ -230,6 +230,10 @@
   },
   "stats": {
     "title": "Statistics",
+    "filter": {
+      "label": "Puzzle type",
+      "all": "All"
+    },
     "solved": "Solved",
     "average": "Average time",
     "best": "Best time",
