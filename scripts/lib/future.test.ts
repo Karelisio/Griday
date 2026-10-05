@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { keyDays, mergeGolden, monthKey, monthStart, monthWindow, nextMonthStart, quantile, rangeKey } from './future';
+import { appendOnlyViolations, keyDays, mergeGolden, monthKey, monthStart, monthWindow, nextMonthStart, quantile, rangeKey } from './future';
 
 describe('monthWindow', () => {
   it('couvre [début du mois, start + N ans] en mois entiers (bissextiles et décembre inclus)', () => {
@@ -47,6 +47,15 @@ describe('empreintes mensuelles', () => {
     expect(res.conflicts).toEqual(['2026-11']);
     expect(res.merged).toEqual({ '2026-09': 'z', '2026-10': 'a', '2026-11': 'b' });
     expect(Object.keys(res.merged)).toEqual(['2026-09', '2026-10', '2026-11']);
+  });
+});
+
+describe('appendOnlyViolations', () => {
+  it('signale clés supprimées et modifiées, accepte les ajouts', () => {
+    const base = { '2026-10': 'a', '2026-11': 'b', '2026-12': 'c' };
+    expect(appendOnlyViolations(base, { '2026-10': 'a', '2026-11': 'b', '2026-12': 'c', '2027-01': 'd' })).toEqual([]);
+    expect(appendOnlyViolations(base, { '2026-10': 'a', '2026-11': 'X' })).toEqual(['2026-11 modifiée', '2026-12 supprimée']);
+    expect(appendOnlyViolations(base, undefined)).toEqual(['2026-10 supprimée', '2026-11 supprimée', '2026-12 supprimée']);
   });
 });
 

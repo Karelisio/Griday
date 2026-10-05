@@ -56,11 +56,17 @@ const reportPath = str('report');
 const window = monthWindow(from, years);
 
 // ─── Références (scripts/golden/) et mesure à froid ─────────────────────────────────────────────
+const root = fileURLToPath(new URL('../', import.meta.url));
 const goldenDir = fileURLToPath(new URL('./golden/', import.meta.url));
 const store = {
   read(file: string): GoldenData | undefined {
     const path = goldenDir + file;
-    return existsSync(path) ? (JSON.parse(readFileSync(path, 'utf8')) as GoldenData) : undefined;
+    if (!existsSync(path)) return undefined;
+    try {
+      return JSON.parse(readFileSync(path, 'utf8')) as GoldenData;
+    } catch (e) {
+      throw new Error(`scripts/golden/${file} : JSON invalide (${(e as Error).message})`);
+    }
   },
   write(file: string, data: GoldenData): void {
     mkdirSync(goldenDir, { recursive: true });
@@ -68,11 +74,18 @@ const store = {
   },
 };
 const coldScript = fileURLToPath(new URL('./lib/cold-run.ts', import.meta.url));
+/** Processus neuf : chargement des modules + 1re génération. Minimum de 2 processus (écarte un voisin bruyant). */
 const coldRun = (type: PuzzleTypeId, version: number, date: ISODate): number => {
-  const res = spawnSync(process.execPath, ['--import', 'tsx', coldScript, type, String(version), date], { encoding: 'utf8' });
-  const ms = Number(res.stdout);
-  if (res.status !== 0 || !Number.isFinite(ms)) throw new Error(res.stderr.trim().split('\n').at(-1) ?? `code ${res.status}`);
-  return ms;
+  const once = (): number => {
+    const res = spawnSync(process.execPath, ['--import', 'tsx', coldScript, type, String(version), date], { cwd: root, encoding: 'utf8' });
+    if (res.status !== 0) {
+      const lines = res.stderr.split('\n').map((l) => l.trim()).filter(Boolean);
+      throw new Error(lines.find((l) => /Error/.test(l)) ?? lines.at(-1) ?? `code ${res.status}`);
+    }
+    const { total } = JSON.parse(res.stdout) as { total: number };
+    return total;
+  };
+  return Math.min(once(), once());
 };
 
 console.log(`Validation ${window.from} → ${window.to} (exclu, ${years} ans) × ${types.join(', ')} ; limite ${maxMs} ms`);
@@ -88,6 +101,7 @@ try {
     writeGolden: args.has('write-golden'),
     store,
     coldRun: args.has('no-cold') ? undefined : coldRun,
+    onProgress: (m) => console.log(`  … ${m}`),
   });
   print(report);
 } catch (e) {
@@ -110,7 +124,7 @@ function print(r: ValidationReport): void {
     console.log(`\n■ ${t.type} — versions ${t.versions.join(', ')} — ${t.days} jours (dont ${t.dailyDays} servis en puzzle du jour)`);
     console.log(`  temps (ms, 1re mesure) : moyenne ${t.timeMs.mean} · médiane ${t.timeMs.p50} · p99 ${t.timeMs.p99} · max ${t.timeMs.max} (${t.timeMs.maxDate}) · 2es mesures : ${t.retries.length}`);
     if (t.coldMs.length > 0) {
-      console.log(`  à froid (processus neuf, jour le plus lent) : ${t.coldMs.map((c) => `${DAY[c.weekday]} ${c.ms}`).join(' · ')}`);
+      console.log(`  à froid (processus neuf, chargement compris, jour le plus lent) : ${t.coldMs.map((c) => `${DAY[c.weekday]} ${c.ms}`).join(' · ')}`);
     }
     console.log(`  tentatives : moyenne ${t.attempts.mean} · max ${t.attempts.max} (${t.attempts.maxDate}) · secours ${t.attempts.fallbacks}`);
     console.log(`  secours vérifiés : ${t.fallbacksChecked}`);
@@ -129,8 +143,9 @@ function print(r: ValidationReport): void {
     return;
   }
   // Toutes les erreurs de références, puis un échantillon des autres.
-  const golden = r.errors.filter((e) => /\.json/.test(e));
-  const others = r.errors.filter((e) => !/\.json/.test(e));
+  const isGolden = (e: string) => /\.json|références/.test(e);
+  const golden = r.errors.filter(isGolden);
+  const others = r.errors.filter((e) => !isGolden(e));
   console.log(`\n✗ ${r.errors.length} erreur(s) :`);
   for (const e of golden) console.log(`  - ${e}`);
   for (const e of others.slice(0, 50)) console.log(`  - ${e}`);

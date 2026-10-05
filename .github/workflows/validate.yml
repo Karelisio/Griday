@@ -24,6 +24,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # historique complet : comparaison des références avec la révision de base
 
       - uses: actions/setup-node@v5
         with:
@@ -38,13 +40,21 @@ jobs:
       - name: Tests unitaires
         run: npm test
 
+      # Références figées en ajout seul (contournement avant lancement : « [golden-reset] »).
+      - name: Références en ajout seul
+        if: (success() || failure()) && (github.event_name == 'push' || github.event_name == 'pull_request')
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          GOLDEN_RESET: ${{ (contains(github.event.head_commit.message, '[golden-reset]') || contains(github.event.pull_request.title, '[golden-reset]')) && '1' || '' }}
+        run: npx tsx scripts/check-golden.ts "$BASE"
+
       # Lancée même si un test unitaire échoue, pour un diagnostic complet.
       - name: Validation des 10 prochaines années (+ références figées)
         if: success() || failure()
         run: npm run validate:future -- --report=validate-report.json
 
       - name: Rapport de validation
-        if: success() || failure()
+        if: always()
         uses: actions/upload-artifact@v6
         with:
           name: validate-report

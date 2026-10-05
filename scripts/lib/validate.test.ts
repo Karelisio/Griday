@@ -132,6 +132,8 @@ describe('validateur long terme', () => {
   it('nominal : aucune erreur, références écrites puis vérifiées', () => {
     const store = frozenStore();
     expect([...store.files.keys()].sort()).toEqual([DAILY_FILE, versionFile('queens', 1)]);
+    // Seuls les mois servis jusqu'à validThrough sont figés.
+    expect(Object.keys(store.files.get(versionFile('queens', 1))!)).toEqual(['2026-01', '2026-02', '2026-03']);
     expect(Object.keys(store.files.get(DAILY_FILE)!)).toEqual(dailyKeys(SCHED.epoch, SCHED.validThrough));
     const res = run(makeRegistry([makeVersion(1)]), { store });
     expect(res.errors).toEqual([]);
@@ -148,7 +150,7 @@ describe('validateur long terme', () => {
     const res = run(makeRegistry([makeVersion(1)]), { store: memoryStore() });
     expect(res.errors.some((e) => e.startsWith(`${DAILY_FILE} : 3 référence(s) obligatoire(s)`))).toBe(true);
     expect(res.errors.some((e) => e.startsWith(`${versionFile('queens', 1)} : 3 référence(s) obligatoire(s)`))).toBe(true);
-    expect(res.warnings.some((w) => w.includes('au-delà de validThrough'))).toBe(true);
+    expect(res.warnings.some((w) => w.includes('au-delà de validThrough ou non servis'))).toBe(true);
   });
 
   it('référence modifiée : erreur', () => {
@@ -196,7 +198,46 @@ describe('validateur long terme', () => {
     expect(ok.warnings.some((w) => /1re mesure 70\d ms > 500 ms/.test(w))).toBe(true);
 
     const many = run(makeRegistry([makeVersion(1, { when: (u) => u % 11 === 0, slowMs: 700, slowOnce: true })]), { store: frozenStore() });
-    expect(many.errors.some((e) => /jours ont nécessité une 2e mesure \(> 3\)/.test(e))).toBe(true);
+    expect(many.types[0]!.retries).toHaveLength(3);
+    expect(many.errors.some((e) => /plus de 2e mesure : 3 déjà utilisées/.test(e))).toBe(true);
+  });
+
+  it('arrêt anticipé après trop d’erreurs de temps (rapport partiel, échec)', () => {
+    const progress: string[] = [];
+    const res = run(makeRegistry([makeVersion(1, { when: () => true, slowMs: 600 })]), {
+      store: frozenStore(),
+      maxTimingErrors: 5,
+      onProgress: (m) => progress.push(m),
+    });
+    expect(res.errors.filter((e) => /génération en \d+ ms/.test(e))).toHaveLength(5);
+    expect(res.errors.some((e) => /arrêt anticipé après 5 erreurs de temps/.test(e))).toBe(true);
+    expect(res.errors).toContain('queens références non vérifiées (arrêt anticipé)');
+    expect(progress).toEqual(['queens 2026…']);
+  });
+
+  it('version non servie (inscrite au registre, jamais activée) : aucune référence exigée', () => {
+    const res = run(makeRegistry([makeVersion(1), makeVersion(2, { label: 'w' })]), { store: frozenStore() });
+    expect(res.errors).toEqual([]);
+    expect(res.golden.find((g) => g.file === versionFile('queens', 2))).toEqual({
+      file: versionFile('queens', 2), checked: 0, mismatches: [], missing: [], pending: [], added: [],
+    });
+  });
+
+  it('version activée après validThrough : références en attente (avertissement), jamais écrites', () => {
+    const later: Schedule = { ...SCHED, versions: { queens: [{ from: '2026-01-01', version: 1 }, { from: '2026-05-01', version: 2 }] } };
+    const store = frozenStore();
+    const res = run(makeRegistry([makeVersion(1), makeVersion(2, { label: 'w' })]), { store, writeGolden: true }, later);
+    expect(res.errors).toEqual([]);
+    expect(res.golden.find((g) => g.file === versionFile('queens', 2))!.pending).toEqual(['2026-05', '2026-06']);
+    expect(store.files.has(versionFile('queens', 2))).toBe(false);
+    expect(res.warnings.some((w) => w.startsWith(`${versionFile('queens', 2)} : 2 mois sans référence`))).toBe(true);
+  });
+
+  it('fichier de références illisible : erreur nommant le fichier', () => {
+    const store = frozenStore();
+    const broken = { ...store, read: (f: string) => (f === DAILY_FILE ? (() => { throw new Error('JSON invalide'); })() : store.read(f)) };
+    const res = run(makeRegistry([makeVersion(1)]), { store: broken });
+    expect(res.errors).toContain(`${DAILY_FILE} : illisible (JSON invalide)`);
   });
 
   it('mesure à froid au-delà de la limite : erreur', () => {
@@ -224,7 +265,7 @@ describe('validateur long terme', () => {
     const store = frozenStore();
     const res = run(makeRegistry([makeVersion(1)]), { store, from: '2026-05-01', to: '2026-06-01' });
     expect(res.from).toBe('2026-01-01');
-    expect(res.to).toBe('2026-07-01');
-    expect(res.errors).toEqual([]);
+    expect(res.to).toBe('2026-06-01');
+    expect(res.golden.find((g) => g.file === versionFile('queens', 1))!.checked).toBe(3);
   });
 });

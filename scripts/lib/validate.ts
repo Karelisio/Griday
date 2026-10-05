@@ -46,8 +46,12 @@ export interface ValidationOptions {
   readonly now?: () => number;
   /** Mesure à froid dans un processus neuf (ms) ; absente = non mesurée. */
   readonly coldRun?: (type: PuzzleTypeId, version: number, date: ISODate) => number;
-  /** Secondes mesures tolérées par type (pauses isolées). */
+  /** Secondes mesures tolérées par type (pauses isolées) ; au-delà, toute lenteur est une erreur. */
   readonly maxRetries?: number;
+  /** Erreurs de temps avant arrêt anticipé du type (la validation reste en échec). */
+  readonly maxTimingErrors?: number;
+  /** Progression (une ligne par année et par type). */
+  readonly onProgress?: (message: string) => void;
 }
 
 export interface TypeStats {
@@ -119,6 +123,7 @@ export function dailyKeys(epoch: ISODate, validThrough: ISODate): string[] {
 export function runValidation(registry: Registry, schedule: Schedule, opts: ValidationOptions): ValidationReport {
   const now = opts.now ?? (() => performance.now());
   const maxRetries = opts.maxRetries ?? 3;
+  const maxTimingErrors = opts.maxTimingErrors ?? 20;
   const errors: string[] = [];
   const warnings: string[] = [];
   const fail = (msg: string) => errors.push(msg);
@@ -134,7 +139,13 @@ export function runValidation(registry: Registry, schedule: Schedule, opts: Vali
   let start = minDate(monthStart(opts.from), monthStart(schedule.epoch));
   let end = opts.to;
   for (const file of files) {
-    const data = opts.store.read(file);
+    let data: GoldenData | undefined;
+    try {
+      data = opts.store.read(file);
+    } catch (e) {
+      fail(`${file} : illisible (${message(e)})`);
+      continue;
+    }
     if (!data) continue;
     stored.set(file, data);
     for (const key of Object.keys(data)) {
@@ -202,8 +213,17 @@ export function runValidation(registry: Registry, schedule: Schedule, opts: Vali
     const slowestByWeekday = new Map<number, { ms: number; date: ISODate; version: number }>();
     const scores = new Map<string, number[]>(); // `${version}:${weekday}`
     const fpByVersion = new Map<number, Map<ISODate, string>>();
+    /** Jours servis (type tiré par la rotation) par version, pour les références obligatoires. */
+    const servedByVersion = new Map<number, ISODate[]>();
+    let timingErrors = 0;
+    let stoppedEarly = false;
+    let year = '';
 
     for (const date of range) {
+      if (date.slice(0, 4) !== year) {
+        year = date.slice(0, 4);
+        opts.onProgress?.(`${type} ${year}…`);
+      }
       const version = versionForDate(schedule, type, date);
       const gen = def.versions[version]!;
       let g: GeneratedPuzzle<unknown>;
@@ -213,13 +233,27 @@ export function runValidation(registry: Registry, schedule: Schedule, opts: Vali
         g = generateDailyForVersion(def, version, date);
         first = now() - t0;
         if (first > opts.maxMs) {
-          const t1 = now();
-          generateDailyForVersion(def, version, date);
-          const second = now() - t1;
-          retries.push(date);
-          warnings.push(tag(`${date} : 1re mesure ${first.toFixed(0)} ms > ${opts.maxMs} ms (2e : ${second.toFixed(0)} ms)`));
-          if (Math.min(first, second) > opts.maxMs) fail(tag(`${date} : génération en ${Math.min(first, second).toFixed(0)} ms (> ${opts.maxMs} ms)`));
-          else if (first > 2 * opts.maxMs) fail(tag(`${date} : 1re mesure ${first.toFixed(0)} ms (> 2 × ${opts.maxMs} ms)`));
+          let slow: string | null = null;
+          if (retries.length < maxRetries) {
+            // Seconde mesure : n'excuse qu'une pause isolée (budget limité, jamais au-delà de 2 × la limite).
+            const t1 = now();
+            generateDailyForVersion(def, version, date);
+            const second = now() - t1;
+            retries.push(date);
+            warnings.push(tag(`${date} : 1re mesure ${first.toFixed(0)} ms > ${opts.maxMs} ms (2e : ${second.toFixed(0)} ms)`));
+            if (Math.min(first, second) > opts.maxMs) slow = `génération en ${Math.min(first, second).toFixed(0)} ms (> ${opts.maxMs} ms)`;
+            else if (first > 2 * opts.maxMs) slow = `1re mesure ${first.toFixed(0)} ms (> 2 × ${opts.maxMs} ms)`;
+          } else {
+            slow = `génération en ${first.toFixed(0)} ms (> ${opts.maxMs} ms, plus de 2e mesure : ${maxRetries} déjà utilisées)`;
+          }
+          if (slow) {
+            fail(tag(`${date} : ${slow}`));
+            if (++timingErrors >= maxTimingErrors) {
+              fail(tag(`arrêt anticipé après ${timingErrors} erreurs de temps (${date}) : lenteur réelle`));
+              stoppedEarly = true;
+              break;
+            }
+          }
         }
       } catch (e) {
         fail(tag(`${date} : exception à la génération : ${message(e)}`));
@@ -254,6 +288,9 @@ export function runValidation(registry: Registry, schedule: Schedule, opts: Vali
         if (typeForDate(schedule, date) === type) {
           dailyDays++;
           dailyFp.set(date, fp);
+          let served = servedByVersion.get(version);
+          if (!served) servedByVersion.set(version, (served = []));
+          served.push(date);
         }
         const key = `${version}:${weekday}`;
         let list = scores.get(key);
@@ -263,7 +300,6 @@ export function runValidation(registry: Registry, schedule: Schedule, opts: Vali
         fail(tag(`${date} : exception à la vérification : ${message(e)}`));
       }
     }
-    if (retries.length > maxRetries) fail(tag(`${retries.length} jours ont nécessité une 2e mesure (> ${maxRetries}) : lenteur réelle probable`));
 
     // ── Temps à froid (processus neuf), jour le plus lent de chaque jour de semaine ──
     const coldMs: { weekday: number; date: ISODate; ms: number }[] = [];
@@ -305,7 +341,8 @@ export function runValidation(registry: Registry, schedule: Schedule, opts: Vali
     }
 
     // ── Références par version (sortie de la version, indépendante du calendrier) ──
-    for (const version of Object.keys(def.versions).map(Number)) {
+    if (stoppedEarly) fail(tag('références non vérifiées (arrêt anticipé)'));
+    for (const version of stoppedEarly ? [] : Object.keys(def.versions).map(Number)) {
       const file = versionFile(type, version);
       const existing = stored.get(file) ?? {};
       const active = fpByVersion.get(version) ?? new Map<ISODate, string>();
@@ -324,8 +361,9 @@ export function runValidation(registry: Registry, schedule: Schedule, opts: Vali
           fail(tag(`${file} ${key} : exception ${message(e)}`));
         }
       }
-      // Mois obligatoires : version servie au moins un jour jusqu'à validThrough.
-      const required = new Set([...active.keys()].filter((d) => isoToDays(d) <= isoToDays(validThrough)).map(monthKey));
+      // Mois obligatoires : version effectivement servie (rotation) au moins un jour jusqu'à validThrough.
+      const served = servedByVersion.get(version) ?? [];
+      const required = new Set(served.filter((d) => isoToDays(d) <= isoToDays(validThrough)).map(monthKey));
       goldenResults.push(compareAndMerge(file, existing, computed, required, opts.writeGolden, errors, warnings, toWrite));
     }
 
@@ -404,17 +442,17 @@ function compareAndMerge(
   for (const key of mismatches) errors.push(`${file} ${key} : empreinte ≠ référence — puzzles publiés modifiés !`);
   let added: string[] = [];
   if (writeGolden) {
-    const merged = mergeGolden(existing, computed);
-    for (const key of merged.conflicts) if (!mismatches.includes(key)) errors.push(`${file} ${key} : refus de remplacer une référence`);
+    // Seules les références obligatoires (puzzles servis jusqu'à validThrough) sont figées.
+    const toAdd: Record<string, string> = {};
+    for (const key of missing) toAdd[key] = computed[key]!;
+    const merged = mergeGolden(existing, toAdd);
     if (merged.added.length > 0) toWrite.set(file, merged.merged);
     added = merged.added;
-  } else {
-    if (missing.length > 0) {
-      errors.push(`${file} : ${missing.length} référence(s) obligatoire(s) absente(s) (${missing[0]} → ${missing.at(-1)}), --write-golden pour les figer`);
-    }
-    if (pending.length > 0) {
-      warnings.push(`${file} : ${pending.length} mois au-delà de validThrough sans référence (${pending[0]} → ${pending.at(-1)})`);
-    }
+  } else if (missing.length > 0) {
+    errors.push(`${file} : ${missing.length} référence(s) obligatoire(s) absente(s) (${missing[0]} → ${missing.at(-1)}), --write-golden pour les figer`);
+  }
+  if (pending.length > 0) {
+    warnings.push(`${file} : ${pending.length} mois sans référence (au-delà de validThrough ou non servis) (${pending[0]} → ${pending.at(-1)})`);
   }
   return { file, checked, mismatches, missing, pending, added };
 }

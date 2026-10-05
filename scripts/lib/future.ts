@@ -83,6 +83,20 @@ export function mergeGolden(
   return { merged: sorted, added: added.sort(), conflicts: conflicts.sort() };
 }
 
+/**
+ * Violations de l'ajout seul entre une révision de base et l'état courant d'un fichier de références :
+ * clé supprimée ou valeur modifiée (fichier courant absent = toutes les clés supprimées).
+ */
+export function appendOnlyViolations(base: GoldenMonths, current: GoldenMonths | undefined): string[] {
+  const out: string[] = [];
+  for (const [key, digest] of Object.entries(base)) {
+    const now = current?.[key];
+    if (now === undefined) out.push(`${key} supprimée`);
+    else if (now !== digest) out.push(`${key} modifiée`);
+  }
+  return out.sort();
+}
+
 /** Quantile d'un tableau TRIÉ (méthode du rang inférieur). */
 export function quantile(sorted: readonly number[], q: number): number {
   if (sorted.length === 0) return Number.NaN;
