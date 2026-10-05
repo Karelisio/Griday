@@ -71,6 +71,15 @@ export function SettingsScreen({ visible, dynamicSupported }: { visible: boolean
             />
           }
         />
+        <ListItem
+          leading={<Icon name="grid_view" />}
+          headline={t('settings.patterns.title')}
+          supporting={t('settings.patterns.description')}
+          control
+          trailing={
+            <Switch checked={settings.regionPatterns} onChange={(regionPatterns) => update({ regionPatterns })} aria-label={t('settings.patterns.title')} />
+          }
+        />
       </List>
 
       <h2 className="md-typescale-title-small settings__section">{t('settings.game')}</h2>

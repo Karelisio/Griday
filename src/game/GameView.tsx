@@ -12,7 +12,8 @@ import type { Language } from '../i18n';
 import { formatDuration } from '../i18n/format';
 import { pushBackHandler } from '../platform';
 import { springs, useTheme } from '../theme';
-import { BottomSheet, Button, Card, Chip, Dialog, IconButton, Icon } from '../ui';
+import { useSettings } from '../settings/SettingsContext';
+import { BottomSheet, Button, Card, Chip, Dialog, ExtendedFab, IconButton, Icon } from '../ui';
 import { explainHint, type HintExplanation } from './queens/explain';
 import { QueensBoard } from './queens/QueensBoard';
 import type { useQueensGame } from './queens/useQueensGame';
@@ -40,6 +41,7 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
   const { t, i18n } = useTranslation();
   const lang = i18n.language as Language;
   const { regionColors } = useTheme();
+  const { settings } = useSettings();
   const { game } = api;
   const [hint, setHint] = useState<{ hint: QueensHint; ex: HintExplanation } | null>(null);
   const [hintOpen, setHintOpen] = useState(false);
@@ -120,7 +122,7 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
           conflicts={api.conflicts}
           attacked={api.attacked}
           highlight={hintOpen ? (hint?.ex.highlight ?? null) : null}
-          patterns={false}
+          patterns={settings.regionPatterns}
           disabled={solved}
           celebrate={solved}
           onGesture={api.gesture}
@@ -128,20 +130,22 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
       </div>
 
       {!solved && (
-        <div className="game__toolbar" role="toolbar">
-          <IconButton icon="undo" label={t('game.undo')} variant="tonal" size="m" disabled={game.past.length === 0} onClick={api.undo} />
-          <IconButton icon="redo" label={t('game.redo')} variant="tonal" size="m" disabled={game.future.length === 0} onClick={api.redo} />
-          <Button icon="lightbulb" variant="filled" size="m" onClick={() => void askHint()} disabled={hintLoading}>
+        <div className="game__actions">
+          {/* Barre d'outils flottante M3 Expressive + FAB de l'action principale. */}
+          <div className="game__toolbar" role="toolbar" aria-label={t('game.actions')}>
+            <IconButton icon="undo" label={t('game.undo')} size="s" disabled={game.past.length === 0} onClick={api.undo} />
+            <IconButton icon="redo" label={t('game.redo')} size="s" disabled={game.future.length === 0} onClick={api.redo} />
+            <IconButton
+              icon="restart_alt"
+              label={t('game.reset')}
+              size="s"
+              disabled={game.past.length === 0 && game.marks.every((m) => m === 0)}
+              onClick={() => setResetOpen(true)}
+            />
+          </div>
+          <ExtendedFab icon="lightbulb" color="primary" onClick={() => void askHint()} disabled={hintLoading}>
             {t('game.hint')}
-          </Button>
-          <IconButton
-            icon="restart_alt"
-            label={t('game.reset')}
-            variant="tonal"
-            size="m"
-            disabled={game.past.length === 0 && game.marks.every((m) => m === 0)}
-            onClick={() => setResetOpen(true)}
-          />
+          </ExtendedFab>
         </div>
       )}
 

@@ -233,7 +233,7 @@ const Cell = memo(function Cell(p: CellProps) {
       className={cls}
       tabIndex={p.tabIndex}
       aria-label={p.label}
-      style={{ background: p.fill, color: p.on }}
+      style={{ backgroundColor: p.fill, color: p.on }}
     >
       <AnimatePresence initial={false}>
         {p.mark === MARK_QUEEN && (

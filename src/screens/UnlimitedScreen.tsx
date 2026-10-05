@@ -54,6 +54,7 @@ function TargetPicker({ target, sizes, onChange }: { target: GenerationTarget; s
         onChange={(v) => onChange({ ...target, tier: Number(v) as DifficultyTier })}
         options={TIERS.map((tier) => ({ value: String(tier), label: t(`difficulty.${tier}`) }))}
         showCheck={false}
+        className="segmented--fit"
       />
     </div>
   );
@@ -126,9 +127,11 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
           <div className="screen__chips">
             <Chip icon="grid_view">{t('unlimited.sizeValue', { n: current.target.size })}</Chip>
             <Chip icon="bolt">{t(`difficulty.${current.target.tier}`)}</Chip>
-            <Button variant="tonal" size="s" icon="add" onClick={() => setPickerOpen(true)} disabled={loading} className="unlimited__new">
-              {t('unlimited.newGame')}
-            </Button>
+            {!pickerOpen && (
+              <Button variant="tonal" size="s" icon="add" layoutId="unlimited-new" onClick={() => setPickerOpen(true)} disabled={loading} className="unlimited__new">
+                {t('unlimited.newGame')}
+              </Button>
+            )}
           </div>
         )}
       </header>
@@ -167,7 +170,13 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
         </>
       ) : null}
 
-      <BottomSheet open={pickerOpen} onClose={closePicker} aria-label={t('unlimited.newGame')} dismissLabel={t('common.close')}>
+      <BottomSheet
+        open={pickerOpen}
+        onClose={closePicker}
+        aria-label={t('unlimited.newGame')}
+        dismissLabel={t('common.close')}
+        layoutId={current ? 'unlimited-new' : undefined}
+      >
         <div className="unlimited__sheet">
           <h2 className="md-typescale-title-large">{t('unlimited.newGame')}</h2>
           <TargetPicker target={target} sizes={sizes} onChange={chooseTarget} />

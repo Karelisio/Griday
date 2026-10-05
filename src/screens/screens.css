@@ -121,9 +121,14 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 0 24px 24px;
 }
 
 .unlimited__sheet h2 {
   margin: 0 0 4px;
+}
+
+/* Segments à la largeur de leur libellé (libellés longs sur petits écrans). */
+.segmented--fit .md-segmented__segment {
+  flex: 1 1 auto;
+  min-width: 0;
 }

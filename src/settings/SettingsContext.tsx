@@ -17,6 +17,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     dynamicColor: bool(s['dynamicColor'], DEFAULT_SETTINGS.dynamicColor),
     haptics: bool(s['haptics'], DEFAULT_SETTINGS.haptics),
     autoCross: bool(s['autoCross'], DEFAULT_SETTINGS.autoCross),
+    regionPatterns: bool(s['regionPatterns'], DEFAULT_SETTINGS.regionPatterns),
   };
 }
 

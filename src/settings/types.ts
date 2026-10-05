@@ -10,6 +10,8 @@ export interface Settings {
   readonly haptics: boolean;
   /** Barrer automatiquement les cases interdites par une reine posée. */
   readonly autoCross: boolean;
+  /** Texture par région (aide au daltonisme). */
+  readonly regionPatterns: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -18,4 +20,5 @@ export const DEFAULT_SETTINGS: Settings = {
   dynamicColor: true,
   haptics: true,
   autoCross: false,
+  regionPatterns: false,
 };

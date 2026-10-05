@@ -10,7 +10,7 @@ describe('réglages', () => {
   });
 
   it('conserve les valeurs valides', () => {
-    const s = { language: 'fr', theme: 'dark', dynamicColor: false, haptics: false, autoCross: true };
+    const s = { language: 'fr', theme: 'dark', dynamicColor: false, haptics: false, autoCross: true, regionPatterns: true };
     expect(sanitizeSettings(s)).toEqual(s);
   });
 });

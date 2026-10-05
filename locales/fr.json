@@ -68,7 +68,8 @@
       "cross": "croix",
       "conflict": "reine en conflit",
       "hinted": "case de l’indice"
-    }
+    },
+    "actions": "Actions de jeu"
   },
   "victory": {
     "title": "Bravo !",
@@ -163,6 +164,10 @@
     "about": {
       "title": "À propos",
       "version": "Version {{version}}"
+    },
+    "patterns": {
+      "title": "Motifs de régions",
+      "description": "Ajouter une texture à chaque région pour mieux les distinguer (daltonisme)"
     }
   },
   "errors": {

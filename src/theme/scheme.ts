@@ -195,7 +195,11 @@ export function primaryHue(seed: number, palettes?: SystemPalettes | null): numb
 
 const clampContrast = (c: number | undefined): number => (Number.isFinite(c) ? Math.min(1, Math.max(-1, c as number)) : 0);
 
-/** `DynamicScheme` M3 Expressive (spec 2025, TONAL_SPOT) pour une source ou des palettes système. */
+/**
+ * `DynamicScheme` M3 Expressive (spec 2025) : palettes système (style d'Android, TONAL_SPOT) ou,
+ * à défaut, couleur de la marque : accents VIBRANT (expressifs) sur neutres TONAL_SPOT (surfaces
+ * sobres, surtout en sombre).
+ */
 export function createDynamicScheme({ seed, dark, palettes, contrast }: SchemeOptions): DynamicScheme {
   const common = {
     variant: Variant.TONAL_SPOT,
@@ -216,7 +220,19 @@ export function createDynamicScheme({ seed, dark, palettes, contrast }: SchemeOp
       neutralVariantPalette: f.neutralVariant,
     });
   }
-  return new DynamicScheme({ ...common, sourceColorHct: Hct.fromInt(seed) });
+  const sourceColorHct = Hct.fromInt(seed);
+  const vibrant = new DynamicScheme({ ...common, variant: Variant.VIBRANT, sourceColorHct });
+  const tonal = new DynamicScheme({ ...common, sourceColorHct });
+  return new DynamicScheme({
+    ...common,
+    variant: Variant.VIBRANT,
+    sourceColorHct,
+    primaryPalette: vibrant.primaryPalette,
+    secondaryPalette: vibrant.secondaryPalette,
+    tertiaryPalette: vibrant.tertiaryPalette,
+    neutralPalette: tonal.neutralPalette,
+    neutralVariantPalette: tonal.neutralVariantPalette,
+  });
 }
 
 /** Tous les rôles de couleur M3 en `#rrggbb`. */

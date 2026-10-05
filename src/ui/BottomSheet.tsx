@@ -30,6 +30,11 @@ export interface BottomSheetProps {
   /** Élément à focaliser à l'ouverture (défaut : la feuille). */
   readonly initialFocusRef?: RefObject<HTMLElement | null>;
   readonly className?: string;
+  /**
+   * Transition de conteneur M3 : identifiant partagé (motion `layoutId`) avec l'élément qui ouvre
+   * la feuille (bouton, FAB, carte) ; la feuille naît de cet élément et y retourne à la fermeture.
+   */
+  readonly layoutId?: string;
 }
 
 /** Distance (px) ou vitesse (px/s) de glissement au-delà de laquelle la feuille se ferme. */
@@ -57,6 +62,7 @@ export function BottomSheet({
   closeOnScrim = true,
   initialFocusRef,
   className,
+  layoutId,
 }: BottomSheetProps) {
   const { spatial } = useMotionTokens();
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -81,9 +87,10 @@ export function BottomSheet({
             aria-labelledby={ariaLabelledBy}
             tabIndex={-1}
             className={cx('md-sheet', className)}
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
+            layoutId={layoutId}
+            initial={layoutId ? undefined : { y: '100%' }}
+            animate={layoutId ? undefined : { y: 0 }}
+            exit={layoutId ? undefined : { y: '100%' }}
             transition={spatial.default}
             drag="y"
             dragListener={false}
@@ -102,7 +109,14 @@ export function BottomSheet({
                 <span className="md-sheet__handle" aria-hidden="true" />
               )}
             </div>
-            <div className="md-sheet__content">{children}</div>
+            {layoutId ? (
+              // Contenu en fondu pendant que le conteneur se transforme (pas de texte déformé).
+              <motion.div className="md-sheet__content" initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.12, duration: 0.18 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}>
+                {children}
+              </motion.div>
+            ) : (
+              <div className="md-sheet__content">{children}</div>
+            )}
           </motion.div>
         </div>
       ) : null}

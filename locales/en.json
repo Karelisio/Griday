@@ -68,7 +68,8 @@
       "cross": "cross",
       "conflict": "queen in conflict",
       "hinted": "hint cell"
-    }
+    },
+    "actions": "Game actions"
   },
   "victory": {
     "title": "Well done!",
@@ -163,6 +164,10 @@
     "about": {
       "title": "About",
       "version": "Version {{version}}"
+    },
+    "patterns": {
+      "title": "Region patterns",
+      "description": "Add a texture to each region to tell them apart (colour blindness)"
     }
   },
   "errors": {

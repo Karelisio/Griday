@@ -6,55 +6,55 @@
  */
 
 /* ---------- Couleurs : enregistrement typé (fondu animable) + repli clair de la marque ---------- */
-@property --md-sys-color-primary { syntax: '<color>'; inherits: true; initial-value: #5e598b; }
-@property --md-sys-color-on-primary { syntax: '<color>'; inherits: true; initial-value: #fcf7ff; }
-@property --md-sys-color-primary-container { syntax: '<color>'; inherits: true; initial-value: #ccc6ff; }
-@property --md-sys-color-on-primary-container { syntax: '<color>'; inherits: true; initial-value: #423e6e; }
-@property --md-sys-color-primary-fixed { syntax: '<color>'; inherits: true; initial-value: #ccc6ff; }
-@property --md-sys-color-primary-fixed-dim { syntax: '<color>'; inherits: true; initial-value: #beb8f0; }
-@property --md-sys-color-on-primary-fixed { syntax: '<color>'; inherits: true; initial-value: #2e2a59; }
-@property --md-sys-color-on-primary-fixed-variant { syntax: '<color>'; inherits: true; initial-value: #4b4777; }
-@property --md-sys-color-inverse-primary { syntax: '<color>'; inherits: true; initial-value: #ccc6ff; }
-@property --md-sys-color-secondary { syntax: '<color>'; inherits: true; initial-value: #5f5d72; }
-@property --md-sys-color-on-secondary { syntax: '<color>'; inherits: true; initial-value: #fcf7ff; }
-@property --md-sys-color-secondary-container { syntax: '<color>'; inherits: true; initial-value: #e4dff9; }
-@property --md-sys-color-on-secondary-container { syntax: '<color>'; inherits: true; initial-value: #524f64; }
-@property --md-sys-color-secondary-fixed { syntax: '<color>'; inherits: true; initial-value: #e4dff9; }
-@property --md-sys-color-secondary-fixed-dim { syntax: '<color>'; inherits: true; initial-value: #d6d1eb; }
-@property --md-sys-color-on-secondary-fixed { syntax: '<color>'; inherits: true; initial-value: #3f3d51; }
-@property --md-sys-color-on-secondary-fixed-variant { syntax: '<color>'; inherits: true; initial-value: #5c596e; }
-@property --md-sys-color-tertiary { syntax: '<color>'; inherits: true; initial-value: #775376; }
-@property --md-sys-color-on-tertiary { syntax: '<color>'; inherits: true; initial-value: #fff7fa; }
-@property --md-sys-color-tertiary-container { syntax: '<color>'; inherits: true; initial-value: #f3c6f0; }
-@property --md-sys-color-on-tertiary-container { syntax: '<color>'; inherits: true; initial-value: #5f3e5f; }
-@property --md-sys-color-tertiary-fixed { syntax: '<color>'; inherits: true; initial-value: #f3c6f0; }
-@property --md-sys-color-tertiary-fixed-dim { syntax: '<color>'; inherits: true; initial-value: #e5b9e1; }
-@property --md-sys-color-on-tertiary-fixed { syntax: '<color>'; inherits: true; initial-value: #4b2b4b; }
-@property --md-sys-color-on-tertiary-fixed-variant { syntax: '<color>'; inherits: true; initial-value: #694769; }
-@property --md-sys-color-error { syntax: '<color>'; inherits: true; initial-value: #a8364b; }
-@property --md-sys-color-on-error { syntax: '<color>'; inherits: true; initial-value: #fff7f7; }
-@property --md-sys-color-error-container { syntax: '<color>'; inherits: true; initial-value: #f97386; }
-@property --md-sys-color-on-error-container { syntax: '<color>'; inherits: true; initial-value: #6e0523; }
-@property --md-sys-color-surface { syntax: '<color>'; inherits: true; initial-value: #fcf8fe; }
-@property --md-sys-color-on-surface { syntax: '<color>'; inherits: true; initial-value: #33313a; }
-@property --md-sys-color-surface-variant { syntax: '<color>'; inherits: true; initial-value: #e5e0ed; }
-@property --md-sys-color-on-surface-variant { syntax: '<color>'; inherits: true; initial-value: #605e68; }
-@property --md-sys-color-surface-dim { syntax: '<color>'; inherits: true; initial-value: #dcd8e4; }
-@property --md-sys-color-surface-bright { syntax: '<color>'; inherits: true; initial-value: #fcf8fe; }
+@property --md-sys-color-primary { syntax: '<color>'; inherits: true; initial-value: #533de0; }
+@property --md-sys-color-on-primary { syntax: '<color>'; inherits: true; initial-value: #f5f0ff; }
+@property --md-sys-color-primary-container { syntax: '<color>'; inherits: true; initial-value: #9d93ff; }
+@property --md-sys-color-on-primary-container { syntax: '<color>'; inherits: true; initial-value: #1b007a; }
+@property --md-sys-color-primary-fixed { syntax: '<color>'; inherits: true; initial-value: #9d93ff; }
+@property --md-sys-color-primary-fixed-dim { syntax: '<color>'; inherits: true; initial-value: #8e83ff; }
+@property --md-sys-color-on-primary-fixed { syntax: '<color>'; inherits: true; initial-value: #000000; }
+@property --md-sys-color-on-primary-fixed-variant { syntax: '<color>'; inherits: true; initial-value: #230095; }
+@property --md-sys-color-inverse-primary { syntax: '<color>'; inherits: true; initial-value: #8b80ff; }
+@property --md-sys-color-secondary { syntax: '<color>'; inherits: true; initial-value: #6747b0; }
+@property --md-sys-color-on-secondary { syntax: '<color>'; inherits: true; initial-value: #f8f0ff; }
+@property --md-sys-color-secondary-container { syntax: '<color>'; inherits: true; initial-value: #dac9ff; }
+@property --md-sys-color-on-secondary-container { syntax: '<color>'; inherits: true; initial-value: #52319a; }
+@property --md-sys-color-secondary-fixed { syntax: '<color>'; inherits: true; initial-value: #dac9ff; }
+@property --md-sys-color-secondary-fixed-dim { syntax: '<color>'; inherits: true; initial-value: #ceb9ff; }
+@property --md-sys-color-on-secondary-fixed { syntax: '<color>'; inherits: true; initial-value: #3e1986; }
+@property --md-sys-color-on-secondary-fixed-variant { syntax: '<color>'; inherits: true; initial-value: #5c3ca4; }
+@property --md-sys-color-tertiary { syntax: '<color>'; inherits: true; initial-value: #99366d; }
+@property --md-sys-color-on-tertiary { syntax: '<color>'; inherits: true; initial-value: #ffeff3; }
+@property --md-sys-color-tertiary-container { syntax: '<color>'; inherits: true; initial-value: #ff8bc4; }
+@property --md-sys-color-on-tertiary-container { syntax: '<color>'; inherits: true; initial-value: #620240; }
+@property --md-sys-color-tertiary-fixed { syntax: '<color>'; inherits: true; initial-value: #ff8bc4; }
+@property --md-sys-color-tertiary-fixed-dim { syntax: '<color>'; inherits: true; initial-value: #f07db7; }
+@property --md-sys-color-on-tertiary-fixed { syntax: '<color>'; inherits: true; initial-value: #360021; }
+@property --md-sys-color-on-tertiary-fixed-variant { syntax: '<color>'; inherits: true; initial-value: #6e1049; }
+@property --md-sys-color-error { syntax: '<color>'; inherits: true; initial-value: #b41340; }
+@property --md-sys-color-on-error { syntax: '<color>'; inherits: true; initial-value: #ffefef; }
+@property --md-sys-color-error-container { syntax: '<color>'; inherits: true; initial-value: #f74b6d; }
+@property --md-sys-color-on-error-container { syntax: '<color>'; inherits: true; initial-value: #510017; }
+@property --md-sys-color-surface { syntax: '<color>'; inherits: true; initial-value: #f9f5fb; }
+@property --md-sys-color-on-surface { syntax: '<color>'; inherits: true; initial-value: #2f2e33; }
+@property --md-sys-color-surface-variant { syntax: '<color>'; inherits: true; initial-value: #dfdbe4; }
+@property --md-sys-color-on-surface-variant { syntax: '<color>'; inherits: true; initial-value: #5c5b60; }
+@property --md-sys-color-surface-dim { syntax: '<color>'; inherits: true; initial-value: #d7d3dc; }
+@property --md-sys-color-surface-bright { syntax: '<color>'; inherits: true; initial-value: #f9f5fb; }
 @property --md-sys-color-surface-container-lowest { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
-@property --md-sys-color-surface-container-low { syntax: '<color>'; inherits: true; initial-value: #f6f2fa; }
-@property --md-sys-color-surface-container { syntax: '<color>'; inherits: true; initial-value: #f0ecf6; }
-@property --md-sys-color-surface-container-high { syntax: '<color>'; inherits: true; initial-value: #ebe6f1; }
-@property --md-sys-color-surface-container-highest { syntax: '<color>'; inherits: true; initial-value: #e5e0ed; }
+@property --md-sys-color-surface-container-low { syntax: '<color>'; inherits: true; initial-value: #f4eff6; }
+@property --md-sys-color-surface-container { syntax: '<color>'; inherits: true; initial-value: #ebe7ee; }
+@property --md-sys-color-surface-container-high { syntax: '<color>'; inherits: true; initial-value: #e5e1e9; }
+@property --md-sys-color-surface-container-highest { syntax: '<color>'; inherits: true; initial-value: #dfdbe4; }
 @property --md-sys-color-inverse-surface { syntax: '<color>'; inherits: true; initial-value: #0e0e12; }
 @property --md-sys-color-inverse-on-surface { syntax: '<color>'; inherits: true; initial-value: #9f9ca2; }
-@property --md-sys-color-outline { syntax: '<color>'; inherits: true; initial-value: #7c7984; }
-@property --md-sys-color-outline-variant { syntax: '<color>'; inherits: true; initial-value: #b4b0bc; }
+@property --md-sys-color-outline { syntax: '<color>'; inherits: true; initial-value: #78767b; }
+@property --md-sys-color-outline-variant { syntax: '<color>'; inherits: true; initial-value: #afacb2; }
 @property --md-sys-color-shadow { syntax: '<color>'; inherits: true; initial-value: #000000; }
 @property --md-sys-color-scrim { syntax: '<color>'; inherits: true; initial-value: #000000; }
-@property --md-sys-color-surface-tint { syntax: '<color>'; inherits: true; initial-value: #5e598b; }
-@property --md-sys-color-background { syntax: '<color>'; inherits: true; initial-value: #fcf8fe; }
-@property --md-sys-color-on-background { syntax: '<color>'; inherits: true; initial-value: #33313a; }
+@property --md-sys-color-surface-tint { syntax: '<color>'; inherits: true; initial-value: #533de0; }
+@property --md-sys-color-background { syntax: '<color>'; inherits: true; initial-value: #f9f5fb; }
+@property --md-sys-color-on-background { syntax: '<color>'; inherits: true; initial-value: #2f2e33; }
 
 :root {
   color-scheme: light dark;
@@ -239,14 +239,14 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --md-sys-color-surface: #0e0e12;
-    --md-sys-color-on-surface: #e8e3f0;
+    --md-sys-color-on-surface: #f1ecf3;
     --md-sys-color-background: #0e0e12;
-    --md-sys-color-on-background: #e8e3f0;
-    --md-sys-color-primary: #c7c2ee;
-    --md-sys-color-on-primary: #3f3c60;
-    --md-sys-color-surface-container: #1a191f;
-    --md-sys-color-surface-container-high: #201f26;
-    --md-sys-color-outline: #76747f;
+    --md-sys-color-on-background: #f1ecf3;
+    --md-sys-color-primary: #aba3ff;
+    --md-sys-color-on-primary: #25009b;
+    --md-sys-color-surface-container: #1a191e;
+    --md-sys-color-surface-container-high: #201f25;
+    --md-sys-color-outline: #77747a;
   }
 }
 
