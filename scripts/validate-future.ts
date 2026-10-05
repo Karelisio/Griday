@@ -2,10 +2,14 @@
  * Validation long terme des puzzles du jour (voir scripts/lib/validate.ts pour le détail des contrôles).
  *
  * Usage : npx tsx scripts/validate-future.ts [--years=10] [--from=YYYY-MM-DD] [--max-ms=500]
- *         [--types=queens] [--report=rapport.json] [--write-golden] [--no-cold]
+ *         [--types=queens,binairo] [--report=rapport.json] [--write-golden] [--pin=binairo:1] [--no-cold]
  * La plage validée couvre [mois courant, aujourd'hui + N ans] (UTC), étendue à l'epoch et à toutes les
- * références figées de scripts/golden/. --write-golden ajoute les références manquantes (jamais de
- * remplacement), et seulement si aucune erreur. Code de sortie : 0 = OK, 1 = échec, 2 = arguments invalides.
+ * références figées de scripts/golden/. Chaque type demandé est validé chaque jour (version active à la date),
+ * qu'il soit dans la rotation ou non. --write-golden ajoute les références manquantes (jamais de
+ * remplacement), et seulement si aucune erreur. --pin=type:version rend obligatoires toutes les références
+ * de cette version sur la plage (type pas encore servi dont la sortie est figée d'avance), ex. :
+ *   npx tsx scripts/validate-future.ts --types=binairo --years=30 --pin=binairo:1 --write-golden
+ * Code de sortie : 0 = OK, 1 = échec, 2 = arguments invalides.
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -23,7 +27,7 @@ const usage = (msg: string): never => {
 };
 
 // ─── Arguments (stricts) ────────────────────────────────────────────────────────────────────────
-const KNOWN = new Set(['years', 'from', 'max-ms', 'types', 'report', 'write-golden', 'no-cold']);
+const KNOWN = new Set(['years', 'from', 'max-ms', 'types', 'report', 'write-golden', 'pin', 'no-cold']);
 const FLAGS = new Set(['write-golden', 'no-cold']);
 const args = new Map<string, string | true>();
 for (const a of process.argv.slice(2)) {
@@ -52,6 +56,13 @@ const from = str('from') ?? today;
 if (!isValidISODate(from)) usage(`--from=${from}`);
 const types = (str('types') ?? PUZZLE_TYPE_IDS.join(',')).split(',') as PuzzleTypeId[];
 for (const t of types) if (!PUZZLE_TYPE_IDS.includes(t)) usage(`type inconnu « ${t} »`);
+const pinned = (str('pin') ?? '').split(',').filter(Boolean);
+for (const p of pinned) {
+  const m = /^([a-z][a-z0-9]*):([1-9][0-9]*)$/.exec(p);
+  const t = m?.[1] as PuzzleTypeId | undefined;
+  if (!m || !t || !types.includes(t)) usage(`--pin=${p} (type:version d'un type validé)`);
+  else if (!Object.keys(REGISTRY[t].versions).includes(m[2]!)) usage(`--pin=${p} : version inconnue du registre`);
+}
 const reportPath = str('report');
 const window = monthWindow(from, years);
 
@@ -88,7 +99,10 @@ const coldRun = (type: PuzzleTypeId, version: number, date: ISODate): number => 
   return Math.min(once(), once());
 };
 
-console.log(`Validation ${window.from} → ${window.to} (exclu, ${years} ans) × ${types.join(', ')} ; limite ${maxMs} ms`);
+console.log(
+  `Validation ${window.from} → ${window.to} (exclu, ${years} ans) × ${types.join(', ')} ; limite ${maxMs} ms` +
+    (pinned.length > 0 ? ` ; épinglées : ${pinned.join(', ')}` : ''),
+);
 
 let report: ValidationReport | undefined;
 let crash: string | undefined;
@@ -99,6 +113,7 @@ try {
     maxMs,
     types,
     writeGolden: args.has('write-golden'),
+    pinned,
     store,
     coldRun: args.has('no-cold') ? undefined : coldRun,
     onProgress: (m) => console.log(`  … ${m}`),

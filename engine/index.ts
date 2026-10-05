@@ -6,8 +6,15 @@ import { SCHEDULE } from './config';
 import type { ISODate } from './core/date';
 import { dailyInfo, generateDaily, generateWithAttempts } from './core/pipeline';
 import { hasOwn, isScheduleStale as staleFor, versionForDate } from './core/schedule';
-import { DIFFICULTY_TIERS, type DailyInfo, type GenerateOptions, type GenerationTarget, type PuzzleTypeId } from './core/types';
-import { REGISTRY, type AnyDailyPuzzle, type AnyGeneratedPuzzle } from './registry';
+import {
+  DIFFICULTY_TIERS,
+  type DailyInfo,
+  type GenerateOptions,
+  type GenerationTarget,
+  type PuzzleTypeDefinition,
+  type PuzzleTypeId,
+} from './core/types';
+import { REGISTRY, type AnyDailyPuzzle, type GeneratedPuzzleOf } from './registry';
 
 export * from './core/types';
 export { addDays, diffDays, compareISO, isoWeekday, isValidISODate, localISODate, type ISODate } from './core/date';
@@ -15,9 +22,17 @@ export { dayNumber } from './core/schedule';
 export { validateRegistry } from './core/registry-check';
 export { fingerprintPuzzle } from './core/pipeline';
 export { SCHEDULE } from './config';
-export { REGISTRY, type AnyDailyPuzzle, type AnyGeneratedPuzzle, type PuzzleDataMap } from './registry';
+export {
+  REGISTRY,
+  type AnyDailyPuzzle,
+  type AnyGeneratedPuzzle,
+  type DailyTypeId,
+  type GeneratedPuzzleOf,
+  type PuzzleDataMap,
+} from './registry';
 export { engineSelfCheck } from './selfcheck';
 export * as queens from './queens';
+export * as binairo from './binairo';
 
 /**
  * Puzzle du jour (identique pour tous à date égale).
@@ -50,16 +65,19 @@ export interface UnlimitedOptions extends GenerateOptions {
   readonly version?: number;
 }
 
-/** Puzzle aléatoire du mode illimité. Conserver `version` avec la partie pour la reproduire. */
-export function getUnlimitedPuzzle(
-  type: PuzzleTypeId,
+/**
+ * Puzzle aléatoire du mode illimité. Conserver `version` avec la partie pour la reproduire.
+ * Type de retour selon `type` : littéral → puzzle de ce type ; PuzzleTypeId → union discriminée.
+ */
+export function getUnlimitedPuzzle<K extends PuzzleTypeId>(
+  type: K,
   target: GenerationTarget,
   token: string,
   today: ISODate,
   opts: UnlimitedOptions = {},
-): AnyGeneratedPuzzle {
+): GeneratedPuzzleOf<K> {
   if (!hasOwn(REGISTRY, type)) throw new RangeError(`Type de puzzle inconnu : "${type}"`);
-  const def = REGISTRY[type];
+  const def = REGISTRY[type] as PuzzleTypeDefinition<unknown>;
   const version = opts.version ?? versionForDate(SCHEDULE, type, today);
   const gen = hasOwn(def.versions, version) ? def.versions[version] : undefined;
   if (!gen) throw new RangeError(`Version ${version} inconnue pour "${type}"`);
@@ -67,5 +85,5 @@ export function getUnlimitedPuzzle(
     throw new RangeError(`Cible invalide pour "${type}" v${version} : ${target.size}/${String(target.tier)}`);
   }
   const t: GenerationTarget = { size: target.size, tier: target.tier };
-  return generateWithAttempts(def, version, unlimitedSeed(token, type, version, t), t, opts) as AnyGeneratedPuzzle;
+  return generateWithAttempts(def, version, unlimitedSeed(token, type, version, t), t, opts) as GeneratedPuzzleOf<K>;
 }

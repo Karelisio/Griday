@@ -1,8 +1,8 @@
 import type { ISODate } from './date';
 import type { Rng } from './prng';
 
-/** Identifiants des types de puzzle. Ajouter ici tout nouveau type (binairo, nonogram…). */
-export const PUZZLE_TYPE_IDS = ['queens'] as const;
+/** Identifiants des types de puzzle. Ajouter ici tout nouveau type (nonogram…). */
+export const PUZZLE_TYPE_IDS = ['queens', 'binairo'] as const;
 export type PuzzleTypeId = (typeof PUZZLE_TYPE_IDS)[number];
 
 /** 1 = facile, 2 = moyen, 3 = difficile, 4 = expert. */

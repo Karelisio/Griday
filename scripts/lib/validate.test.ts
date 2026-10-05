@@ -85,14 +85,15 @@ function makeRegistry(versions: GeneratorVersion<Fake>[]): Registry {
     verify: (p) => (p.label.endsWith(':bad') ? ['2 solutions'] : []),
     sizeOf: (p) => p.size,
   };
-  return { queens: def } as unknown as Registry;
+  // Second type du registre (hors rotation, non validé ici) : même définition, autre identifiant.
+  return { queens: def, binairo: { ...def, id: 'binairo' } } as unknown as Registry;
 }
 
 const SCHED: Schedule = {
   epoch: '2026-01-05',
   validThrough: '2026-03-15',
   rotations: [{ from: '2026-01-01', types: ['queens'] }],
-  versions: { queens: [{ from: '2026-01-01', version: 1 }] },
+  versions: { queens: [{ from: '2026-01-01', version: 1 }], binairo: [{ from: '2026-01-01', version: 1 }] },
 };
 
 function memoryStore(initial: Record<string, GoldenData> = {}) {
@@ -163,7 +164,7 @@ describe('validateur long terme', () => {
 
   it('calendrier modifié a posteriori (nouvelle version avant validThrough) : puzzle du jour divergent', () => {
     const store = frozenStore();
-    const changed: Schedule = { ...SCHED, versions: { queens: [{ from: '2026-01-01', version: 1 }, { from: '2026-02-01', version: 2 }] } };
+    const changed: Schedule = { ...SCHED, versions: { ...SCHED.versions, queens: [{ from: '2026-01-01', version: 1 }, { from: '2026-02-01', version: 2 }] } };
     const res = run(makeRegistry([makeVersion(1), makeVersion(2, { label: 'w' })]), { store }, changed);
     expect(res.errors).toContain(`${DAILY_FILE} 2026-02 : empreinte ≠ référence — puzzles publiés modifiés !`);
     // La sortie de la V1 elle-même n'a pas changé : ses références restent valides.
@@ -224,13 +225,34 @@ describe('validateur long terme', () => {
   });
 
   it('version activée après validThrough : références en attente (avertissement), jamais écrites', () => {
-    const later: Schedule = { ...SCHED, versions: { queens: [{ from: '2026-01-01', version: 1 }, { from: '2026-05-01', version: 2 }] } };
+    const later: Schedule = { ...SCHED, versions: { ...SCHED.versions, queens: [{ from: '2026-01-01', version: 1 }, { from: '2026-05-01', version: 2 }] } };
     const store = frozenStore();
     const res = run(makeRegistry([makeVersion(1), makeVersion(2, { label: 'w' })]), { store, writeGolden: true }, later);
     expect(res.errors).toEqual([]);
     expect(res.golden.find((g) => g.file === versionFile('queens', 2))!.pending).toEqual(['2026-05', '2026-06']);
     expect(store.files.has(versionFile('queens', 2))).toBe(false);
     expect(res.warnings.some((w) => w.startsWith(`${versionFile('queens', 2)} : 2 mois sans référence`))).toBe(true);
+  });
+
+  it('type hors rotation : validé chaque jour ; épinglé, toutes ses références sont obligatoires puis figées', () => {
+    const store = frozenStore();
+    const registry = makeRegistry([makeVersion(1)]);
+    const file = versionFile('binairo', 1);
+    // Non servi : validé (6 mois de la plage) mais aucune référence exigée.
+    const free = run(registry, { store, types: ['binairo'] });
+    expect(free.errors).toEqual([]);
+    expect(free.types[0]).toMatchObject({ type: 'binairo', days: 181, dailyDays: 0 });
+    expect(free.golden.find((g) => g.file === file)!.pending).toHaveLength(6);
+    // Épinglé : absence = erreur ; --write-golden fige tous les mois calculés.
+    const missing = run(registry, { store, types: ['binairo'], pinned: ['binairo:1'] });
+    expect(missing.errors).toContain(`${file} : 6 référence(s) obligatoire(s) absente(s) (2026-01 → 2026-06), --write-golden pour les figer`);
+    const written = run(registry, { store, types: ['binairo'], pinned: ['binairo:1'], writeGolden: true });
+    expect(written.errors).toEqual([]);
+    expect(Object.keys(store.files.get(file)!)).toEqual(['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06']);
+    // Ensuite vérifiées à chaque validation, épinglage ou non ; une sortie modifiée est détectée.
+    expect(run(registry, { store, types: ['binairo'] }).golden.find((g) => g.file === file)!.checked).toBe(6);
+    const changed = run(makeRegistry([makeVersion(1, { label: 'autre' })]), { store, types: ['binairo'] });
+    expect(changed.errors).toContain(`${file} 2026-01 : empreinte ≠ référence — puzzles publiés modifiés !`);
   });
 
   it('fichier de références illisible : erreur nommant le fichier', () => {

@@ -8,7 +8,9 @@
  *   égaux à la cible, note recalculée identique, critère d'acceptation de la version ;
  * - courbe hebdomadaire : médiane des scores non décroissante du lundi au dimanche ;
  * - références figées (ajout seul) : par version (sortie de la version, mois entiers, indépendante
- *   du calendrier) et puzzle du jour effectivement servi (type + version, jusqu'à validThrough).
+ *   du calendrier) et puzzle du jour effectivement servi (type + version, jusqu'à validThrough) ;
+ *   une version « épinglée » (`pinned`) exige toutes ses références de la plage, même hors rotation
+ *   (type ajouté au registre avant d'être servi : sa sortie est figée d'avance).
  * Plus : registre/calendrier cohérents, tous les puzzles de secours vérifiés, temps à froid.
  */
 import { addDays, diffDays, isoToDays, isoWeekday, type ISODate } from '../../engine/core/date';
@@ -41,6 +43,11 @@ export interface ValidationOptions {
   readonly maxMs: number;
   readonly types: readonly PuzzleTypeId[];
   readonly writeGolden: boolean;
+  /**
+   * Versions épinglées (`type:version`) : toutes leurs références mensuelles calculées sur la plage sont
+   * obligatoires (écrites par writeGolden, sinon erreur si absentes), même si la version n'est pas servie.
+   */
+  readonly pinned?: readonly string[];
   readonly store: GoldenStore;
   /** Horloge (ms) ; par défaut performance.now. */
   readonly now?: () => number;
@@ -361,9 +368,11 @@ export function runValidation(registry: Registry, schedule: Schedule, opts: Vali
           fail(tag(`${file} ${key} : exception ${message(e)}`));
         }
       }
-      // Mois obligatoires : version effectivement servie (rotation) au moins un jour jusqu'à validThrough.
+      // Mois obligatoires : version effectivement servie (rotation) au moins un jour jusqu'à validThrough ;
+      // version épinglée : tous les mois calculés.
       const served = servedByVersion.get(version) ?? [];
       const required = new Set(served.filter((d) => isoToDays(d) <= isoToDays(validThrough)).map(monthKey));
+      if (opts.pinned?.includes(`${type}:${version}`)) for (const key of Object.keys(computed)) required.add(key);
       goldenResults.push(compareAndMerge(file, existing, computed, required, opts.writeGolden, errors, warnings, toWrite));
     }
 

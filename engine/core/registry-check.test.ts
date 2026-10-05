@@ -18,7 +18,7 @@ const SCHED: Schedule = {
   epoch: '2026-10-05',
   validThrough: '2027-04-04',
   rotations: [{ from: '2026-01-01', types: ['queens'] }],
-  versions: { queens: [{ from: '2026-01-01', version: 1 }] },
+  versions: { queens: [{ from: '2026-01-01', version: 1 }], binairo: [{ from: '2026-01-01', version: 1 }] },
 };
 
 function gen(over: Partial<GeneratorVersion<number>> = {}): GeneratorVersion<number> {
@@ -35,8 +35,9 @@ function gen(over: Partial<GeneratorVersion<number>> = {}): GeneratorVersion<num
   return { ...base, ...over };
 }
 
+// Second type (binairo) toujours valide : les erreurs attendues ne concernent que queens.
 const reg = (versions: Record<number, GeneratorVersion<number>>, id = 'queens'): Registry =>
-  ({ queens: { id, versions } }) as unknown as Registry;
+  ({ queens: { id, versions }, binairo: { id: 'binairo', versions: { 1: gen() } } }) as unknown as Registry;
 
 describe('validateRegistry', () => {
   it('registre cohérent → aucune erreur', () => {
@@ -65,7 +66,7 @@ describe('validateRegistry', () => {
   });
 
   it('inclut la validation du calendrier (version inconnue du registre)', () => {
-    const sched: Schedule = { ...SCHED, versions: { queens: [{ from: '2026-01-01', version: 2 }] } };
+    const sched: Schedule = { ...SCHED, versions: { ...SCHED.versions, queens: [{ from: '2026-01-01', version: 2 }] } };
     expect(validateRegistry(reg({ 1: gen() }), sched)).toEqual(['versions.queens : version 2 inconnue du registre']);
   });
 

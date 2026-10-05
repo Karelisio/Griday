@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SCHEDULE } from './config';
 import { addDays } from './core/date';
 import { generateDailyForVersion } from './core/pipeline';
+import type { PuzzleTypeDefinition } from './core/types';
 import { getDailyInfo, getDailyPuzzle, isScheduleStale, REGISTRY } from './index';
 import { engineSelfCheck } from './selfcheck';
 
@@ -17,7 +18,7 @@ describe('puzzle du jour (câblage calendrier → version)', () => {
       expect(p.dayNumber).toBe(info.dayNumber);
       expect(p.weekday).toBe(info.weekday);
       const { date: _d, dayNumber: _n, weekday: _w, ...core } = p;
-      expect(core).toEqual(generateDailyForVersion(REGISTRY[info.type], info.version, date));
+      expect(core).toEqual(generateDailyForVersion(REGISTRY[info.type] as PuzzleTypeDefinition<unknown>, info.version, date));
     }
   });
 

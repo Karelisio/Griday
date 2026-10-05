@@ -221,8 +221,8 @@ describe('validateSchedule', () => {
 });
 
 describe('SCHEDULE officiel (engine/config.ts)', () => {
-  it('est valide avec le registre connu (queens = [1])', () => {
-    expect(validateSchedule(SCHEDULE, (t) => (t === 'queens' ? [1] : []))).toEqual([]);
+  it('est valide avec le registre connu (queens = [1], binairo = [1])', () => {
+    expect(validateSchedule(SCHEDULE, (t) => (t === 'queens' || t === 'binairo' ? [1] : []))).toEqual([]);
   });
 
   it('chaque type déclaré possède une table de versions', () => {
@@ -234,6 +234,7 @@ describe('SCHEDULE officiel (engine/config.ts)', () => {
     expect(SCHEDULE.epoch).toBe('2026-10-05');
     expect(SCHEDULE.rotations[0]).toEqual({ from: '2026-01-01', types: ['queens'] });
     expect(SCHEDULE.versions.queens[0]).toEqual({ from: '2026-01-01', version: 1 });
+    expect(SCHEDULE.versions.binairo[0]).toEqual({ from: '2026-01-01', version: 1 });
   });
 
   it('validThrough : build à jour jusqu’à cette date incluse', () => {
