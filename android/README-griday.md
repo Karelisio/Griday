@@ -14,7 +14,8 @@ Le code TypeScript associé est dans [`src/platform/`](../src/platform).
 | `app/src/main/res/values*/styles.xml`, `colors.xml` | Barres système transparentes, sans voile de contraste (`values-v26`, `v27`, `v29`), découpage d'écran `shortEdges`. Écran de démarrage `Theme.SplashScreen` : fond violet de la marque (#5B4FC4) et icône de l'app. Un style redéfini dans `values-vNN` remplace entièrement celui de `values/` : d'où le parent `Base.*`. |
 | `app/src/main/res/drawable/ic_launcher_*.xml`, `mipmap-anydpi-v26/` | Icône adaptative **provisoire** (couronne sur grille 3x3) avec couche `monochrome` (icônes thématiques, Android 13+). Aussi utilisée comme icône du splash. |
 | `app/src/main/res/mipmap-*/ic_launcher*.png` | Replis pour Android 7.0 et 7.1 (pas d'icônes adaptatives avant 8.0), même dessin. |
-| `app/build.gradle` | `versionName` = version de `package.json`, `versionCode` = M×10000 + m×100 + p (0.1.0 donne 100), surchargeable avec `-PversionCode=N`. |
+| `app/build.gradle` | `versionName` = version de `package.json`, `versionCode` = M×10000 + m×100 + p (0.1.0 donne 100), surchargeable avec `-PversionCode=N`. Identifiant d'application AdMob (`ADMOB_APP_ID`, voir « Publicité »). Signature de release par variables d'environnement (voir « Compiler »). |
+| `app/src/main/AndroidManifest.xml` (AdMob) | `com.google.android.gms.ads.APPLICATION_ID` = `${admobAppId}` (placeholder Gradle) : sans lui, le SDK publicitaire plante au démarrage. |
 | `app/src/test`, `app/src/androidTest` | Tests d'exemple conservés, déplacés dans le bon package. |
 | Supprimés | `drawable*/splash.png`, `mipmap-*/ic_launcher_foreground.png`, `drawable-v24/` (images du gabarit devenues inutiles). |
 
@@ -36,6 +37,13 @@ Le code TypeScript associé est dans [`src/platform/`](../src/platform).
 
 Pile vide : le gestionnaire du plugin App est désactivé et Android joue l'animation système « retour à l'accueil ». Dès qu'une feuille, un dialogue ou un sous-écran s'ouvre (`pushBackHandler`), le gestionnaire est réactivé et l'événement `backButton` appelle le gestionnaire du dessus. `disableBackButtonHandler: true` fixe l'état initial (désactivé) ; `initBackHandling()` se déclenche aussi au premier `pushBackHandler`.
 
+## Publicité et Premium
+
+- AdMob (`@capacitor-community/admob`) : vidéos avec récompense et interstitiels, consentement RGPD par l'UMP de Google. Code : `src/monetization/`.
+- Premium : produit non consommable Google Play (`cordova-plugin-purchase`, plugin Cordova intégré par Capacitor dans `capacitor-cordova-android-plugins/`).
+- Identifiants : application AdMob via `ADMOB_APP_ID` (Gradle) ; blocs d'annonces via `VITE_ADMOB_REWARDED_ID` et `VITE_ADMOB_INTERSTITIAL_ID` (build web). Sans eux, ou en développement, ce sont ceux **de test** de Google. Produit Premium : `VITE_PREMIUM_PRODUCT_ID` (défaut `griday_premium`).
+- APK personnel sans publicité : `VITE_ADS=false npm run build && VITE_ADS=false npx cap sync android`. `capacitor.config.ts` exclut alors les deux plugins de monétisation du projet (ni SDK publicitaire, ni facturation, ni permission `AD_ID`) et l'app débloque tout.
+
 ## Compiler
 
 Prérequis : JDK 21, Android SDK avec la plateforme 36 et les build-tools 36.0.0 (`ANDROID_HOME`, ou `sdk.dir` dans `android/local.properties`, non versionné).
@@ -47,9 +55,22 @@ cd android && ./gradlew assembleDebug
 # APK : android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Version de release : `./gradlew assembleRelease -PversionCode=N` après avoir configuré la signature (pas encore faite).
+Version de release signée : définir `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` (et `ANDROID_KEY_PASSWORD` s'il diffère), puis `./gradlew assembleRelease bundleRelease` (`-PversionCode=N` au besoin). Sans keystore, `assembleRelease` produit un APK non signé (non installable).
+
+### GitHub Actions (`.github/workflows/android.yml`)
+
+À chaque push, deux APK en artefacts : `pub` (publicités + Premium) et `perso` (`VITE_ADS=false`). Un tag `v*` les joint à une release GitHub.
+
+| Secret / variable | Rôle |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | Keystore de publication encodé en base64 (`base64 -w0 release.jks`). Absent : APK de debug. |
+| `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | Mots de passe et alias de la clé. |
+| `ADMOB_APP_ID`, `ADMOB_REWARDED_ID`, `ADMOB_INTERSTITIAL_ID` | Identifiants AdMob réels (sinon : test). |
+| `PREMIUM_PRODUCT_ID` (variable) | Identifiant du produit Premium, s'il diffère de `griday_premium`. |
+
+Créer un keystore : `keytool -genkeypair -v -keystore release.jks -alias griday -keyalg RSA -keysize 2048 -validity 10000`. À conserver précieusement : sans lui, impossible de publier une mise à jour (sauf signature d'application gérée par Google Play).
 
 ## À faire plus tard
 
 - Icône et splash définitifs (Image Asset Studio, ou remplacer les trois vecteurs `ic_launcher_*.xml` et les PNG de repli).
-- Permission `INTERNET` (héritée du gabarit) : l'app est hors ligne, on peut la retirer après essai sur appareil.
+- Permission `INTERNET` : nécessaire aux publicités et à Google Play ; le jeu lui-même reste entièrement hors ligne.

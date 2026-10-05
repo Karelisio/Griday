@@ -34,10 +34,26 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Signature de publication : keystore fourni par la CI (ANDROID_KEYSTORE_PATH et mots de passe), jamais versionné.
+    def keystorePath = System.getenv('ANDROID_KEYSTORE_PATH')
+    def releaseSigned = keystorePath && file(keystorePath).exists()
+    signingConfigs {
+        if (releaseSigned) {
+            release {
+                storeFile file(keystorePath)
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD') ?: System.getenv('ANDROID_KEYSTORE_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (releaseSigned) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
