@@ -6,12 +6,15 @@
   "nav": {
     "today": "Aujourd’hui",
     "unlimited": "Illimité",
-    "settings": "Réglages"
+    "settings": "Réglages",
+    "archive": "Archives",
+    "stats": "Stats"
   },
   "common": {
     "close": "Fermer",
     "cancel": "Annuler",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "back": "Retour"
   },
   "difficulty": {
     "1": "Facile",
@@ -78,7 +81,10 @@
     "hints_other": "{{count}} indices utilisés",
     "newGame": "Nouvelle grille",
     "viewBoard": "Voir la grille",
-    "show": "Voir le résultat"
+    "show": "Voir le résultat",
+    "share": "Partager",
+    "remindMe": "Me rappeler chaque jour",
+    "archive": "Puzzle d’archive : il ne compte pas pour la série."
   },
   "hint": {
     "title": "Indice",
@@ -175,5 +181,35 @@
     "engineCheck": "Cet appareil calcule les grilles différemment : votre puzzle du jour pourrait ne pas être celui des autres joueurs.",
     "hint": "Impossible de calculer un indice. Réessayez.",
     "screen": "Un problème est survenu sur cet écran. Réessayer le recharge et réinitialise sa grille en cours."
+  },
+  "streak": {
+    "label_one": "Série : {{count}} jour",
+    "label_other": "Série : {{count}} jours",
+    "label_zero": "Pas encore de série",
+    "freezeEarned": "Gel de série gagné ! Il protégera votre série un jour manqué.",
+    "best": "Record : {{count}}"
+  },
+  "share": {
+    "daily": "Griday n° {{n}} 👑 {{size}} · {{difficulty}}",
+    "archive": "Griday n° {{n}} (archive) 👑 {{size}} · {{difficulty}}",
+    "unlimited": "Griday ∞ 👑 {{size}} · {{difficulty}}",
+    "time": "⏱️ {{time}}",
+    "hints_zero": "💡 sans indice",
+    "hints_one": "💡 {{count}} indice",
+    "hints_other": "💡 {{count}} indices",
+    "streak_one": "🔥 {{count}} jour de suite",
+    "streak_other": "🔥 {{count}} jours de suite",
+    "link": "À vous de jouer : {{url}}",
+    "dialogTitle": "Partager mon résultat",
+    "copied": "Résultat copié dans le presse-papiers"
+  },
+  "archive": {
+    "title": "Archives"
+  },
+  "stats": {
+    "title": "Statistiques"
+  },
+  "reminder": {
+    "title": "Rappel quotidien"
   }
 }

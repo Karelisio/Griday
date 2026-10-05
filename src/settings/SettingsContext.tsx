@@ -2,7 +2,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { LANGUAGES } from '../i18n';
 import { loadJSON, saveJSON } from '../platform/storage';
-import { DEFAULT_SETTINGS, type Settings } from './types';
+import { DEFAULT_SETTINGS, isReminderTime, type Settings } from './types';
 
 const KEY = 'settings.v1';
 
@@ -18,6 +18,9 @@ export function sanitizeSettings(raw: unknown): Settings {
     haptics: bool(s['haptics'], DEFAULT_SETTINGS.haptics),
     autoCross: bool(s['autoCross'], DEFAULT_SETTINGS.autoCross),
     regionPatterns: bool(s['regionPatterns'], DEFAULT_SETTINGS.regionPatterns),
+    reminder: bool(s['reminder'], DEFAULT_SETTINGS.reminder),
+    reminderTime: isReminderTime(s['reminderTime']) ? s['reminderTime'] : DEFAULT_SETTINGS.reminderTime,
+    reminderPrompted: bool(s['reminderPrompted'], DEFAULT_SETTINGS.reminderPrompted),
   };
 }
 

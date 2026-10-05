@@ -10,7 +10,23 @@ describe('réglages', () => {
   });
 
   it('conserve les valeurs valides', () => {
-    const s = { language: 'fr', theme: 'dark', dynamicColor: false, haptics: false, autoCross: true, regionPatterns: true };
+    const s = {
+      language: 'fr',
+      theme: 'dark',
+      dynamicColor: false,
+      haptics: false,
+      autoCross: true,
+      regionPatterns: true,
+      reminder: true,
+      reminderTime: '08:30',
+      reminderPrompted: true,
+    };
     expect(sanitizeSettings(s)).toEqual(s);
+  });
+
+  it('heure de rappel invalide : valeur par défaut', () => {
+    for (const reminderTime of ['24:00', '7:30', '07:60', 730, null]) {
+      expect(sanitizeSettings({ reminderTime }).reminderTime).toBe(DEFAULT_SETTINGS.reminderTime);
+    }
   });
 });

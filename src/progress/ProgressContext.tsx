@@ -1,0 +1,133 @@
+/**
+ * Progression côté React : historique des résultats, série (réglée à chaque nouveau jour),
+ * statistiques dérivées. Source unique en mémoire, chaque changement est écrit aussitôt.
+ */
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { diffDays, localISODate, type ISODate } from '../../engine/core/date';
+import { useToday } from '../useToday';
+import { dailyStats, unlimitedStats } from './stats';
+import { loadProgressData, saveDailyHistory, saveStreak, saveUnlimitedHistory, type ProgressData, MAX_UNLIMITED_RESULTS } from './store';
+import { EMPTY_STREAK, MAX_FREEZES, applyDailySolve, settleStreak, summarizeStreak } from './streak';
+import type { DailyResult, DailyStats, StreakState, StreakSummary, UnlimitedResult, UnlimitedStats } from './types';
+
+export interface ProgressValue {
+  /** Données chargées (sinon valeurs vides). */
+  readonly ready: boolean;
+  readonly today: ISODate;
+  readonly history: ReadonlyMap<ISODate, DailyResult>;
+  readonly unlimited: readonly UnlimitedResult[];
+  readonly streak: StreakState;
+  readonly summary: StreakSummary;
+  readonly dailyStats: DailyStats;
+  readonly unlimitedStats: UnlimitedStats;
+  /** Enregistre un puzzle du jour résolu (ignoré s'il l'est déjà). Indique si un gel a été gagné. */
+  readonly recordDaily: (result: DailyResult) => { readonly earnedFreeze: boolean };
+  readonly recordUnlimited: (result: UnlimitedResult) => void;
+  /** Ajoute un gel (récompense) ; faux si la réserve est pleine. */
+  readonly addFreeze: () => boolean;
+}
+
+const EMPTY: ProgressData = { history: new Map(), unlimited: [], streak: EMPTY_STREAK };
+/** Résolu au plus tard le lendemain (minuit passé en cours de partie) : compte comme puzzle du jour. */
+const MAX_DAILY_DELAY = 1;
+
+const solvedDays = (history: ReadonlyMap<ISODate, DailyResult>) =>
+  new Set([...history.values()].filter((r) => r.mode === 'daily').map((r) => r.date));
+
+const Ctx = createContext<ProgressValue | null>(null);
+
+export function ProgressProvider({ initial, children }: { initial?: ProgressData; children: ReactNode }) {
+  const today = useToday();
+  const [data, setData] = useState<ProgressData | null>(initial ?? null);
+  const dataRef = useRef(data);
+  const commit = useCallback((next: ProgressData) => {
+    dataRef.current = next;
+    setData(next);
+  }, []);
+
+  useEffect(() => {
+    if (dataRef.current) return;
+    let cancelled = false;
+    void loadProgressData()
+      .catch(() => EMPTY)
+      .then((loaded) => {
+        if (!cancelled && !dataRef.current) commit(loaded);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [commit]);
+
+  // Nouveau jour (ou premier chargement) : sort des jours passés réglé (gels consommés).
+  const ready = data !== null;
+  useEffect(() => {
+    const current = dataRef.current;
+    if (!current) return;
+    const streak = settleStreak(current.streak, solvedDays(current.history), today);
+    if (streak === current.streak) return;
+    commit({ ...current, streak });
+    void saveStreak(streak);
+  }, [today, ready, commit]);
+
+  const recordDaily = useCallback(
+    (result: DailyResult) => {
+      const current = dataRef.current;
+      if (!current || current.history.has(result.date)) return { earnedFreeze: false };
+      const now = localISODate(new Date());
+      const mode = result.mode === 'daily' && diffDays(result.date, result.solvedOn) <= MAX_DAILY_DELAY ? 'daily' : 'archive';
+      const history = new Map(current.history).set(result.date, { ...result, mode });
+      const applied = mode === 'daily' ? applyDailySolve(current.streak, solvedDays(history), result.date, now) : null;
+      const streak = applied ? applied.state : current.streak;
+      commit({ ...current, history, streak });
+      void saveDailyHistory(history);
+      if (streak !== current.streak) void saveStreak(streak);
+      return { earnedFreeze: applied?.earned ?? false };
+    },
+    [commit],
+  );
+
+  const recordUnlimited = useCallback(
+    (result: UnlimitedResult) => {
+      const current = dataRef.current;
+      if (!current) return;
+      const unlimited = [...current.unlimited, result].slice(-MAX_UNLIMITED_RESULTS);
+      commit({ ...current, unlimited });
+      void saveUnlimitedHistory(unlimited);
+    },
+    [commit],
+  );
+
+  const addFreeze = useCallback(() => {
+    const current = dataRef.current;
+    if (!current || current.streak.freezes >= MAX_FREEZES) return false;
+    const streak = { ...current.streak, freezes: current.streak.freezes + 1 };
+    commit({ ...current, streak });
+    void saveStreak(streak);
+    return true;
+  }, [commit]);
+
+  const value = useMemo<ProgressValue>(() => {
+    const d = data ?? EMPTY;
+    return {
+      ready: data !== null,
+      today,
+      history: d.history,
+      unlimited: d.unlimited,
+      streak: d.streak,
+      summary: summarizeStreak(d.streak, solvedDays(d.history), today),
+      dailyStats: dailyStats(d.history.values()),
+      unlimitedStats: unlimitedStats(d.unlimited),
+      recordDaily,
+      recordUnlimited,
+      addFreeze,
+    };
+  }, [data, today, recordDaily, recordUnlimited, addFreeze]);
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}
+
+export function useProgress(): ProgressValue {
+  const v = useContext(Ctx);
+  if (!v) throw new Error('useProgress hors de ProgressProvider');
+  return v;
+}

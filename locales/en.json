@@ -6,12 +6,15 @@
   "nav": {
     "today": "Today",
     "unlimited": "Unlimited",
-    "settings": "Settings"
+    "settings": "Settings",
+    "archive": "Archive",
+    "stats": "Stats"
   },
   "common": {
     "close": "Close",
     "cancel": "Cancel",
-    "retry": "Retry"
+    "retry": "Retry",
+    "back": "Back"
   },
   "difficulty": {
     "1": "Easy",
@@ -78,7 +81,10 @@
     "hints_other": "{{count}} hints used",
     "newGame": "New grid",
     "viewBoard": "View grid",
-    "show": "Show result"
+    "show": "Show result",
+    "share": "Share",
+    "remindMe": "Remind me daily",
+    "archive": "Archive puzzle: it doesn’t count toward your streak."
   },
   "hint": {
     "title": "Hint",
@@ -175,5 +181,35 @@
     "engineCheck": "This device computes grids differently: your daily puzzle might not match other players’.",
     "hint": "Couldn’t work out a hint. Try again.",
     "screen": "Something went wrong on this screen. Retrying reloads it and resets its current puzzle."
+  },
+  "streak": {
+    "label_one": "Streak: {{count}} day",
+    "label_other": "Streak: {{count}} days",
+    "label_zero": "No streak yet",
+    "freezeEarned": "Streak freeze earned! It will protect your streak on a missed day.",
+    "best": "Best: {{count}}"
+  },
+  "share": {
+    "daily": "Griday #{{n}} 👑 {{size}} · {{difficulty}}",
+    "archive": "Griday #{{n}} (archive) 👑 {{size}} · {{difficulty}}",
+    "unlimited": "Griday ∞ 👑 {{size}} · {{difficulty}}",
+    "time": "⏱️ {{time}}",
+    "hints_zero": "💡 no hints",
+    "hints_one": "💡 {{count}} hint",
+    "hints_other": "💡 {{count}} hints",
+    "streak_one": "🔥 {{count}}-day streak",
+    "streak_other": "🔥 {{count}}-day streak",
+    "link": "Your turn: {{url}}",
+    "dialogTitle": "Share my result",
+    "copied": "Result copied to the clipboard"
+  },
+  "archive": {
+    "title": "Archive"
+  },
+  "stats": {
+    "title": "Statistics"
+  },
+  "reminder": {
+    "title": "Daily reminder"
   }
 }
