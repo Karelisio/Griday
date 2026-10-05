@@ -1,10 +1,12 @@
 {
+  // Application (navigateur / WebView) : DOM, JSX, pas de types Node.
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": ["ES2022"],
-    "types": ["node"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker.ImportScripts"],
+    "types": ["vite/client"],
+    "jsx": "react-jsx",
     "strict": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
@@ -14,5 +16,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["engine/**/*.ts", "scripts/**/*.ts", "vite.config.ts", "capacitor.config.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "locales/**/*.ts"]
 }

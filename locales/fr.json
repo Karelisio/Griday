@@ -1,0 +1,172 @@
+{
+  "app": {
+    "name": "Griday",
+    "tagline": "Un puzzle logique par jour"
+  },
+  "nav": {
+    "today": "Aujourd’hui",
+    "unlimited": "Illimité",
+    "settings": "Réglages"
+  },
+  "common": {
+    "close": "Fermer",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "retry": "Réessayer",
+    "loading": "Chargement…",
+    "back": "Retour"
+  },
+  "difficulty": {
+    "1": "Facile",
+    "2": "Moyen",
+    "3": "Difficile",
+    "4": "Expert"
+  },
+  "puzzle": {
+    "queens": {
+      "name": "Reines",
+      "rules": "Placez une reine par ligne, par colonne et par région colorée. Deux reines ne peuvent jamais se toucher, même en diagonale.",
+      "howTo": "Touchez une case pour poser une reine, touchez-la deux fois pour une croix. Glissez le doigt pour barrer plusieurs cases."
+    }
+  },
+  "today": {
+    "title": "Puzzle du jour",
+    "number": "N° {{n}}",
+    "generating": "Préparation de la grille du jour…",
+    "solved": "Puzzle du jour résolu",
+    "solvedIn": "Résolu en {{time}}",
+    "nextIn": "Prochain puzzle dans {{time}}",
+    "updateAvailable": "Une mise à jour de Griday est peut-être disponible : installez-la pour continuer à jouer les mêmes grilles que tout le monde."
+  },
+  "unlimited": {
+    "title": "Mode illimité",
+    "size": "Taille",
+    "sizeValue": "{{n}} × {{n}}",
+    "difficulty": "Difficulté",
+    "newGame": "Nouvelle grille",
+    "generating": "Génération d’une grille…",
+    "empty": "Choisissez une taille et une difficulté, puis lancez une nouvelle grille."
+  },
+  "game": {
+    "board": "Grille {{n}} × {{n}}",
+    "rules": "Règles",
+    "undo": "Annuler",
+    "redo": "Rétablir",
+    "hint": "Indice",
+    "reset": "Recommencer",
+    "resetConfirm": "Effacer toute la grille et remettre le chronomètre à zéro ?",
+    "timer": "Temps écoulé",
+    "pause": "Pause",
+    "resume": "Reprendre",
+    "paused": "Partie en pause",
+    "conflicts_one": "{{count}} reine en conflit",
+    "conflicts_other": "{{count}} reines en conflit",
+    "cell": {
+      "label": "Ligne {{row}}, colonne {{col}} : {{state}}",
+      "empty": "vide",
+      "queen": "reine",
+      "cross": "croix",
+      "conflict": "reine en conflit",
+      "hinted": "case de l’indice"
+    }
+  },
+  "victory": {
+    "title": "Bravo !",
+    "time": "Résolu en {{time}}",
+    "hints_zero": "Sans indice",
+    "hints_one": "{{count}} indice utilisé",
+    "hints_other": "{{count}} indices utilisés",
+    "newGame": "Nouvelle grille",
+    "viewBoard": "Voir la grille"
+  },
+  "hint": {
+    "title": "Indice",
+    "show": "Montrer la case",
+    "apply": "Jouer ce coup",
+    "unit": {
+      "row": "la ligne {{n}}",
+      "column": "la colonne {{n}}",
+      "region": "la région en surbrillance",
+      "regions": "ces {{count}} régions"
+    },
+    "technique": {
+      "single": "Dernière case",
+      "region-line": "Région alignée",
+      "line-region": "Ligne enfermée",
+      "attack": "Case bloquante",
+      "locked-pair": "Paire verrouillée",
+      "locked-set": "Groupe verrouillé",
+      "contradiction": "Raisonnement par l’absurde",
+      "reveal": "Coup de pouce",
+      "mistake": "Erreur",
+      "solved": "Terminé"
+    },
+    "queens": {
+      "single": {
+        "region": "La région en surbrillance n’a plus qu’une case possible : sa reine va forcément là.",
+        "row": "La ligne {{row}} n’a plus qu’une case possible : sa reine va forcément là.",
+        "column": "La colonne {{col}} n’a plus qu’une case possible : sa reine va forcément là."
+      },
+      "region-line": {
+        "row": "Toutes les cases possibles de la région en surbrillance sont sur la ligne {{row}}. La reine de cette ligne sera donc dans la région : les autres cases de la ligne {{row}} sont exclues.",
+        "column": "Toutes les cases possibles de la région en surbrillance sont dans la colonne {{col}}. La reine de cette colonne sera donc dans la région : les autres cases de la colonne {{col}} sont exclues."
+      },
+      "line-region": {
+        "row": "Toutes les cases possibles de la ligne {{row}} sont dans la même région. La reine de cette région sera donc sur la ligne {{row}} : ses autres cases sont exclues.",
+        "column": "Toutes les cases possibles de la colonne {{col}} sont dans la même région. La reine de cette région sera donc dans la colonne {{col}} : ses autres cases sont exclues."
+      },
+      "attack": "Une reine sur la case marquée retirerait toutes les cases possibles de {{unit}}, qui n’aurait alors plus de reine : cette case est exclue.",
+      "locked": {
+        "regions-rows": "Ces {{count}} régions n’ont de cases possibles que sur les lignes {{lines}}. Ces lignes leur sont donc réservées : leurs autres cases sont exclues.",
+        "regions-columns": "Ces {{count}} régions n’ont de cases possibles que dans les colonnes {{lines}}. Ces colonnes leur sont donc réservées : leurs autres cases sont exclues.",
+        "rows-regions": "Les lignes {{lines}} n’ont de cases possibles que dans {{count}} régions. Les reines de ces régions sont donc sur ces lignes : leurs autres cases sont exclues.",
+        "columns-regions": "Les colonnes {{lines}} n’ont de cases possibles que dans {{count}} régions. Les reines de ces régions sont donc dans ces colonnes : leurs autres cases sont exclues.",
+        "rows-columns": "Les lignes {{lines}} n’ont de cases possibles que dans les colonnes {{targets}}. Ces colonnes leur sont donc réservées : leurs autres cases sont exclues.",
+        "columns-rows": "Les colonnes {{lines}} n’ont de cases possibles que sur les lignes {{targets}}. Ces lignes leur sont donc réservées : leurs autres cases sont exclues."
+      },
+      "contradiction": "Supposons une reine sur la case marquée : en enchaînant les déductions simples, {{unit}} n’aurait plus aucune case possible. C’est impossible, donc cette case est exclue.",
+      "reveal": "Aucune déduction simple ici : voici une reine de la solution.",
+      "mistake_one": "Une case est fausse : elle est signalée en rouge. Corrigez-la avant de continuer.",
+      "mistake_other": "{{count}} cases sont fausses : elles sont signalées en rouge. Corrigez-les avant de continuer.",
+      "solved": "La grille est déjà résolue !"
+    }
+  },
+  "settings": {
+    "title": "Réglages",
+    "appearance": "Apparence",
+    "game": "Jeu",
+    "language": {
+      "title": "Langue",
+      "system": "Langue du système",
+      "fr": "Français",
+      "en": "English"
+    },
+    "theme": {
+      "title": "Thème",
+      "system": "Système",
+      "light": "Clair",
+      "dark": "Sombre"
+    },
+    "dynamicColor": {
+      "title": "Couleurs dynamiques",
+      "description": "Reprendre les couleurs de votre fond d’écran",
+      "unavailable": "Nécessite Android 12 ou plus récent"
+    },
+    "haptics": {
+      "title": "Vibrations",
+      "description": "Retour haptique pendant le jeu"
+    },
+    "autoCross": {
+      "title": "Croix automatiques",
+      "description": "Barrer les cases interdites par chaque reine posée"
+    },
+    "about": {
+      "title": "À propos",
+      "version": "Version {{version}}"
+    }
+  },
+  "errors": {
+    "generation": "Impossible de préparer la grille. Réessayez.",
+    "engineCheck": "Cet appareil calcule les grilles différemment : votre puzzle du jour pourrait ne pas être celui des autres joueurs."
+  }
+}

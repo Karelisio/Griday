@@ -1,0 +1,172 @@
+{
+  "app": {
+    "name": "Griday",
+    "tagline": "One logic puzzle a day"
+  },
+  "nav": {
+    "today": "Today",
+    "unlimited": "Unlimited",
+    "settings": "Settings"
+  },
+  "common": {
+    "close": "Close",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "retry": "Retry",
+    "loading": "Loading…",
+    "back": "Back"
+  },
+  "difficulty": {
+    "1": "Easy",
+    "2": "Medium",
+    "3": "Hard",
+    "4": "Expert"
+  },
+  "puzzle": {
+    "queens": {
+      "name": "Queens",
+      "rules": "Place one queen in each row, each column and each colored region. Two queens can never touch, not even diagonally.",
+      "howTo": "Tap a cell to place a queen, tap it twice for a cross. Drag your finger to cross out several cells."
+    }
+  },
+  "today": {
+    "title": "Daily puzzle",
+    "number": "No. {{n}}",
+    "generating": "Preparing today’s grid…",
+    "solved": "Daily puzzle solved",
+    "solvedIn": "Solved in {{time}}",
+    "nextIn": "Next puzzle in {{time}}",
+    "updateAvailable": "A Griday update may be available: install it to keep playing the same grids as everyone else."
+  },
+  "unlimited": {
+    "title": "Unlimited mode",
+    "size": "Size",
+    "sizeValue": "{{n}} × {{n}}",
+    "difficulty": "Difficulty",
+    "newGame": "New grid",
+    "generating": "Generating a grid…",
+    "empty": "Pick a size and a difficulty, then start a new grid."
+  },
+  "game": {
+    "board": "{{n}} × {{n}} grid",
+    "rules": "Rules",
+    "undo": "Undo",
+    "redo": "Redo",
+    "hint": "Hint",
+    "reset": "Start over",
+    "resetConfirm": "Clear the whole grid and reset the timer?",
+    "timer": "Elapsed time",
+    "pause": "Pause",
+    "resume": "Resume",
+    "paused": "Game paused",
+    "conflicts_one": "{{count}} queen in conflict",
+    "conflicts_other": "{{count}} queens in conflict",
+    "cell": {
+      "label": "Row {{row}}, column {{col}}: {{state}}",
+      "empty": "empty",
+      "queen": "queen",
+      "cross": "cross",
+      "conflict": "queen in conflict",
+      "hinted": "hint cell"
+    }
+  },
+  "victory": {
+    "title": "Well done!",
+    "time": "Solved in {{time}}",
+    "hints_zero": "No hints",
+    "hints_one": "{{count}} hint used",
+    "hints_other": "{{count}} hints used",
+    "newGame": "New grid",
+    "viewBoard": "View grid"
+  },
+  "hint": {
+    "title": "Hint",
+    "show": "Show the cell",
+    "apply": "Play this move",
+    "unit": {
+      "row": "row {{n}}",
+      "column": "column {{n}}",
+      "region": "the highlighted region",
+      "regions": "these {{count}} regions"
+    },
+    "technique": {
+      "single": "Last cell",
+      "region-line": "Aligned region",
+      "line-region": "Enclosed line",
+      "attack": "Blocking cell",
+      "locked-pair": "Locked pair",
+      "locked-set": "Locked group",
+      "contradiction": "Proof by contradiction",
+      "reveal": "Helping hand",
+      "mistake": "Mistake",
+      "solved": "Done"
+    },
+    "queens": {
+      "single": {
+        "region": "The highlighted region has only one possible cell left: its queen must go there.",
+        "row": "Row {{row}} has only one possible cell left: its queen must go there.",
+        "column": "Column {{col}} has only one possible cell left: its queen must go there."
+      },
+      "region-line": {
+        "row": "All possible cells of the highlighted region are in row {{row}}. That row’s queen will therefore be in the region, so the other cells of row {{row}} are ruled out.",
+        "column": "All possible cells of the highlighted region are in column {{col}}. That column’s queen will therefore be in the region, so the other cells of column {{col}} are ruled out."
+      },
+      "line-region": {
+        "row": "All possible cells of row {{row}} are in the same region. That region’s queen will therefore be in row {{row}}, so its other cells are ruled out.",
+        "column": "All possible cells of column {{col}} are in the same region. That region’s queen will therefore be in column {{col}}, so its other cells are ruled out."
+      },
+      "attack": "A queen on the marked cell would remove every possible cell of {{unit}}, which would then have no queen: this cell is ruled out.",
+      "locked": {
+        "regions-rows": "These {{count}} regions only have possible cells in rows {{lines}}. Those rows are reserved for them, so their other cells are ruled out.",
+        "regions-columns": "These {{count}} regions only have possible cells in columns {{lines}}. Those columns are reserved for them, so their other cells are ruled out.",
+        "rows-regions": "Rows {{lines}} only have possible cells in {{count}} regions. Those regions’ queens are therefore in these rows, so their other cells are ruled out.",
+        "columns-regions": "Columns {{lines}} only have possible cells in {{count}} regions. Those regions’ queens are therefore in these columns, so their other cells are ruled out.",
+        "rows-columns": "Rows {{lines}} only have possible cells in columns {{targets}}. Those columns are reserved for them, so their other cells are ruled out.",
+        "columns-rows": "Columns {{lines}} only have possible cells in rows {{targets}}. Those rows are reserved for them, so their other cells are ruled out."
+      },
+      "contradiction": "Suppose there is a queen on the marked cell: following the simple deductions, {{unit}} would have no possible cell left. That is impossible, so this cell is ruled out.",
+      "reveal": "No simple deduction here: here is one queen of the solution.",
+      "mistake_one": "One cell is wrong: it is shown in red. Fix it before going on.",
+      "mistake_other": "{{count}} cells are wrong: they are shown in red. Fix them before going on.",
+      "solved": "The grid is already solved!"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "game": "Game",
+    "language": {
+      "title": "Language",
+      "system": "System language",
+      "fr": "Français",
+      "en": "English"
+    },
+    "theme": {
+      "title": "Theme",
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "dynamicColor": {
+      "title": "Dynamic colors",
+      "description": "Use the colors of your wallpaper",
+      "unavailable": "Requires Android 12 or newer"
+    },
+    "haptics": {
+      "title": "Vibration",
+      "description": "Haptic feedback while playing"
+    },
+    "autoCross": {
+      "title": "Automatic crosses",
+      "description": "Cross out the cells ruled out by each queen"
+    },
+    "about": {
+      "title": "About",
+      "version": "Version {{version}}"
+    }
+  },
+  "errors": {
+    "generation": "The grid could not be prepared. Please try again.",
+    "engineCheck": "This device computes grids differently: your daily puzzle might not match other players’."
+  }
+}

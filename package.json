@@ -5,18 +5,46 @@
   "type": "module",
   "description": "Griday — puzzle logique quotidien (Android, hors ligne)",
   "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.app.json && vite build",
+    "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit -p engine/tsconfig.json && tsc --noEmit -p tsconfig.json",
-    "validate:future": "tsx scripts/validate-future.ts"
+    "typecheck": "tsc --noEmit -p engine/tsconfig.json && tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.app.json",
+    "validate:future": "tsx scripts/validate-future.ts",
+    "cap:sync": "npm run build && cap sync android"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
+    "@material-symbols/svg-400": "^0.47.6",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "jsdom": "^29.1.1",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
+    "vite": "^8.3.2",
     "vitest": "^5.0.3"
   },
   "engines": {
     "node": "^22.12.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/device": "^8.0.3",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.4",
+    "@material/material-color-utilities": "^0.4.0",
+    "i18next": "^26.4.2",
+    "motion": "^14.0.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-i18next": "^17.0.15"
   }
 }
