@@ -1,15 +1,43 @@
 # Griday
 
 Puzzle logique quotidien pour Android : un puzzle par jour, identique pour tous, généré hors ligne à partir de la date.
-Stack : React + Vite + TypeScript + Capacitor (à venir), moteur pur TypeScript dans [`engine/`](engine/README.md).
+Deux jeux en alternance quotidienne (Reines, Binairo), mode illimité, série, statistiques, archives, rappel quotidien.
+
+Stack : React 19 + Vite + TypeScript + Capacitor 8 (Android), Material You maison (`src/ui`), i18n FR/EN (`locales/`),
+moteur pur TypeScript et déterministe dans [`engine/`](engine/README.md). Projet Android : [`android/`](android/README-griday.md).
 
 ## Commandes
 ```bash
 npm ci                    # installation
-npm test                  # tests unitaires (Vitest)
-npm run typecheck         # types (moteur sans DOM/Node + scripts)
+npm run dev               # application dans le navigateur (vidéos récompensées simulées en développement)
+npm test                  # tests unitaires (Vitest : moteur + application)
+npm run typecheck         # types (moteur sans DOM/Node, scripts, application)
+npm run build             # build web (dist/)
+npm run cap:sync          # build + synchronisation du projet Android
 npm run validate:future   # génère et vérifie les 10 prochaines années de puzzles
 ```
+
+## Organisation
+- `engine/` : générateurs versionnés et figés, solveurs logiques, notation, indices, calendrier (`config.ts`).
+- `src/` : application (écrans, jeu générique `src/game/core` + un dossier par type, progression, rappels, partage,
+  monétisation `src/monetization`).
+- `locales/` : textes FR et EN (mêmes clés). `store/` : fiche Play Store FR/EN, politique de confidentialité,
+  aide-mémoire Play Console.
+
+## Monétisation et variantes de build
+- Version gratuite : 2 indices par grille puis une courte vidéo par indice ; archives des 7 derniers jours libres, plus
+  anciennes débloquées par une vidéo ; un gel de série offert par semaine contre une vidéo ; un interstitiel après le
+  puzzle du jour et toutes les 3 parties illimitées ; jamais de bannière. Consentement RGPD par l'UMP de Google.
+- Premium (achat unique Google Play, codes promo compris) : aucune publicité, indices et archives illimités.
+- Variables de build : `VITE_ADS=false` (APK personnel sans publicité ni achat, tout débloqué),
+  `VITE_ADMOB_REWARDED_ID`, `VITE_ADMOB_INTERSTITIAL_ID`, `VITE_PREMIUM_PRODUCT_ID` ; `ADMOB_APP_ID` pour Gradle.
+  Sans identifiants réels (et toujours en développement) : annonces de test de Google.
+
+## APK
+Le workflow [`android.yml`](.github/workflows/android.yml) produit à chaque push deux APK en artefacts : `pub`
+(publicités + Premium) et `perso` (`VITE_ADS=false`) ; release signée (APK + AAB) si le keystore est fourni en secret,
+sinon APK de debug ; un tag `v*` les joint à une release GitHub. Secrets et compilation locale :
+[`android/README-griday.md`](android/README-griday.md).
 
 ## Validation long terme
 `scripts/validate-future.ts` (logique dans `scripts/lib/validate.ts`, testée) génère chaque puzzle du jour, pour chaque type
