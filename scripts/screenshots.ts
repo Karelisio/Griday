@@ -154,10 +154,8 @@ await smallPage.screenshot({ path: `${out}/10-hint-small.png` });
   ];
   const seeded = await browser.newContext({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
   await seeded.clock.setFixedTime(new Date('2026-10-20T10:00:00'));
-  const p = await seeded.newPage();
-  p.on('pageerror', (e) => console.error('ERREUR PAGE :', e.message));
-  await p.goto(url);
-  await p.evaluate(
+  // Données posées avant tout script de la page : l'app ne peut pas les écraser au démarrage.
+  await seeded.addInitScript(
     ({ s, history, streak, unl }) => {
       localStorage.clear();
       localStorage.setItem('CapacitorStorage.settings.v1', s);
@@ -172,7 +170,9 @@ await smallPage.screenshot({ path: `${out}/10-hint-small.png` });
       unl: unlimited,
     },
   );
-  await p.reload();
+  const p = await seeded.newPage();
+  p.on('pageerror', (e) => console.error('ERREUR PAGE :', e.message));
+  await p.goto(url);
   await p.waitForSelector('[data-cell="0"]', { timeout: 20_000 });
   await p.waitForTimeout(500);
   await p.screenshot({ path: `${out}/11a-today-streak.png` });

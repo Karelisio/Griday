@@ -60,9 +60,12 @@ export function TodayScreen({ visible }: { visible: boolean }) {
   return (
     <section className="screen" aria-labelledby="today-title" hidden={!visible}>
       <header className="screen__header">
-        <p className="md-typescale-label-large screen__overline">
-          {info && info.dayNumber > 0 ? t('today.number', { n: formatNumber(info.dayNumber, lang) }) : ' '}
-        </p>
+        <div className="today__topline">
+          <p className="md-typescale-label-large screen__overline">
+            {info && info.dayNumber > 0 ? t('today.number', { n: formatNumber(info.dayNumber, lang) }) : ' '}
+          </p>
+          {summary.current > 0 && <StreakChip count={summary.current} />}
+        </div>
         <h1 id="today-title" className="md-typescale-headline-medium screen__title">
           {t('today.title')}
         </h1>
@@ -72,7 +75,6 @@ export function TodayScreen({ visible }: { visible: boolean }) {
             <InfoChip icon="crown">{t('puzzle.queens.name')}</InfoChip>
             <InfoChip icon="grid_view">{t('unlimited.sizeValue', { n: info.target.size })}</InfoChip>
             <InfoChip icon="bolt">{t(`difficulty.${info.target.tier}`)}</InfoChip>
-            {summary.current > 0 && <StreakChip count={summary.current} />}
           </div>
         )}
       </header>

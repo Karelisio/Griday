@@ -150,3 +150,13 @@
   flex: 1 1 auto;
   min-width: 0;
 }
+
+/* Puzzle du jour : numéro à gauche, série à droite (place laissée au bouton Réglages). */
+.today__topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 32px;
+  padding-inline-end: 48px;
+}
