@@ -4,6 +4,7 @@
  */
 import { isValidISODate, type ISODate } from '../../engine/core/date';
 import { PUZZLE_TYPE_IDS, type PuzzleTypeId } from '../../engine/core/types';
+import { BINAIRO_MAX_SIZE, BINAIRO_MIN_SIZE } from '../../engine/binairo/types';
 import { QUEENS_MAX_SIZE, QUEENS_MIN_SIZE } from '../../engine/queens/types';
 import { isTier } from '../game/queens/validate';
 import { dailyProgressKey } from '../persistence';
@@ -37,7 +38,12 @@ export interface ProgressData {
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const isCount = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0;
-const isSize = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= QUEENS_MIN_SIZE && (v as number) <= QUEENS_MAX_SIZE;
+/** Tailles possibles par type (un nouveau type doit déclarer les siennes). */
+const SIZES: Record<PuzzleTypeId, readonly [min: number, max: number]> = {
+  queens: [QUEENS_MIN_SIZE, QUEENS_MAX_SIZE],
+  binairo: [BINAIRO_MIN_SIZE, BINAIRO_MAX_SIZE],
+};
+const isSize = (type: PuzzleTypeId, v: unknown): v is number => Number.isInteger(v) && (v as number) >= SIZES[type][0] && (v as number) <= SIZES[type][1];
 const isDate = (v: unknown): v is ISODate => typeof v === 'string' && isValidISODate(v);
 
 export function encodeDailyHistory(history: ReadonlyMap<ISODate, DailyResult>): { v: 1; results: Record<ISODate, DailyRow> } {
@@ -53,7 +59,7 @@ export function decodeDailyHistory(raw: unknown): Map<ISODate, DailyResult> {
     if (!isDate(date) || !Array.isArray(row) || row.length < 6 || row.length > 7) continue;
     const [timeMs, hintsUsed, size, tier, mode, solvedOn, rawType] = row as unknown[];
     const type = typeOf(rawType);
-    if (!isCount(timeMs) || !isCount(hintsUsed) || !isSize(size) || !isTier(tier) || (mode !== 0 && mode !== 1) || !isDate(solvedOn) || !type) continue;
+    if (!type || !isCount(timeMs) || !isCount(hintsUsed) || !isSize(type, size) || !isTier(tier) || (mode !== 0 && mode !== 1) || !isDate(solvedOn)) continue;
     out.set(date, { date, type, timeMs, hintsUsed, size, tier, mode: mode === 0 ? 'daily' : 'archive', solvedOn });
   }
   return out;
@@ -71,7 +77,7 @@ export function decodeUnlimitedHistory(raw: unknown): { results: UnlimitedResult
     if (!Array.isArray(row) || row.length < 5 || row.length > 6) continue;
     const [size, tier, timeMs, hintsUsed, solvedOn, rawType] = row as unknown[];
     const type = typeOf(rawType);
-    if (!isSize(size) || !isTier(tier) || !isCount(timeMs) || !isCount(hintsUsed) || !isDate(solvedOn) || !type) continue;
+    if (!type || !isSize(type, size) || !isTier(tier) || !isCount(timeMs) || !isCount(hintsUsed) || !isDate(solvedOn)) continue;
     out.push({ type, size, tier, timeMs, hintsUsed, solvedOn });
   }
   const results = out.slice(-MAX_UNLIMITED_RESULTS);

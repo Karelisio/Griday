@@ -125,7 +125,9 @@ describe('Queens V1 — puzzle du jour', () => {
     for (let i = 0; i < 28; i++) {
       const date = addDays('2026-10-05', i);
       const p = getDailyPuzzle(date);
-      expect(p.type).toBe('queens');
+      // Calendrier : Queens les jours pairs depuis l'epoch, Binairo les jours impairs (testé à part).
+      expect(p.type).toBe(i % 2 === 0 ? 'queens' : 'binairo');
+      if (p.type !== 'queens') continue;
       expect(p.source, date).toBe('generated');
       expect(p.target).toEqual(QUEENS_V1.weeklyPlan[p.weekday - 1]);
       expect(p.puzzle.size).toBe(p.target.size);

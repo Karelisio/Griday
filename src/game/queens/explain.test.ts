@@ -1,7 +1,7 @@
 import i18next from 'i18next';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { addDays } from '../../../engine/core/date';
-import { getDailyPuzzle } from '../../../engine/index';
+import { queensDailyV1 } from '../../../engine/queens/testing';
 import { getQueensHint } from '../../../engine/queens/hint';
 import { MARK_QUEEN, type QueensMark } from '../../../engine/queens/types';
 import en from '../../../locales/en.json';
@@ -18,7 +18,7 @@ describe('explications des indices', () => {
   it('toutes les techniques rencontrées ont un titre et un texte complets en FR et EN', () => {
     const seen = new Set<string>();
     for (let i = 0; i < 70; i++) {
-      const p = getDailyPuzzle(addDays('2026-10-05', i)).puzzle;
+      const p = queensDailyV1(addDays('2026-10-05', i));
       // Partie suivie indice après indice : chaque étape de la résolution est expliquée.
       let marks: QueensMark[] = emptyMarks(p);
       for (let guard = 0; guard < 4 * p.size * p.size; guard++) {
@@ -47,7 +47,7 @@ describe('explications des indices', () => {
   });
 
   it('erreurs : cases signalées et texte au pluriel', () => {
-    const p = getDailyPuzzle('2026-10-05').puzzle;
+    const p = queensDailyV1('2026-10-05');
     const marks = emptyMarks(p);
     const wrong = [0, 1, 2, 3].find((c) => p.solution[0] !== c)!;
     marks[wrong] = MARK_QUEEN;
@@ -60,7 +60,7 @@ describe('explications des indices', () => {
 
   it('« Jouer ce coup » applique toute la déduction ; jouer les indices en boucle résout la grille', () => {
     for (let i = 0; i < 14; i++) {
-      const p = getDailyPuzzle(addDays('2026-10-05', i)).puzzle;
+      const p = queensDailyV1(addDays('2026-10-05', i));
       let marks: QueensMark[] = emptyMarks(p);
       const keys = new Set<string>();
       let solved = false;
@@ -86,7 +86,7 @@ describe('explications des indices', () => {
   });
 
   it('une erreur se corrige en vidant les cases fausses', () => {
-    const p = getDailyPuzzle('2026-10-05').puzzle;
+    const p = queensDailyV1('2026-10-05');
     const marks: QueensMark[] = emptyMarks(p);
     const wrong = p.solution[0] === 0 ? 1 : 0;
     marks[wrong] = MARK_QUEEN;

@@ -7,9 +7,9 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { BINAIRO_DEFINITION } from '../engine/binairo';
 import * as binairoFreeze from '../engine/binairo/v1/freeze-data';
-import { fingerprintPuzzle, generateDailyForVersion } from '../engine/core/pipeline';
+import { fingerprintPuzzle, generateDaily, generateDailyForVersion } from '../engine/core/pipeline';
 import { hashHex, rngFromString } from '../engine/core/prng';
-import { getDailyPuzzle, REGISTRY } from '../engine/index';
+import { REGISTRY, SCHEDULE } from '../engine/index';
 import * as queensFreeze from '../engine/queens/v1/freeze-data';
 import { BINAIRO_SELFCHECK_DATE, SELFCHECK_DATES } from '../engine/selfcheck';
 
@@ -47,7 +47,7 @@ console.log('// selfcheck.ts');
 console.log(`  hash: '${hashHex('griday')}',`);
 console.log(`  rng: [${[rng.nextU32(), rng.nextU32(), rng.nextU32()].join(', ')}],`);
 for (const date of SELFCHECK_DATES) {
-  const p = getDailyPuzzle(date);
+  const p = generateDaily(REGISTRY, SCHEDULE, date);
   console.log(`  '${date}': '${fingerprintPuzzle(REGISTRY[p.type], p)}',`);
 }
 console.log(`  binairo: '${fingerprintPuzzle(BINAIRO_DEFINITION, generateDailyForVersion(BINAIRO_DEFINITION, 1, BINAIRO_SELFCHECK_DATE))}',`);

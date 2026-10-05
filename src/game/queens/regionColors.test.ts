@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addDays } from '../../../engine/core/date';
-import { getDailyPuzzle } from '../../../engine/index';
+import { queensDailyV1 } from '../../../engine/queens/testing';
 import type { QueensPuzzle } from '../../../engine/queens/types';
 import { COLOR_VISION_DEFICIENCIES, deltaE, deltaEColorVision } from '../../theme/color';
 import { regionPalette, type RegionColor } from '../../theme/regions';
@@ -10,7 +10,7 @@ import { assignRegionColors, assignRegionPatterns, regionAdjacency, regionFillDi
 // --- Jeux d'essai ------------------------------------------------------------------------------
 
 /** 56 puzzles du jour réels (tailles 6 à 10). */
-const DAILY: QueensPuzzle[] = Array.from({ length: 56 }, (_, i) => getDailyPuzzle(addDays('2026-10-05', i)).puzzle);
+const DAILY: QueensPuzzle[] = Array.from({ length: 56 }, (_, i) => queensDailyV1(addDays('2026-10-05', i)));
 
 /** Générateur pseudo-aléatoire à graine fixe (mulberry32) pour les puzzles synthétiques. */
 function mulberry32(seed: number): () => number {

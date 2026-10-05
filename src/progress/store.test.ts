@@ -32,6 +32,20 @@ describe('persistance de la progression', () => {
     expect([...decoded.values()].map((r) => [r.date, r.type])).toEqual([['2026-10-05', 'queens']]);
   });
 
+  it('tailles bornées selon le type (Binairo jusqu’à 14 × 14, Queens jusqu’à 12 × 12)', () => {
+    const decoded = decodeDailyHistory({
+      v: 1,
+      results: {
+        '2026-10-05': [1, 0, 14, 4, 0, '2026-10-05', 'binairo'],
+        '2026-10-06': [1, 0, 14, 4, 0, '2026-10-06', 'queens'],
+        '2026-10-07': [1, 0, 16, 4, 0, '2026-10-07', 'binairo'],
+      },
+    });
+    expect([...decoded.values()].map((r) => [r.date, r.type, r.size])).toEqual([['2026-10-05', 'binairo', 14]]);
+    const u: UnlimitedResult = { type: 'binairo', size: 12, tier: 4, timeMs: 5000, hintsUsed: 2, solvedOn: '2026-10-05' };
+    expect(decodeUnlimitedHistory(JSON.parse(JSON.stringify(encodeUnlimitedHistory([u])))).results).toEqual([u]);
+  });
+
   it('entrées abîmées ignorées une à une', () => {
     const decoded = decodeDailyHistory({
       v: 1,

@@ -94,6 +94,31 @@ describe('écran des statistiques', () => {
     expect(onTime.querySelector('.stat-tile__meter > span')?.getAttribute('style')).toContain('--v: 0.8333');
   });
 
+  it('plusieurs types joués : filtre par type (la série reste commune)', () => {
+    renderStats(
+      progress(
+        [daily(0, { type: 'queens', timeMs: 60_000 }), daily(1, { type: 'binairo', timeMs: 120_000 }), daily(2, { type: 'binairo', timeMs: 180_000 })],
+        [unlimited(8, 90_000, { type: 'binairo' })],
+      ),
+    );
+    const filter = screen.getByRole('radiogroup', { name: 'Type de puzzle' });
+    const solved = () => tile(group('Puzzles du jour'), 'Résolus').textContent;
+    expect(solved()).toContain('3');
+    fireEvent.click(within(filter).getByRole('radio', { name: /Binairo/ }));
+    expect(solved()).toContain('2');
+    expect(within(tile(group('Puzzles du jour'), 'Meilleur temps')).getByText('2:00')).toBeTruthy();
+    fireEvent.click(within(filter).getByRole('radio', { name: /Reines/ }));
+    expect(solved()).toContain('1');
+    // Aucune partie illimitée de Reines : message dédié ; la série (3 jours) ne dépend pas du filtre.
+    expect(within(group('Mode illimité')).getByText('Aucune partie illimitée résolue pour l’instant.')).toBeTruthy();
+    expect(within(screen.getByRole('region', { name: 'Série en cours' })).getByText('3', { selector: '.streak-card__count span' })).toBeTruthy();
+  });
+
+  it('un seul type joué : pas de filtre', () => {
+    renderStats(populated());
+    expect(screen.queryByRole('radiogroup', { name: 'Type de puzzle' })).toBeNull();
+  });
+
   it('carte de série : série en cours, record, gels et rappel du jour', () => {
     const { container } = renderStats(populated());
     const hero = screen.getByRole('region', { name: 'Série en cours' });

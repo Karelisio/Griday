@@ -232,7 +232,7 @@ describe('SCHEDULE officiel (engine/config.ts)', () => {
   // GEL : entrées déjà publiées. On peut AJOUTER des entrées futures, jamais modifier celles-ci.
   it('entrées publiées inchangées', () => {
     expect(SCHEDULE.epoch).toBe('2026-10-05');
-    expect(SCHEDULE.rotations[0]).toEqual({ from: '2026-01-01', types: ['queens'] });
+    expect(SCHEDULE.rotations[0]).toEqual({ from: '2026-10-05', types: ['queens', 'binairo'] });
     expect(SCHEDULE.versions.queens[0]).toEqual({ from: '2026-01-01', version: 1 });
     expect(SCHEDULE.versions.binairo[0]).toEqual({ from: '2026-01-01', version: 1 });
   });

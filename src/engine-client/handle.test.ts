@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { getBinairoHint } from '../../engine/binairo/hint';
 import { CELL_B, type BinairoCell, type BinairoSolvedPuzzle } from '../../engine/binairo/types';
-import { getDailyPuzzle } from '../../engine/index';
 import { getQueensHint } from '../../engine/queens/hint';
+import { queensDailyV1 } from '../../engine/queens/testing';
 import type { QueensMark } from '../../engine/queens/types';
 import { engine } from './client';
 import { handleEngineCall } from './handle';
@@ -38,7 +38,7 @@ describe('appels moteur : indices', () => {
   });
 
   it('queensHint reste servi à côté de binairoHint', async () => {
-    const puzzle = getDailyPuzzle('2026-10-05').puzzle;
+    const puzzle = queensDailyV1('2026-10-05');
     const marks = new Array<QueensMark>(puzzle.size * puzzle.size).fill(0);
     expect(handleEngineCall({ kind: 'queensHint', puzzle, marks })).toEqual(getQueensHint(puzzle, marks));
     expect(await engine.queensHint(puzzle, marks)).toEqual(getQueensHint(puzzle, marks));

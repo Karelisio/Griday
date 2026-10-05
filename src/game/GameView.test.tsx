@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { getDailyPuzzle } from '../../engine/index';
+import { queensDailyV1 } from '../../engine/queens/testing';
 import type { QueensSolvedPuzzle } from '../../engine/queens/types';
 import { initI18n } from '../i18n';
 import { SettingsProvider } from '../settings/SettingsContext';
@@ -11,7 +11,7 @@ import { useGameSession } from './core/useGameSession';
 import { GameView } from './GameView';
 import { QUEENS_KIND } from './queens/kind';
 
-const puzzle = getDailyPuzzle('2026-10-05').puzzle;
+const puzzle = queensDailyV1('2026-10-05');
 let hintsUsed = -1;
 
 function Harness({ p }: { p: QueensSolvedPuzzle }) {

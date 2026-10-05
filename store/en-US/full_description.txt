@@ -2,8 +2,14 @@ A new grid every day. The same one for everyone.
 
 Griday is an elegant, relaxing daily logic game. One grid a day, identical for every player, to solve in a few minutes with your morning coffee… or to savour a little longer at the weekend.
 
+🔁 TWO GAMES, TURN BY TURN
+Queens one day, Binairo the next: each game goes through every day of the week, and so through every difficulty.
+
 ♛ QUEENS
 Place one queen in each row, each column and each colored region. Two queens can never touch, not even diagonally. Easy to learn, surprisingly deep.
+
+🌓 BINAIRO
+Fill the grid with suns and moons: never more than two identical symbols in a row, as many suns as moons in every row and column, and no two identical lines.
 
 🧩 100% LOGIC
 Every grid has a single solution and can be solved by pure deduction: no guessing, no luck. Each puzzle is checked by a solver before it reaches you.
@@ -15,7 +21,7 @@ Monday is gentle, Sunday is tough. Grids grow from 6×6 to 10×10 through the we
 Stuck? A hint shows you the cell to play and explains why, with the deduction technique behind it. You get better with every game.
 
 ♾️ UNLIMITED MODE
-Want another grid? Pick a size and a difficulty, and play as much as you like.
+Want another grid? Pick the game, the size and the difficulty, and play as much as you like.
 
 🔥 YOUR DAILY ROUTINE
 • Daily streak and personal best
@@ -29,7 +35,7 @@ Want another grid? Pick a size and a difficulty, and play as much as you like.
 A modern Android design that picks up your wallpaper colors, in light or dark mode, with smooth animations and polished haptics. Grids designed to be readable and accessible.
 
 ✈️ OFFLINE
-No account, no connection needed: grids are generated on your phone. Your data stays with you.
+No account, no connection needed to play: grids are generated on your phone and your progress stays there. The free version shows ads when a connection is available.
 
 🌍 Available in English and French.
 

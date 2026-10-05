@@ -13,10 +13,11 @@ export const SCHEDULE = deepFreeze({
   epoch: '2026-10-05',
   // Garantie de ce build (≈ 6 mois) : à repousser à chaque publication.
   validThrough: '2027-04-04',
-  rotations: [{ from: '2026-01-01', types: ['queens'] }],
+  // Alternance quotidienne dès le n°1 : Queens les jours pairs depuis l'epoch, Binairo les jours impairs
+  // (7 étant impair, chaque type passe par tous les jours de la semaine, donc toutes les difficultés).
+  rotations: [{ from: '2026-10-05', types: ['queens', 'binairo'] }],
   versions: {
     queens: [{ from: '2026-01-01', version: 1 }],
-    // Hors rotation tant que l'UI n'est pas prête : validé et figé quand même (validate-future, freeze.test.ts).
     binairo: [{ from: '2026-01-01', version: 1 }],
   },
   // Littéral conservé : le type des puzzles du jour (AnyDailyPuzzle, registry.ts) suit les types de `rotations`.

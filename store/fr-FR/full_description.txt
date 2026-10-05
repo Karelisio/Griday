@@ -2,8 +2,14 @@ Chaque jour, une nouvelle grille. La même pour tout le monde.
 
 Griday est un jeu de logique quotidien, élégant et reposant. Une grille par jour, identique pour tous les joueurs, à résoudre en quelques minutes avec votre café… ou à savourer plus longuement le week-end.
 
+🔁 DEUX JEUX EN ALTERNANCE
+Un jour les Reines, le lendemain le Binairo : chaque type passe par tous les jours de la semaine, donc par toutes les difficultés.
+
 ♛ REINES
 Placez une reine par ligne, par colonne et par région colorée. Deux reines ne peuvent jamais se toucher, même en diagonale. Simple à comprendre, étonnamment profond.
+
+🌓 BINAIRO
+Remplissez la grille de soleils et de lunes : jamais plus de deux symboles identiques à la suite, autant de soleils que de lunes dans chaque ligne et chaque colonne, et jamais deux lignes identiques.
 
 🧩 100 % LOGIQUE
 Chaque grille a une solution unique et se résout par pure déduction : aucune devinette, aucun coup de chance. Chaque puzzle est vérifié par un solveur avant d’arriver chez vous.
@@ -15,7 +21,7 @@ Le lundi est doux, le dimanche est corsé. Les grilles grandissent de 6×6 à 10
 Bloqué ? Un indice vous montre la case à jouer et vous explique pourquoi, technique de déduction à l’appui. Vous progressez à chaque partie.
 
 ♾️ MODE ILLIMITÉ
-Envie d’une autre grille ? Choisissez la taille et la difficulté, et jouez autant que vous voulez.
+Envie d’une autre grille ? Choisissez le jeu, la taille et la difficulté, et jouez autant que vous voulez.
 
 🔥 VOTRE ROUTINE QUOTIDIENNE
 • Série de jours consécutifs et record personnel
@@ -29,7 +35,7 @@ Envie d’une autre grille ? Choisissez la taille et la difficulté, et jouez 
 Un design Android moderne qui reprend les couleurs de votre fond d’écran, en mode clair ou sombre, avec des animations fluides et un retour haptique soigné. Grilles lisibles et pensées pour l’accessibilité.
 
 ✈️ HORS LIGNE
-Aucun compte, aucune connexion nécessaire : les grilles sont générées sur votre téléphone. Vos données restent chez vous.
+Aucun compte, aucune connexion nécessaire pour jouer : les grilles sont générées sur votre téléphone et votre progression y reste. La version gratuite affiche des publicités quand une connexion est disponible.
 
 🌍 Disponible en français et en anglais.
 

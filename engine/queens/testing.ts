@@ -2,9 +2,12 @@
  * Outils réservés aux tests : grilles aléatoires simples (croissance de régions naïve).
  * N'est PAS le générateur de production (voir generator.ts).
  */
+import type { ISODate } from '../core/date';
+import { generateDailyForVersion } from '../core/pipeline';
 import type { Rng } from '../core/prng';
 import { canonicalizeRegions } from './encoding';
 import { solveQueensExact } from './exact';
+import { QUEENS_DEFINITION } from './index';
 import type { QueensSolvedPuzzle } from './types';
 
 /** Permutation aléatoire sans reines adjacentes (lignes consécutives : |Δcol| ≥ 2). */
@@ -106,4 +109,12 @@ export function randomUniqueQueens(rng: Rng, n: number, maxTries = 200): QueensS
     }
   }
   return null;
+}
+
+/**
+ * Grille Queens V1 « du jour » pour `date`, quel que soit le type que le calendrier y sert
+ * (les jours alternent entre types) : mêmes grilles que les puzzles du jour Queens.
+ */
+export function queensDailyV1(date: ISODate): QueensSolvedPuzzle {
+  return generateDailyForVersion(QUEENS_DEFINITION, 1, date).puzzle;
 }
