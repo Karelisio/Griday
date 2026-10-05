@@ -84,7 +84,8 @@ export function randomUniqueQueens(rng: Rng, n: number, maxTries = 200): QueensS
     const queenCells = new Set(base.solution.map((c, r) => r * n + c));
     for (let iter = 0; iter < 8 * n; iter++) {
       const res = solveQueensExact({ size: n, regions }, 2);
-      if (res.count === 1) {
+      // Unicité seulement si la recherche est concluante (budget de nœuds non épuisé).
+      if (res.complete && res.count === 1) {
         return { size: n, regions: canonicalizeRegions(regions), solution: base.solution };
       }
       const alt = res.solutions.find((s) => s.some((c, r) => c !== base.solution[r]));

@@ -39,16 +39,23 @@ export function generateWithAttempts<P>(
   const now = opts.now ?? Date.now;
   const start = now();
 
+  let timedOut = false;
   for (let k = 0; k < gen.maxAttempts; k++) {
-    if (opts.deadlineMs !== undefined && now() - start > opts.deadlineMs) break;
+    // Jamais avant la tentative 0 : une horloge qui avance d'1 ms ne doit pas court-circuiter le chemin nominal.
+    if (k > 0 && opts.deadlineMs !== undefined && now() - start > opts.deadlineMs) {
+      timedOut = true;
+      break;
+    }
     const result = gen.attempt(rngFromString(attemptSeed(seed, k)), target);
     if (result) {
-      return { type: def.id, version, seed, attempt: k, source: 'generated', target, ...result };
+      // Champs recopiés explicitement : un champ en trop dans `result` ne peut pas écraser les métadonnées.
+      return { type: def.id, version, seed, attempt: k, source: 'generated', target, puzzle: result.puzzle, rating: result.rating };
     }
   }
 
   const fb = gen.fallback(target, cyrb128(seed)[0]);
-  return { type: def.id, version, seed, attempt: -1, source: 'fallback', target, ...fb };
+  const source = timedOut ? 'emergency' : 'fallback';
+  return { type: def.id, version, seed, attempt: -1, source, target, puzzle: fb.puzzle, rating: fb.rating };
 }
 
 /** Puzzle du jour, identique pour tous les joueurs à une date donnée. */

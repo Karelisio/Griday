@@ -68,7 +68,11 @@ export interface GeneratedPuzzle<P> {
   readonly seed: string;
   /** Tentative retenue (0 = graine de base), -1 si secours. */
   readonly attempt: number;
-  readonly source: 'generated' | 'fallback';
+  /**
+   * generated : chemin nominal. fallback : budget déterministe épuisé (identique pour tous).
+   * emergency : filet temps réel déclenché — NON déterministe, à ne pas enregistrer ni partager (régénérer plus tard).
+   */
+  readonly source: 'generated' | 'fallback' | 'emergency';
   readonly target: GenerationTarget;
   readonly rating: DifficultyRating;
   readonly puzzle: P;

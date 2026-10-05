@@ -17,7 +17,13 @@ export function canonicalizeRegions(regions: readonly number[]): number[] {
 
 /** Chaîne compacte : un caractère par case (0-9a-z), ligne par ligne. */
 export function encodeQueens(p: QueensPuzzle): string {
-  return p.regions.map((g) => ALPHABET[g]!).join('');
+  return p.regions
+    .map((g) => {
+      const ch = Number.isInteger(g) ? ALPHABET[g] : undefined;
+      if (ch === undefined) throw new RangeError(`encodeQueens: étiquette invalide ${g}`);
+      return ch;
+    })
+    .join('');
 }
 
 export function decodeQueens(code: string): QueensPuzzle {

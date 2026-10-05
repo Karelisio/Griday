@@ -29,6 +29,7 @@ const REGION = 2;
  * Candidats stockés en masques de bits par ligne. Parcours entièrement déterministe.
  */
 export function solveQueensExact(p: QueensPuzzle, limit = 2, maxNodes = 1_000_000): ExactResult {
+  if (!(limit >= 1) || !(maxNodes >= 0)) throw new RangeError(`solveQueensExact: limit=${limit}, maxNodes=${maxNodes}`);
   const n = p.size;
   const full = (1 << n) - 1;
   const regions = p.regions;

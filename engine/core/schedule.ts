@@ -44,7 +44,7 @@ export function typeForDate(schedule: Schedule, date: ISODate): PuzzleTypeId {
 }
 
 export function versionForDate(schedule: Schedule, type: PuzzleTypeId, date: ISODate): number {
-  const entries = schedule.versions[type];
+  const entries = Object.hasOwn(schedule.versions, type) ? schedule.versions[type] : undefined;
   if (!entries) throw new Error(`Aucune version déclarée pour le type "${type}"`);
   return entryFor(entries, date).version;
 }
@@ -74,7 +74,16 @@ export function validateSchedule(schedule: Schedule, knownVersions: (type: Puzzl
   for (const [i, r] of schedule.rotations.entries()) {
     if (r.types.length === 0) errors.push(`rotations[${i}] : aucun type`);
     for (const t of r.types) {
-      if (!schedule.versions[t]) errors.push(`rotations[${i}] : type sans versions "${t}"`);
+      const versions = Object.hasOwn(schedule.versions, t) ? schedule.versions[t] : undefined;
+      if (!versions) errors.push(`rotations[${i}] : type sans versions "${t}"`);
+      else if (
+        versions.length > 0 &&
+        isValidISODate(versions[0]!.from) &&
+        isValidISODate(r.from) &&
+        isoToDays(versions[0]!.from) > isoToDays(r.from)
+      ) {
+        errors.push(`rotations[${i}] : "${t}" actif avant sa première version`);
+      }
     }
   }
   for (const [type, entries] of Object.entries(schedule.versions) as [PuzzleTypeId, readonly VersionEntry[]][]) {
