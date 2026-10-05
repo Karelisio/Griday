@@ -1,0 +1,56 @@
+.md-dialog-root {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(24px, var(--md-safe-area-top)) max(24px, var(--md-safe-area-right)) max(24px, var(--md-safe-area-bottom)) max(24px, var(--md-safe-area-left));
+}
+
+.md-dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: min(280px, 100%);
+  max-width: 560px;
+  max-height: 100%;
+  padding: 24px;
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+  box-shadow: var(--md-sys-elevation-level3);
+  outline: none;
+}
+
+.md-dialog--with-icon {
+  align-items: center;
+  text-align: center;
+}
+
+.md-dialog__icon {
+  margin-bottom: 16px;
+  color: var(--md-sys-color-secondary);
+}
+
+.md-dialog__title {
+  margin: 0 0 16px;
+  color: var(--md-sys-color-on-surface);
+}
+
+.md-dialog__body {
+  margin: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.md-dialog__actions {
+  align-self: stretch;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}

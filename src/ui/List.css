@@ -1,0 +1,137 @@
+.md-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 8px 0;
+  list-style: none;
+}
+
+.md-list-item {
+  --md-list-item-container: transparent;
+  --md-list-item-radius: 0px;
+
+  display: block;
+  margin: 0;
+  padding: 0;
+  border-radius: var(--md-list-item-radius);
+  background-color: var(--md-list-item-container);
+  color: var(--md-sys-color-on-surface);
+  transition:
+    border-radius var(--md-sys-motion-spring-default-spatial-duration) var(--md-sys-motion-spring-default-spatial),
+    background-color var(--md-sys-motion-spring-default-effects-duration) var(--md-sys-motion-spring-default-effects);
+}
+
+.md-list-item__content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  min-height: 56px;
+  margin: 0;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  text-align: start;
+  font: inherit;
+}
+
+.md-list-item__content--lines-2 {
+  min-height: 72px;
+}
+
+.md-list-item__content--lines-3 {
+  min-height: 88px;
+}
+
+.md-list-item--clickable .md-list-item__content,
+.md-list-item--control .md-list-item__content {
+  cursor: pointer;
+}
+
+.md-list-item__leading {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.md-list-item__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.md-list-item__overline {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.md-list-item__headline {
+  overflow-wrap: anywhere;
+}
+
+.md-list-item__supporting {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.md-list-item__trailing {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.md-list-item--selected {
+  --md-list-item-container: var(--md-sys-color-secondary-container);
+  --md-list-item-radius: var(--md-sys-shape-corner-large-increased);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.md-list-item--disabled {
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+
+.md-list-item--disabled .md-list-item__supporting,
+.md-list-item--disabled .md-list-item__leading,
+.md-list-item--disabled .md-list-item__trailing {
+  color: inherit;
+}
+
+.md-list-item--disabled .md-list-item__content {
+  cursor: default;
+}
+
+/* Variante segmentée : blocs séparés de 2 px, angles extérieurs très arrondis, intérieurs serrés. */
+.md-list--segmented {
+  gap: 2px;
+  padding: 0;
+}
+
+.md-list--segmented > .md-list-item {
+  --md-list-item-container: var(--md-sys-color-surface-container-high);
+  --md-list-item-radius: var(--md-sys-shape-corner-extra-small);
+}
+
+.md-list--segmented > .md-list-item--selected {
+  --md-list-item-container: var(--md-sys-color-secondary-container);
+}
+
+.md-list--segmented > .md-list-item:first-child {
+  border-start-start-radius: var(--md-sys-shape-corner-large-increased);
+  border-start-end-radius: var(--md-sys-shape-corner-large-increased);
+}
+
+.md-list--segmented > .md-list-item:last-child {
+  border-end-start-radius: var(--md-sys-shape-corner-large-increased);
+  border-end-end-radius: var(--md-sys-shape-corner-large-increased);
+}
+
+/* À l'appui, toute la ligne se resserre en bloc arrondi (ressort CSS). */
+.md-list--segmented > .md-list-item--clickable:has(> :active:not(:disabled)),
+.md-list--segmented > .md-list-item--control:has(> :active) {
+  border-radius: var(--md-sys-shape-corner-large-increased);
+}

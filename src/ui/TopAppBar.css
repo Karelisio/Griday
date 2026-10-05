@@ -1,0 +1,107 @@
+.md-top-app-bar {
+  --md-top-app-bar-collapsed: 64px;
+  --md-top-app-bar-expanded: 64px;
+  --md-top-app-bar-collapse: 0;
+  --md-top-app-bar-container: var(--md-sys-color-surface);
+
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding-top: var(--md-safe-area-top);
+  padding-inline: var(--md-safe-area-left) var(--md-safe-area-right);
+  background-color: var(--md-top-app-bar-container);
+  color: var(--md-sys-color-on-surface);
+  transition: background-color var(--md-sys-motion-spring-default-effects-duration) var(--md-sys-motion-spring-default-effects);
+}
+
+.md-top-app-bar[data-scrolled] {
+  --md-top-app-bar-container: var(--md-sys-color-surface-container);
+}
+
+.md-top-app-bar--medium {
+  --md-top-app-bar-expanded: 112px;
+}
+
+.md-top-app-bar--large {
+  --md-top-app-bar-expanded: 152px;
+}
+
+/* Repli : la barre rétrécit avec le défilement, une marge compense pour que le contenu avance à vitesse normale. */
+.md-top-app-bar--collapsible {
+  height: calc(
+    var(--md-safe-area-top) + var(--md-top-app-bar-collapsed) + (var(--md-top-app-bar-expanded) - var(--md-top-app-bar-collapsed)) * (1 - var(--md-top-app-bar-collapse))
+  );
+  margin-bottom: calc((var(--md-top-app-bar-expanded) - var(--md-top-app-bar-collapsed)) * var(--md-top-app-bar-collapse));
+  overflow: hidden;
+  /* Le fond passe progressivement à surface-container avec le repli. */
+  --md-top-app-bar-container: color-mix(in srgb, var(--md-sys-color-surface-container) calc(var(--md-top-app-bar-collapse) * 100%), var(--md-sys-color-surface));
+  transition: none;
+}
+
+.md-top-app-bar--collapsible[data-scrolled] {
+  --md-top-app-bar-container: color-mix(in srgb, var(--md-sys-color-surface-container) calc(var(--md-top-app-bar-collapse) * 100%), var(--md-sys-color-surface));
+}
+
+.md-top-app-bar--collapsible[data-detached] {
+  margin-bottom: 0;
+}
+
+.md-top-app-bar__row {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: var(--md-top-app-bar-collapsed);
+  padding-inline: 4px;
+}
+
+.md-top-app-bar__leading,
+.md-top-app-bar__trailing {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0;
+}
+
+.md-top-app-bar__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding-inline: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--md-sys-color-on-surface);
+}
+
+.md-top-app-bar__leading + .md-top-app-bar__title {
+  padding-inline-start: 4px;
+}
+
+.md-top-app-bar--centered .md-top-app-bar__title {
+  text-align: center;
+}
+
+.md-top-app-bar--collapsible .md-top-app-bar__title {
+  opacity: var(--md-top-app-bar-collapse);
+  transform: translateY(calc((1 - var(--md-top-app-bar-collapse)) * 8px));
+}
+
+.md-top-app-bar__expanded {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 16px 24px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  align-self: stretch;
+  align-content: end;
+  opacity: calc(1 - var(--md-top-app-bar-collapse) * 1.6);
+  transform: translateY(calc(var(--md-top-app-bar-collapse) * -12px));
+  color: var(--md-sys-color-on-surface);
+}

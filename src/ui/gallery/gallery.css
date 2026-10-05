@@ -1,0 +1,182 @@
+/* Galerie de développement : mise en page uniquement, tous les styles viennent des jetons M3. */
+.g-page {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 0 16px 96px;
+  font-family: var(--md-ref-typeface-plain);
+}
+
+.g-header {
+  padding: calc(var(--md-safe-area-top) + 20px) 0 12px;
+}
+
+.g-header h1 {
+  margin: 0;
+  color: var(--md-sys-color-on-surface);
+}
+
+.g-header p {
+  margin: 4px 0 0;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.g-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 0 16px;
+}
+
+.g-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.g-section {
+  margin-top: 28px;
+  scroll-margin-top: 16px;
+}
+
+.g-section > h2 {
+  margin: 0 0 12px;
+  color: var(--md-sys-color-on-surface);
+}
+
+.g-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.g-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.g-note {
+  margin: 0 0 8px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.g-swatches {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.g-swatch {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 64px;
+  padding: 8px 12px;
+  border-radius: var(--md-sys-shape-corner-large);
+}
+
+.g-swatch small {
+  opacity: 0.85;
+}
+
+.g-shapes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.g-shape {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 64px;
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.g-elevations {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 8px;
+}
+
+.g-elevation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 64px;
+  border-radius: var(--md-sys-shape-corner-large);
+  background: var(--md-sys-color-surface-container-low);
+}
+
+.g-phone {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  background: var(--md-sys-color-surface);
+  box-shadow: inset 0 0 0 1px var(--md-sys-color-outline-variant);
+}
+
+.g-scroll {
+  height: 280px;
+  overflow-y: auto;
+  position: relative;
+}
+
+.g-scroll p {
+  margin: 0;
+  padding: 12px 16px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.g-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.g-progress-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.g-region-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.g-region-row > span {
+  width: 20px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.g-region-swatch {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border-radius: var(--md-sys-shape-corner-small);
+}
+
+.g-board {
+  display: grid;
+  overflow: hidden;
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  aspect-ratio: 1;
+  margin-bottom: 16px;
+}
+
+.g-board-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--md-sys-color-on-surface) 18%, transparent);
+}

@@ -29,7 +29,9 @@ export type QueensAction =
   | { type: 'doubleTap'; cell: number; now: number }
   /** Glisser : croix sur les cases vides traversées (ou efface les croix), une seule entrée d'historique. */
   | { type: 'paint'; cells: readonly number[]; mode: 'cross' | 'erase'; now: number }
-  | { type: 'set'; cell: number; mark: QueensMark; now: number; hint?: boolean }
+  | { type: 'set'; cell: number; mark: QueensMark; now: number }
+  /** Indice consulté (compté même s'il n'est pas joué). */
+  | { type: 'hintShown'; now: number }
   | { type: 'undo'; now: number }
   | { type: 'redo'; now: number }
   | { type: 'reset'; now: number }
@@ -88,8 +90,10 @@ export function reduceQueens(g: QueensGame, a: QueensAction): QueensGame {
     case 'set': {
       const marks = [...g.marks];
       marks[a.cell] = a.mark;
-      return commit(g, marks, a.now, a.hint ? { hintsUsed: g.hintsUsed + 1 } : {});
+      return commit(g, marks, a.now);
     }
+    case 'hintShown':
+      return { ...g, hintsUsed: g.hintsUsed + 1 };
     case 'undo': {
       const prev = g.past.at(-1);
       if (!prev) return g;

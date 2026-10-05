@@ -1,0 +1,59 @@
+.md-card {
+  --md-card-container: var(--md-sys-color-surface-container-highest);
+  --md-card-outline: transparent;
+  --md-card-shadow: var(--md-sys-elevation-level0);
+  --md-card-shape: var(--md-sys-shape-corner-large-increased);
+
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 16px;
+  border: 0;
+  border-radius: var(--md-card-shape);
+  background-color: var(--md-card-container);
+  color: var(--md-sys-color-on-surface);
+  box-shadow: inset 0 0 0 1px var(--md-card-outline), var(--md-card-shadow);
+  text-align: start;
+  font: inherit;
+  transition:
+    border-radius var(--md-sys-motion-spring-default-spatial-duration) var(--md-sys-motion-spring-default-spatial),
+    box-shadow var(--md-sys-motion-spring-default-effects-duration) var(--md-sys-motion-spring-default-effects),
+    background-color var(--md-sys-motion-spring-default-effects-duration) var(--md-sys-motion-spring-default-effects);
+}
+
+.md-card--elevated {
+  --md-card-container: var(--md-sys-color-surface-container-low);
+  --md-card-shadow: var(--md-sys-elevation-level1);
+}
+
+.md-card--outlined {
+  --md-card-container: var(--md-sys-color-surface);
+  --md-card-outline: var(--md-sys-color-outline-variant);
+}
+
+.md-card--selected {
+  --md-card-outline: var(--md-sys-color-primary);
+  box-shadow: inset 0 0 0 2px var(--md-card-outline), var(--md-card-shadow);
+}
+
+/* Carte interactive : l'angle se resserre à l'appui (forme qui réagit, ressort CSS). */
+.md-card--interactive {
+  cursor: pointer;
+}
+
+.md-card--interactive:active:not(:disabled) {
+  border-radius: var(--md-sys-shape-corner-medium);
+}
+
+@media (hover: hover) {
+  .md-card--elevated.md-card--interactive:hover:not(:disabled) {
+    --md-card-shadow: var(--md-sys-elevation-level2);
+  }
+}
+
+.md-card--interactive:disabled {
+  --md-card-container: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  --md-card-shadow: var(--md-sys-elevation-level0);
+  cursor: default;
+}

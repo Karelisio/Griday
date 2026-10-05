@@ -1,0 +1,153 @@
+/* Bouton M3 Expressive : variables --md-button-* posées par le style et la taille. */
+.md-button {
+  --md-button-height: 40px;
+  --md-button-padding: 16px;
+  --md-button-gap: 8px;
+  --md-button-container: transparent;
+  --md-button-content: var(--md-sys-color-primary);
+  --md-button-outline: transparent;
+  --md-button-outline-width: 1px;
+  --md-button-shadow: var(--md-sys-elevation-level0);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--md-button-gap);
+  min-width: 48px;
+  height: var(--md-button-height);
+  margin: 0;
+  padding: 0 var(--md-button-padding);
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-button-container);
+  color: var(--md-button-content);
+  box-shadow: inset 0 0 0 var(--md-button-outline-width) var(--md-button-outline), var(--md-button-shadow);
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    box-shadow var(--md-sys-motion-spring-default-effects-duration) var(--md-sys-motion-spring-default-effects),
+    background-color var(--md-sys-motion-spring-default-effects-duration) var(--md-sys-motion-spring-default-effects),
+    color var(--md-sys-motion-spring-default-effects-duration) var(--md-sys-motion-spring-default-effects);
+}
+
+.md-button__label {
+  position: relative;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.md-button__icon {
+  flex: none;
+}
+
+/* Tailles (padding horizontal, espace icône/libellé). */
+.md-button--xs {
+  --md-button-height: 32px;
+  --md-button-padding: 12px;
+  --md-button-gap: 4px;
+}
+
+.md-button--s {
+  --md-button-height: 40px;
+  --md-button-padding: 16px;
+  --md-button-gap: 8px;
+}
+
+.md-button--m {
+  --md-button-height: 56px;
+  --md-button-padding: 24px;
+  --md-button-gap: 8px;
+}
+
+.md-button--l {
+  --md-button-height: 96px;
+  --md-button-padding: 48px;
+  --md-button-gap: 12px;
+  --md-button-outline-width: 2px;
+}
+
+.md-button--xl {
+  --md-button-height: 136px;
+  --md-button-padding: 64px;
+  --md-button-gap: 16px;
+  --md-button-outline-width: 3px;
+}
+
+.md-button--has-icon {
+  padding-inline-start: calc(var(--md-button-padding) - 4px);
+}
+
+.md-button--has-trailing-icon {
+  padding-inline-end: calc(var(--md-button-padding) - 4px);
+}
+
+.md-button--full-width {
+  display: flex;
+  width: 100%;
+}
+
+/* Styles. */
+.md-button--filled {
+  --md-button-container: var(--md-sys-color-primary);
+  --md-button-content: var(--md-sys-color-on-primary);
+}
+
+.md-button--tonal {
+  --md-button-container: var(--md-sys-color-secondary-container);
+  --md-button-content: var(--md-sys-color-on-secondary-container);
+}
+
+.md-button--elevated {
+  --md-button-container: var(--md-sys-color-surface-container-low);
+  --md-button-content: var(--md-sys-color-primary);
+  --md-button-shadow: var(--md-sys-elevation-level1);
+}
+
+@media (hover: hover) {
+  .md-button--filled:hover:not(:disabled),
+  .md-button--tonal:hover:not(:disabled) {
+    --md-button-shadow: var(--md-sys-elevation-level1);
+  }
+
+  .md-button--elevated:hover:not(:disabled) {
+    --md-button-shadow: var(--md-sys-elevation-level2);
+  }
+}
+
+.md-button--outlined {
+  --md-button-content: var(--md-sys-color-primary);
+  --md-button-outline: var(--md-sys-color-outline-variant);
+}
+
+.md-button--text {
+  --md-button-content: var(--md-sys-color-primary);
+}
+
+/* Bouton à bascule sélectionné : plein, quel que soit le style de départ. */
+.md-button--selected.md-button--tonal,
+.md-button--selected.md-button--outlined,
+.md-button--selected.md-button--text,
+.md-button--selected.md-button--elevated {
+  --md-button-container: var(--md-sys-color-primary);
+  --md-button-content: var(--md-sys-color-on-primary);
+  --md-button-outline: transparent;
+  --md-button-shadow: var(--md-sys-elevation-level0);
+}
+
+/* Désactivé : conteneur 12 %, contenu 38 % de on-surface. */
+.md-button:disabled {
+  --md-button-container: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  --md-button-content: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  --md-button-outline: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  --md-button-shadow: var(--md-sys-elevation-level0);
+  cursor: default;
+}
+
+.md-button--outlined:disabled,
+.md-button--text:disabled {
+  --md-button-container: transparent;
+}
+
+.md-button--text:disabled {
+  --md-button-outline: transparent;
+}

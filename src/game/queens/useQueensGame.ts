@@ -127,7 +127,7 @@ export function useQueensGame({ puzzle, storageKey, visible, autoCross, onSolved
   useEffect(() => {
     if (!game) return;
     if (wasSolved.current === false && game.solved) {
-      haptic('success');
+      void haptic('success');
       onSolvedRef.current?.(game);
     }
     wasSolved.current = game.solved;
@@ -143,13 +143,13 @@ export function useQueensGame({ puzzle, storageKey, visible, autoCross, onSolved
       const t = now();
       if (e.type === 'tap') {
         act({ type: 'tap', cell: e.cell, now: t });
-        haptic(before.marks[e.cell] === MARK_QUEEN ? 'select' : 'tap');
+        void haptic(before.marks[e.cell] === MARK_QUEEN ? 'select' : 'tap');
       } else if (e.type === 'doubleTap') {
         act({ type: 'doubleTap', cell: e.cell, now: t });
-        haptic('select');
+        void haptic('select');
       } else {
         act({ type: 'paint', cells: e.cells, mode: e.mode, now: t });
-        haptic('select');
+        void haptic('select');
       }
     },
     [act],
@@ -158,7 +158,7 @@ export function useQueensGame({ puzzle, storageKey, visible, autoCross, onSolved
   const conflicts = useMemo(() => (game ? checkQueensBoard(game.puzzle, game.marks).conflicts : []), [game]);
   const prevConflicts = useRef(0);
   useEffect(() => {
-    if (conflicts.length > prevConflicts.current) haptic('warning');
+    if (conflicts.length > prevConflicts.current) void haptic('warning');
     prevConflicts.current = conflicts.length;
   }, [conflicts]);
 
@@ -172,10 +172,12 @@ export function useQueensGame({ puzzle, storageKey, visible, autoCross, onSolved
     undo: () => act({ type: 'undo', now: now() }),
     redo: () => act({ type: 'redo', now: now() }),
     reset: () => act({ type: 'reset', now: now() }),
-    /** Joue la case d'un indice (compte un indice utilisé). */
+    /** Indice affiché au joueur (compté). */
+    noteHint: () => act({ type: 'hintShown', now: now() }),
+    /** Joue la case révélée par un indice. */
     applyHint: (cell: number, mark: 'queen' | 'cross') => {
-      act({ type: 'set', cell, mark: mark === 'queen' ? MARK_QUEEN : MARK_CROSS, now: now(), hint: true });
-      haptic('tap');
+      act({ type: 'set', cell, mark: mark === 'queen' ? MARK_QUEEN : MARK_CROSS, now: now() });
+      void haptic('tap');
     },
     elapsed: () => (gameRef.current ? elapsedAt(gameRef.current, now()) : 0),
   };

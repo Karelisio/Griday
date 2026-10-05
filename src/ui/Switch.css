@@ -1,0 +1,82 @@
+.md-switch {
+  --md-switch-track: var(--md-sys-color-surface-container-highest);
+  --md-switch-track-outline: var(--md-sys-color-outline);
+  --md-switch-thumb: var(--md-sys-color-outline);
+  --md-switch-icon: var(--md-sys-color-surface-container-highest);
+
+  position: relative;
+  display: inline-block;
+  flex: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-switch-track);
+  box-shadow: inset 0 0 0 2px var(--md-switch-track-outline);
+  transition:
+    background-color var(--md-sys-motion-spring-default-effects-duration) var(--md-sys-motion-spring-default-effects),
+    box-shadow var(--md-sys-motion-spring-default-effects-duration) var(--md-sys-motion-spring-default-effects);
+}
+
+.md-switch--checked {
+  --md-switch-track: var(--md-sys-color-primary);
+  --md-switch-track-outline: transparent;
+  --md-switch-thumb: var(--md-sys-color-on-primary);
+  --md-switch-icon: var(--md-sys-color-on-primary-container);
+}
+
+.md-switch--pressed {
+  --md-switch-thumb: var(--md-sys-color-on-surface-variant);
+}
+
+.md-switch--checked.md-switch--pressed {
+  --md-switch-thumb: var(--md-sys-color-primary-container);
+}
+
+.md-switch__thumb {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-switch-thumb);
+  color: var(--md-switch-icon);
+  transition: background-color var(--md-sys-motion-spring-default-effects-duration) var(--md-sys-motion-spring-default-effects);
+}
+
+/* Halo d'état autour du pouce (40 px, déborde du pouce). */
+.md-switch__halo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 50%;
+  pointer-events: none;
+  color: var(--md-switch-thumb);
+}
+
+.md-switch__halo > .md-ripple {
+  z-index: 0;
+}
+
+.md-switch__icon {
+  position: relative;
+  display: inline-flex;
+}
+
+.md-switch:disabled {
+  --md-switch-track: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  --md-switch-track-outline: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  --md-switch-thumb: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, var(--md-sys-color-surface));
+  --md-switch-icon: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, var(--md-sys-color-surface));
+  cursor: default;
+}
+
+.md-switch--checked:disabled {
+  --md-switch-track-outline: transparent;
+  --md-switch-thumb: var(--md-sys-color-surface);
+}

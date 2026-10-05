@@ -24,7 +24,7 @@ export default defineConfig({
       },
       {
         extends: true,
-        test: { name: 'app', include: ['src/**/*.test.{ts,tsx}', 'locales/**/*.test.ts'], environment: 'jsdom' },
+        test: { name: 'app', include: ['src/**/*.test.{ts,tsx}', 'locales/**/*.test.ts'], environment: 'jsdom', setupFiles: ['src/test/setup.ts'] },
       },
     ],
   },

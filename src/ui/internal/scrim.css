@@ -1,0 +1,6 @@
+.md-scrim {
+  position: fixed;
+  inset: 0;
+  background-color: color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent);
+  touch-action: none;
+}

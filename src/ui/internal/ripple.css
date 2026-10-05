@@ -1,0 +1,91 @@
+/*
+ * Couche d'état M3 (survol, focus, appui) et ondulation à l'appui.
+ * Hôte : .md-state-host (position relative, contexte d'empilement). <Ripple /> en premier enfant.
+ * La couche passe derrière le contenu (z-index -1 dans le contexte de l'hôte) et suit son arrondi.
+ */
+.md-state-host {
+  position: relative;
+  isolation: isolate;
+}
+
+.md-ripple {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.md-ripple::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--md-ripple-color, currentColor);
+  opacity: 0;
+  transition: opacity var(--md-sys-motion-duration-short2) linear;
+}
+
+@media (hover: hover) {
+  :hover > .md-ripple::before {
+    opacity: var(--md-sys-state-hover-opacity);
+  }
+}
+
+:focus-visible > .md-ripple::before {
+  opacity: var(--md-sys-state-focus-opacity);
+}
+
+:active > .md-ripple::before {
+  opacity: var(--md-sys-state-pressed-opacity);
+}
+
+/* Hôte distinct de la couche (data-ripple-host) : l'état de l'hôte pilote toute couche descendante. */
+@media (hover: hover) {
+  [data-ripple-host]:hover .md-ripple::before {
+    opacity: var(--md-sys-state-hover-opacity);
+  }
+}
+
+[data-ripple-host]:focus-visible .md-ripple::before {
+  opacity: var(--md-sys-state-focus-opacity);
+}
+
+[data-ripple-host]:active .md-ripple::before {
+  opacity: var(--md-sys-state-pressed-opacity);
+}
+
+/* Éléments désactivés : aucune couche d'état. */
+:disabled > .md-ripple,
+[aria-disabled='true'] > .md-ripple,
+[data-ripple-host]:disabled .md-ripple,
+[data-ripple-host][aria-disabled='true'] .md-ripple {
+  display: none;
+}
+
+/* Onde créée à l'appui par <Ripple /> (animée avec l'API Web Animations). */
+.md-ripple__wave {
+  position: absolute;
+  border-radius: 50%;
+  background-color: var(--md-ripple-color, currentColor);
+  opacity: var(--md-sys-state-pressed-opacity);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* Zone tactile minimale 48×48 autour de petits contrôles (la zone visible ne change pas). */
+.md-touch-target::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, var(--md-touch-target, 48px));
+  height: max(100%, var(--md-touch-target, 48px));
+  transform: translate(-50%, -50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-ripple__wave {
+    display: none;
+  }
+}

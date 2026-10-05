@@ -1,0 +1,66 @@
+.md-chip {
+  --md-chip-container: transparent;
+  --md-chip-content: var(--md-sys-color-on-surface-variant);
+  --md-chip-icon: var(--md-sys-color-primary);
+  --md-chip-outline: var(--md-sys-color-outline-variant);
+  --md-chip-shadow: var(--md-sys-elevation-level0);
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  margin: 0;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-small);
+  background-color: var(--md-chip-container);
+  color: var(--md-chip-content);
+  box-shadow: inset 0 0 0 1px var(--md-chip-outline), var(--md-chip-shadow);
+  white-space: nowrap;
+  transition:
+    background-color var(--md-sys-motion-spring-default-effects-duration) var(--md-sys-motion-spring-default-effects),
+    color var(--md-sys-motion-spring-default-effects-duration) var(--md-sys-motion-spring-default-effects),
+    box-shadow var(--md-sys-motion-spring-default-effects-duration) var(--md-sys-motion-spring-default-effects),
+    border-radius var(--md-sys-motion-spring-default-spatial-duration) var(--md-sys-motion-spring-default-spatial);
+}
+
+.md-chip__icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-inline: -4px 0;
+  color: var(--md-chip-icon);
+}
+
+.md-chip__label {
+  position: relative;
+}
+
+.md-chip:active:not(:disabled) {
+  border-radius: var(--md-sys-shape-corner-extra-small);
+}
+
+.md-chip--elevated {
+  --md-chip-container: var(--md-sys-color-surface-container-low);
+  --md-chip-outline: transparent;
+  --md-chip-shadow: var(--md-sys-elevation-level1);
+}
+
+.md-chip--selected {
+  --md-chip-container: var(--md-sys-color-secondary-container);
+  --md-chip-content: var(--md-sys-color-on-secondary-container);
+  --md-chip-icon: var(--md-sys-color-on-secondary-container);
+  --md-chip-outline: transparent;
+  --md-chip-shadow: var(--md-sys-elevation-level0);
+}
+
+.md-chip:disabled {
+  --md-chip-container: transparent;
+  --md-chip-content: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  --md-chip-icon: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  --md-chip-outline: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  --md-chip-shadow: var(--md-sys-elevation-level0);
+  cursor: default;
+}

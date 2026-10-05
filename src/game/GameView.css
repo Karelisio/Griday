@@ -1,0 +1,148 @@
+.game {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 560px;
+  margin-inline: auto;
+}
+
+.game__status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+}
+
+.game__timer-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--md-sys-shape-corner-full, 999px);
+  background: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+
+.game__conflicts {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--md-sys-shape-corner-full, 999px);
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.game__status > :last-child {
+  margin-inline-start: auto;
+}
+
+.game__board {
+  width: 100%;
+}
+
+.game__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: var(--md-sys-shape-corner-full, 999px);
+  background: var(--md-sys-color-surface-container);
+  align-self: center;
+}
+
+.victory-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: var(--md-sys-color-primary-container) !important;
+  color: var(--md-sys-color-on-primary-container) !important;
+  border-radius: var(--md-sys-shape-corner-extra-large, 28px) !important;
+}
+
+.victory-card__head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.victory-card__icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  flex: none;
+  border-radius: var(--md-sys-shape-corner-large-increased, 20px);
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+
+.victory-card__title {
+  margin: 0;
+}
+
+.victory-card p {
+  margin: 2px 0 0;
+}
+
+.victory-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.victory-card > button:last-child {
+  align-self: flex-end;
+}
+
+.hint-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 24px 24px;
+}
+
+.hint-sheet__head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.hint-sheet__head h2 {
+  margin: 0;
+}
+
+.hint-sheet__overline {
+  margin: 0;
+  color: var(--md-sys-color-primary);
+}
+
+.hint-sheet__icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border-radius: var(--md-sys-shape-corner-large, 16px);
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+}
+
+.hint-sheet__text {
+  margin: 0;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.hint-sheet__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.rules__howto {
+  color: var(--md-sys-color-on-surface-variant);
+}

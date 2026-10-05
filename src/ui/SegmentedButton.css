@@ -1,0 +1,77 @@
+.md-segmented {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 40px;
+  overflow: hidden;
+  border-radius: var(--md-sys-shape-corner-full);
+}
+
+/* Contour par-dessus la pastille de sélection (elle ne doit pas le recouvrir). */
+.md-segmented::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--md-sys-color-outline);
+  pointer-events: none;
+}
+
+.md-segmented__segment {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 48px;
+  margin: 0;
+  padding: 0 12px;
+  border: 0;
+  border-inline-start: 1px solid var(--md-sys-color-outline);
+  border-radius: 0;
+  background: transparent;
+  color: var(--md-sys-color-on-surface);
+  white-space: nowrap;
+  transition: color var(--md-sys-motion-spring-default-effects-duration) var(--md-sys-motion-spring-default-effects);
+}
+
+.md-segmented__segment:first-child {
+  border-inline-start: 0;
+}
+
+.md-segmented__segment--selected {
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+/* La pastille de sélection glisse d'un segment à l'autre (layoutId). */
+.md-segmented__selection {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--md-sys-color-secondary-container);
+}
+
+.md-segmented__icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.md-segmented__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Le focus clavier se dessine à l'intérieur : le conteneur coupe tout ce qui dépasse. */
+.md-segmented__segment:focus-visible {
+  outline-offset: -3px;
+}
+
+.md-segmented__segment:disabled {
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  cursor: default;
+}

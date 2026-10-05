@@ -1,0 +1,50 @@
+.md-linear-progress {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+
+.md-linear-progress > svg {
+  display: block;
+  overflow: visible;
+}
+
+.md-linear-progress__track {
+  stroke: var(--md-sys-color-secondary-container);
+}
+
+.md-linear-progress__active {
+  stroke: var(--md-sys-color-primary);
+}
+
+.md-linear-progress__stop {
+  fill: var(--md-sys-color-primary);
+}
+
+.md-circular-progress {
+  display: inline-block;
+  flex: none;
+}
+
+.md-circular-progress > svg {
+  display: block;
+}
+
+.md-circular-progress__track {
+  stroke: var(--md-sys-color-secondary-container);
+}
+
+.md-circular-progress__active {
+  stroke: var(--md-sys-color-primary);
+}
+
+/* Animations réduites, indéterminé : l'indicateur reste en place et respire doucement. */
+.md-progress--pulse {
+  animation: md-progress-pulse 2s ease-in-out infinite;
+}
+
+@keyframes md-progress-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}

@@ -1,0 +1,674 @@
+/*
+ * Jetons de conception Material 3 Expressive pour Griday (CSS pur, variables --md-sys-*).
+ * Les couleurs (--md-sys-color-*) sont écrites sur :root par <ThemeProvider> ; ce fichier fournit
+ * leurs valeurs de repli (schéma de la marque, clair), l'échelle typographique, les formes,
+ * l'élévation, les états, le mouvement et les styles de base de l'application.
+ */
+
+/* ---------- Couleurs : enregistrement typé (fondu animable) + repli clair de la marque ---------- */
+@property --md-sys-color-primary { syntax: '<color>'; inherits: true; initial-value: #5e598b; }
+@property --md-sys-color-on-primary { syntax: '<color>'; inherits: true; initial-value: #fcf7ff; }
+@property --md-sys-color-primary-container { syntax: '<color>'; inherits: true; initial-value: #ccc6ff; }
+@property --md-sys-color-on-primary-container { syntax: '<color>'; inherits: true; initial-value: #423e6e; }
+@property --md-sys-color-primary-fixed { syntax: '<color>'; inherits: true; initial-value: #ccc6ff; }
+@property --md-sys-color-primary-fixed-dim { syntax: '<color>'; inherits: true; initial-value: #beb8f0; }
+@property --md-sys-color-on-primary-fixed { syntax: '<color>'; inherits: true; initial-value: #2e2a59; }
+@property --md-sys-color-on-primary-fixed-variant { syntax: '<color>'; inherits: true; initial-value: #4b4777; }
+@property --md-sys-color-inverse-primary { syntax: '<color>'; inherits: true; initial-value: #ccc6ff; }
+@property --md-sys-color-secondary { syntax: '<color>'; inherits: true; initial-value: #5f5d72; }
+@property --md-sys-color-on-secondary { syntax: '<color>'; inherits: true; initial-value: #fcf7ff; }
+@property --md-sys-color-secondary-container { syntax: '<color>'; inherits: true; initial-value: #e4dff9; }
+@property --md-sys-color-on-secondary-container { syntax: '<color>'; inherits: true; initial-value: #524f64; }
+@property --md-sys-color-secondary-fixed { syntax: '<color>'; inherits: true; initial-value: #e4dff9; }
+@property --md-sys-color-secondary-fixed-dim { syntax: '<color>'; inherits: true; initial-value: #d6d1eb; }
+@property --md-sys-color-on-secondary-fixed { syntax: '<color>'; inherits: true; initial-value: #3f3d51; }
+@property --md-sys-color-on-secondary-fixed-variant { syntax: '<color>'; inherits: true; initial-value: #5c596e; }
+@property --md-sys-color-tertiary { syntax: '<color>'; inherits: true; initial-value: #775376; }
+@property --md-sys-color-on-tertiary { syntax: '<color>'; inherits: true; initial-value: #fff7fa; }
+@property --md-sys-color-tertiary-container { syntax: '<color>'; inherits: true; initial-value: #f3c6f0; }
+@property --md-sys-color-on-tertiary-container { syntax: '<color>'; inherits: true; initial-value: #5f3e5f; }
+@property --md-sys-color-tertiary-fixed { syntax: '<color>'; inherits: true; initial-value: #f3c6f0; }
+@property --md-sys-color-tertiary-fixed-dim { syntax: '<color>'; inherits: true; initial-value: #e5b9e1; }
+@property --md-sys-color-on-tertiary-fixed { syntax: '<color>'; inherits: true; initial-value: #4b2b4b; }
+@property --md-sys-color-on-tertiary-fixed-variant { syntax: '<color>'; inherits: true; initial-value: #694769; }
+@property --md-sys-color-error { syntax: '<color>'; inherits: true; initial-value: #a8364b; }
+@property --md-sys-color-on-error { syntax: '<color>'; inherits: true; initial-value: #fff7f7; }
+@property --md-sys-color-error-container { syntax: '<color>'; inherits: true; initial-value: #f97386; }
+@property --md-sys-color-on-error-container { syntax: '<color>'; inherits: true; initial-value: #6e0523; }
+@property --md-sys-color-surface { syntax: '<color>'; inherits: true; initial-value: #fcf8fe; }
+@property --md-sys-color-on-surface { syntax: '<color>'; inherits: true; initial-value: #33313a; }
+@property --md-sys-color-surface-variant { syntax: '<color>'; inherits: true; initial-value: #e5e0ed; }
+@property --md-sys-color-on-surface-variant { syntax: '<color>'; inherits: true; initial-value: #605e68; }
+@property --md-sys-color-surface-dim { syntax: '<color>'; inherits: true; initial-value: #dcd8e4; }
+@property --md-sys-color-surface-bright { syntax: '<color>'; inherits: true; initial-value: #fcf8fe; }
+@property --md-sys-color-surface-container-lowest { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
+@property --md-sys-color-surface-container-low { syntax: '<color>'; inherits: true; initial-value: #f6f2fa; }
+@property --md-sys-color-surface-container { syntax: '<color>'; inherits: true; initial-value: #f0ecf6; }
+@property --md-sys-color-surface-container-high { syntax: '<color>'; inherits: true; initial-value: #ebe6f1; }
+@property --md-sys-color-surface-container-highest { syntax: '<color>'; inherits: true; initial-value: #e5e0ed; }
+@property --md-sys-color-inverse-surface { syntax: '<color>'; inherits: true; initial-value: #0e0e12; }
+@property --md-sys-color-inverse-on-surface { syntax: '<color>'; inherits: true; initial-value: #9f9ca2; }
+@property --md-sys-color-outline { syntax: '<color>'; inherits: true; initial-value: #7c7984; }
+@property --md-sys-color-outline-variant { syntax: '<color>'; inherits: true; initial-value: #b4b0bc; }
+@property --md-sys-color-shadow { syntax: '<color>'; inherits: true; initial-value: #000000; }
+@property --md-sys-color-scrim { syntax: '<color>'; inherits: true; initial-value: #000000; }
+@property --md-sys-color-surface-tint { syntax: '<color>'; inherits: true; initial-value: #5e598b; }
+@property --md-sys-color-background { syntax: '<color>'; inherits: true; initial-value: #fcf8fe; }
+@property --md-sys-color-on-background { syntax: '<color>'; inherits: true; initial-value: #33313a; }
+
+:root {
+  color-scheme: light dark;
+
+  /* ---------- Polices : celles d'Android (aucune police web, usage hors ligne) ---------- */
+  --md-ref-typeface-brand: 'Google Sans Flex', 'Google Sans', Roboto, system-ui, sans-serif;
+  --md-ref-typeface-plain: 'Google Sans Flex', 'Google Sans', Roboto, system-ui, sans-serif;
+
+  /* ---------- Échelle typographique (taille/interligne en rem, interlettrage en px) ---------- */
+  --md-sys-typescale-display-large-font: var(--md-ref-typeface-brand);
+  --md-sys-typescale-display-large-size: 3.5625rem;
+  --md-sys-typescale-display-large-line-height: 4rem;
+  --md-sys-typescale-display-large-weight: 400;
+  --md-sys-typescale-display-large-tracking: -0.25px;
+  --md-sys-typescale-display-large-emphasized-weight: 500;
+  --md-sys-typescale-display-medium-font: var(--md-ref-typeface-brand);
+  --md-sys-typescale-display-medium-size: 2.8125rem;
+  --md-sys-typescale-display-medium-line-height: 3.25rem;
+  --md-sys-typescale-display-medium-weight: 400;
+  --md-sys-typescale-display-medium-tracking: 0px;
+  --md-sys-typescale-display-medium-emphasized-weight: 500;
+  --md-sys-typescale-display-small-font: var(--md-ref-typeface-brand);
+  --md-sys-typescale-display-small-size: 2.25rem;
+  --md-sys-typescale-display-small-line-height: 2.75rem;
+  --md-sys-typescale-display-small-weight: 400;
+  --md-sys-typescale-display-small-tracking: 0px;
+  --md-sys-typescale-display-small-emphasized-weight: 500;
+  --md-sys-typescale-headline-large-font: var(--md-ref-typeface-brand);
+  --md-sys-typescale-headline-large-size: 2rem;
+  --md-sys-typescale-headline-large-line-height: 2.5rem;
+  --md-sys-typescale-headline-large-weight: 400;
+  --md-sys-typescale-headline-large-tracking: 0px;
+  --md-sys-typescale-headline-large-emphasized-weight: 500;
+  --md-sys-typescale-headline-medium-font: var(--md-ref-typeface-brand);
+  --md-sys-typescale-headline-medium-size: 1.75rem;
+  --md-sys-typescale-headline-medium-line-height: 2.25rem;
+  --md-sys-typescale-headline-medium-weight: 400;
+  --md-sys-typescale-headline-medium-tracking: 0px;
+  --md-sys-typescale-headline-medium-emphasized-weight: 500;
+  --md-sys-typescale-headline-small-font: var(--md-ref-typeface-brand);
+  --md-sys-typescale-headline-small-size: 1.5rem;
+  --md-sys-typescale-headline-small-line-height: 2rem;
+  --md-sys-typescale-headline-small-weight: 400;
+  --md-sys-typescale-headline-small-tracking: 0px;
+  --md-sys-typescale-headline-small-emphasized-weight: 500;
+  --md-sys-typescale-title-large-font: var(--md-ref-typeface-brand);
+  --md-sys-typescale-title-large-size: 1.375rem;
+  --md-sys-typescale-title-large-line-height: 1.75rem;
+  --md-sys-typescale-title-large-weight: 400;
+  --md-sys-typescale-title-large-tracking: 0px;
+  --md-sys-typescale-title-large-emphasized-weight: 500;
+  --md-sys-typescale-title-medium-font: var(--md-ref-typeface-brand);
+  --md-sys-typescale-title-medium-size: 1rem;
+  --md-sys-typescale-title-medium-line-height: 1.5rem;
+  --md-sys-typescale-title-medium-weight: 500;
+  --md-sys-typescale-title-medium-tracking: 0.15px;
+  --md-sys-typescale-title-medium-emphasized-weight: 700;
+  --md-sys-typescale-title-small-font: var(--md-ref-typeface-brand);
+  --md-sys-typescale-title-small-size: 0.875rem;
+  --md-sys-typescale-title-small-line-height: 1.25rem;
+  --md-sys-typescale-title-small-weight: 500;
+  --md-sys-typescale-title-small-tracking: 0.1px;
+  --md-sys-typescale-title-small-emphasized-weight: 700;
+  --md-sys-typescale-body-large-font: var(--md-ref-typeface-plain);
+  --md-sys-typescale-body-large-size: 1rem;
+  --md-sys-typescale-body-large-line-height: 1.5rem;
+  --md-sys-typescale-body-large-weight: 400;
+  --md-sys-typescale-body-large-tracking: 0.5px;
+  --md-sys-typescale-body-large-emphasized-weight: 500;
+  --md-sys-typescale-body-medium-font: var(--md-ref-typeface-plain);
+  --md-sys-typescale-body-medium-size: 0.875rem;
+  --md-sys-typescale-body-medium-line-height: 1.25rem;
+  --md-sys-typescale-body-medium-weight: 400;
+  --md-sys-typescale-body-medium-tracking: 0.25px;
+  --md-sys-typescale-body-medium-emphasized-weight: 500;
+  --md-sys-typescale-body-small-font: var(--md-ref-typeface-plain);
+  --md-sys-typescale-body-small-size: 0.75rem;
+  --md-sys-typescale-body-small-line-height: 1rem;
+  --md-sys-typescale-body-small-weight: 400;
+  --md-sys-typescale-body-small-tracking: 0.4px;
+  --md-sys-typescale-body-small-emphasized-weight: 500;
+  --md-sys-typescale-label-large-font: var(--md-ref-typeface-plain);
+  --md-sys-typescale-label-large-size: 0.875rem;
+  --md-sys-typescale-label-large-line-height: 1.25rem;
+  --md-sys-typescale-label-large-weight: 500;
+  --md-sys-typescale-label-large-tracking: 0.1px;
+  --md-sys-typescale-label-large-emphasized-weight: 700;
+  --md-sys-typescale-label-medium-font: var(--md-ref-typeface-plain);
+  --md-sys-typescale-label-medium-size: 0.75rem;
+  --md-sys-typescale-label-medium-line-height: 1rem;
+  --md-sys-typescale-label-medium-weight: 500;
+  --md-sys-typescale-label-medium-tracking: 0.5px;
+  --md-sys-typescale-label-medium-emphasized-weight: 700;
+  --md-sys-typescale-label-small-font: var(--md-ref-typeface-plain);
+  --md-sys-typescale-label-small-size: 0.6875rem;
+  --md-sys-typescale-label-small-line-height: 1rem;
+  --md-sys-typescale-label-small-weight: 500;
+  --md-sys-typescale-label-small-tracking: 0.5px;
+  --md-sys-typescale-label-small-emphasized-weight: 700;
+
+  /* ---------- Formes ---------- */
+  --md-sys-shape-corner-none: 0px;
+  --md-sys-shape-corner-extra-small: 4px;
+  --md-sys-shape-corner-small: 8px;
+  --md-sys-shape-corner-medium: 12px;
+  --md-sys-shape-corner-large: 16px;
+  --md-sys-shape-corner-large-increased: 20px;
+  --md-sys-shape-corner-extra-large: 28px;
+  --md-sys-shape-corner-extra-large-increased: 32px;
+  --md-sys-shape-corner-extra-extra-large: 48px;
+  --md-sys-shape-corner-full: 9999px;
+
+  /* ---------- Élévation (ombres M3, niveaux 0 à 5) ---------- */
+  --md-sys-elevation-level0: 0 0 0 0 transparent; /* « aucune ombre », mais valide dans une liste de box-shadow */
+  --md-sys-elevation-level1: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
+  --md-sys-elevation-level2: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 6px 2px rgb(0 0 0 / 0.15);
+  --md-sys-elevation-level3: 0 1px 3px rgb(0 0 0 / 0.3), 0 4px 8px 3px rgb(0 0 0 / 0.15);
+  --md-sys-elevation-level4: 0 2px 3px rgb(0 0 0 / 0.3), 0 6px 10px 4px rgb(0 0 0 / 0.15);
+  --md-sys-elevation-level5: 0 4px 4px rgb(0 0 0 / 0.3), 0 8px 12px 6px rgb(0 0 0 / 0.15);
+
+  /* ---------- Couches d'état ---------- */
+  --md-sys-state-hover-opacity: 0.08;
+  --md-sys-state-focus-opacity: 0.1;
+  --md-sys-state-pressed-opacity: 0.1;
+  --md-sys-state-dragged-opacity: 0.16;
+  --md-sys-state-disabled-container-opacity: 0.12;
+  --md-sys-state-disabled-content-opacity: 0.38;
+
+  /* ---------- Mouvement : courbes ---------- */
+  --md-sys-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --md-sys-motion-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --md-sys-motion-easing-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --md-sys-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --md-sys-motion-easing-standard-decelerate: cubic-bezier(0, 0, 0, 1);
+  --md-sys-motion-easing-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
+  --md-sys-motion-easing-linear: cubic-bezier(0, 0, 1, 1);
+
+  /* ---------- Mouvement : durées ---------- */
+  --md-sys-motion-duration-short1: 50ms;
+  --md-sys-motion-duration-short2: 100ms;
+  --md-sys-motion-duration-short3: 150ms;
+  --md-sys-motion-duration-short4: 200ms;
+  --md-sys-motion-duration-medium1: 250ms;
+  --md-sys-motion-duration-medium2: 300ms;
+  --md-sys-motion-duration-medium3: 350ms;
+  --md-sys-motion-duration-medium4: 400ms;
+  --md-sys-motion-duration-long1: 450ms;
+  --md-sys-motion-duration-long2: 500ms;
+  --md-sys-motion-duration-long3: 550ms;
+  --md-sys-motion-duration-long4: 600ms;
+  --md-sys-motion-duration-extra-long1: 700ms;
+  --md-sys-motion-duration-extra-long2: 800ms;
+  --md-sys-motion-duration-extra-long3: 900ms;
+  --md-sys-motion-duration-extra-long4: 1000ms;
+
+  /* ---------- Mouvement : ressorts Expressive en courbes linear() (transitions CSS) ----------
+     Même physique que motion.ts : spatial 800/200 à 0,6-0,8, effets 3800/800 à 1. */
+  --md-sys-motion-spring-fast-spatial: linear(0, 0.029, 0.105, 0.21, 0.331, 0.458, 0.581, 0.696, 0.797, 0.882, 0.952, 1.006, 1.045, 1.072, 1.088, 1.094, 1.094, 1.088, 1.079, 1.068, 1.056, 1.045, 1.033, 1.023, 1.014, 1.007, 1.001, 0.997, 0.994, 0.992, 0.991, 0.991, 0.991, 0.992, 0.993, 0.994, 0.995, 0.996, 0.997, 0.998, 1);
+  --md-sys-motion-spring-fast-spatial-duration: 360ms;
+  --md-sys-motion-spring-default-spatial: linear(0, 0.02, 0.072, 0.144, 0.228, 0.317, 0.407, 0.493, 0.574, 0.648, 0.714, 0.772, 0.821, 0.864, 0.899, 0.928, 0.951, 0.97, 0.984, 0.995, 1.003, 1.008, 1.012, 1.014, 1.015, 1.015, 1.015, 1.014, 1.013, 1.011, 1.01, 1.009, 1.007, 1.006, 1.005, 1.004, 1.003, 1.002, 1.002, 1.001, 1);
+  --md-sys-motion-spring-default-spatial-duration: 436ms;
+  --md-sys-motion-spring-slow-spatial: linear(0, 0.02, 0.072, 0.144, 0.227, 0.317, 0.406, 0.492, 0.573, 0.647, 0.713, 0.771, 0.821, 0.863, 0.898, 0.927, 0.951, 0.969, 0.984, 0.995, 1.003, 1.008, 1.012, 1.014, 1.015, 1.015, 1.015, 1.014, 1.013, 1.011, 1.01, 1.009, 1.007, 1.006, 1.005, 1.004, 1.003, 1.003, 1.002, 1.001, 1);
+  --md-sys-motion-spring-slow-spatial-duration: 600ms;
+  --md-sys-motion-spring-fast-effects: linear(0, 0.058, 0.181, 0.321, 0.456, 0.574, 0.672, 0.751, 0.813, 0.861, 0.897, 0.924, 0.945, 0.96, 0.971, 0.979, 0.985, 0.989, 0.992, 0.994, 0.996, 0.997, 0.998, 0.999, 1);
+  --md-sys-motion-spring-fast-effects-duration: 150ms;
+  --md-sys-motion-spring-default-effects: linear(0, 0.058, 0.182, 0.323, 0.458, 0.576, 0.674, 0.753, 0.814, 0.862, 0.898, 0.925, 0.946, 0.96, 0.971, 0.979, 0.985, 0.989, 0.992, 0.995, 0.996, 0.997, 0.998, 0.999, 1);
+  --md-sys-motion-spring-default-effects-duration: 232ms;
+  --md-sys-motion-spring-slow-effects: linear(0, 0.058, 0.182, 0.323, 0.458, 0.575, 0.674, 0.752, 0.814, 0.862, 0.898, 0.925, 0.945, 0.96, 0.971, 0.979, 0.985, 0.989, 0.992, 0.995, 0.996, 0.997, 0.998, 0.999, 1);
+  --md-sys-motion-spring-slow-effects-duration: 328ms;
+
+  /* ---------- Zones sûres (Capacitor 8 injecte --safe-area-inset-*) ---------- */
+  --md-safe-area-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --md-safe-area-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
+  --md-safe-area-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --md-safe-area-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+
+  /* ---------- Cibles tactiles ---------- */
+  --md-touch-target: 48px;
+}
+
+/* Repli sombre avant l'application du thème par <ThemeProvider> (évite l'éclair blanc au démarrage). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --md-sys-color-surface: #0e0e12;
+    --md-sys-color-on-surface: #e8e3f0;
+    --md-sys-color-background: #0e0e12;
+    --md-sys-color-on-background: #e8e3f0;
+    --md-sys-color-primary: #c7c2ee;
+    --md-sys-color-on-primary: #3f3c60;
+    --md-sys-color-surface-container: #1a191f;
+    --md-sys-color-surface-container-high: #201f26;
+    --md-sys-color-outline: #76747f;
+  }
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+/* Fondu entre thèmes : activé par <ThemeProvider> après la première application des couleurs. */
+:root[data-theme-fade] {
+  transition-property:
+    --md-sys-color-primary,
+    --md-sys-color-on-primary,
+    --md-sys-color-primary-container,
+    --md-sys-color-on-primary-container,
+    --md-sys-color-primary-fixed,
+    --md-sys-color-primary-fixed-dim,
+    --md-sys-color-on-primary-fixed,
+    --md-sys-color-on-primary-fixed-variant,
+    --md-sys-color-inverse-primary,
+    --md-sys-color-secondary,
+    --md-sys-color-on-secondary,
+    --md-sys-color-secondary-container,
+    --md-sys-color-on-secondary-container,
+    --md-sys-color-secondary-fixed,
+    --md-sys-color-secondary-fixed-dim,
+    --md-sys-color-on-secondary-fixed,
+    --md-sys-color-on-secondary-fixed-variant,
+    --md-sys-color-tertiary,
+    --md-sys-color-on-tertiary,
+    --md-sys-color-tertiary-container,
+    --md-sys-color-on-tertiary-container,
+    --md-sys-color-tertiary-fixed,
+    --md-sys-color-tertiary-fixed-dim,
+    --md-sys-color-on-tertiary-fixed,
+    --md-sys-color-on-tertiary-fixed-variant,
+    --md-sys-color-error,
+    --md-sys-color-on-error,
+    --md-sys-color-error-container,
+    --md-sys-color-on-error-container,
+    --md-sys-color-surface,
+    --md-sys-color-on-surface,
+    --md-sys-color-surface-variant,
+    --md-sys-color-on-surface-variant,
+    --md-sys-color-surface-dim,
+    --md-sys-color-surface-bright,
+    --md-sys-color-surface-container-lowest,
+    --md-sys-color-surface-container-low,
+    --md-sys-color-surface-container,
+    --md-sys-color-surface-container-high,
+    --md-sys-color-surface-container-highest,
+    --md-sys-color-inverse-surface,
+    --md-sys-color-inverse-on-surface,
+    --md-sys-color-outline,
+    --md-sys-color-outline-variant,
+    --md-sys-color-shadow,
+    --md-sys-color-scrim,
+    --md-sys-color-surface-tint,
+    --md-sys-color-background,
+    --md-sys-color-on-background;
+  transition-duration: var(--md-sys-motion-duration-medium2);
+  transition-timing-function: var(--md-sys-motion-easing-standard);
+}
+
+/* ---------- Classes de l'échelle typographique ---------- */
+.md-typescale-display-large {
+  font-family: var(--md-sys-typescale-display-large-font);
+  font-size: var(--md-sys-typescale-display-large-size);
+  line-height: var(--md-sys-typescale-display-large-line-height);
+  font-weight: var(--md-sys-typescale-display-large-weight);
+  letter-spacing: var(--md-sys-typescale-display-large-tracking);
+}
+.md-typescale-display-large-emphasized {
+  font-family: var(--md-sys-typescale-display-large-font);
+  font-size: var(--md-sys-typescale-display-large-size);
+  line-height: var(--md-sys-typescale-display-large-line-height);
+  font-weight: var(--md-sys-typescale-display-large-emphasized-weight);
+  letter-spacing: var(--md-sys-typescale-display-large-tracking);
+}
+.md-typescale-display-medium {
+  font-family: var(--md-sys-typescale-display-medium-font);
+  font-size: var(--md-sys-typescale-display-medium-size);
+  line-height: var(--md-sys-typescale-display-medium-line-height);
+  font-weight: var(--md-sys-typescale-display-medium-weight);
+  letter-spacing: var(--md-sys-typescale-display-medium-tracking);
+}
+.md-typescale-display-medium-emphasized {
+  font-family: var(--md-sys-typescale-display-medium-font);
+  font-size: var(--md-sys-typescale-display-medium-size);
+  line-height: var(--md-sys-typescale-display-medium-line-height);
+  font-weight: var(--md-sys-typescale-display-medium-emphasized-weight);
+  letter-spacing: var(--md-sys-typescale-display-medium-tracking);
+}
+.md-typescale-display-small {
+  font-family: var(--md-sys-typescale-display-small-font);
+  font-size: var(--md-sys-typescale-display-small-size);
+  line-height: var(--md-sys-typescale-display-small-line-height);
+  font-weight: var(--md-sys-typescale-display-small-weight);
+  letter-spacing: var(--md-sys-typescale-display-small-tracking);
+}
+.md-typescale-display-small-emphasized {
+  font-family: var(--md-sys-typescale-display-small-font);
+  font-size: var(--md-sys-typescale-display-small-size);
+  line-height: var(--md-sys-typescale-display-small-line-height);
+  font-weight: var(--md-sys-typescale-display-small-emphasized-weight);
+  letter-spacing: var(--md-sys-typescale-display-small-tracking);
+}
+.md-typescale-headline-large {
+  font-family: var(--md-sys-typescale-headline-large-font);
+  font-size: var(--md-sys-typescale-headline-large-size);
+  line-height: var(--md-sys-typescale-headline-large-line-height);
+  font-weight: var(--md-sys-typescale-headline-large-weight);
+  letter-spacing: var(--md-sys-typescale-headline-large-tracking);
+}
+.md-typescale-headline-large-emphasized {
+  font-family: var(--md-sys-typescale-headline-large-font);
+  font-size: var(--md-sys-typescale-headline-large-size);
+  line-height: var(--md-sys-typescale-headline-large-line-height);
+  font-weight: var(--md-sys-typescale-headline-large-emphasized-weight);
+  letter-spacing: var(--md-sys-typescale-headline-large-tracking);
+}
+.md-typescale-headline-medium {
+  font-family: var(--md-sys-typescale-headline-medium-font);
+  font-size: var(--md-sys-typescale-headline-medium-size);
+  line-height: var(--md-sys-typescale-headline-medium-line-height);
+  font-weight: var(--md-sys-typescale-headline-medium-weight);
+  letter-spacing: var(--md-sys-typescale-headline-medium-tracking);
+}
+.md-typescale-headline-medium-emphasized {
+  font-family: var(--md-sys-typescale-headline-medium-font);
+  font-size: var(--md-sys-typescale-headline-medium-size);
+  line-height: var(--md-sys-typescale-headline-medium-line-height);
+  font-weight: var(--md-sys-typescale-headline-medium-emphasized-weight);
+  letter-spacing: var(--md-sys-typescale-headline-medium-tracking);
+}
+.md-typescale-headline-small {
+  font-family: var(--md-sys-typescale-headline-small-font);
+  font-size: var(--md-sys-typescale-headline-small-size);
+  line-height: var(--md-sys-typescale-headline-small-line-height);
+  font-weight: var(--md-sys-typescale-headline-small-weight);
+  letter-spacing: var(--md-sys-typescale-headline-small-tracking);
+}
+.md-typescale-headline-small-emphasized {
+  font-family: var(--md-sys-typescale-headline-small-font);
+  font-size: var(--md-sys-typescale-headline-small-size);
+  line-height: var(--md-sys-typescale-headline-small-line-height);
+  font-weight: var(--md-sys-typescale-headline-small-emphasized-weight);
+  letter-spacing: var(--md-sys-typescale-headline-small-tracking);
+}
+.md-typescale-title-large {
+  font-family: var(--md-sys-typescale-title-large-font);
+  font-size: var(--md-sys-typescale-title-large-size);
+  line-height: var(--md-sys-typescale-title-large-line-height);
+  font-weight: var(--md-sys-typescale-title-large-weight);
+  letter-spacing: var(--md-sys-typescale-title-large-tracking);
+}
+.md-typescale-title-large-emphasized {
+  font-family: var(--md-sys-typescale-title-large-font);
+  font-size: var(--md-sys-typescale-title-large-size);
+  line-height: var(--md-sys-typescale-title-large-line-height);
+  font-weight: var(--md-sys-typescale-title-large-emphasized-weight);
+  letter-spacing: var(--md-sys-typescale-title-large-tracking);
+}
+.md-typescale-title-medium {
+  font-family: var(--md-sys-typescale-title-medium-font);
+  font-size: var(--md-sys-typescale-title-medium-size);
+  line-height: var(--md-sys-typescale-title-medium-line-height);
+  font-weight: var(--md-sys-typescale-title-medium-weight);
+  letter-spacing: var(--md-sys-typescale-title-medium-tracking);
+}
+.md-typescale-title-medium-emphasized {
+  font-family: var(--md-sys-typescale-title-medium-font);
+  font-size: var(--md-sys-typescale-title-medium-size);
+  line-height: var(--md-sys-typescale-title-medium-line-height);
+  font-weight: var(--md-sys-typescale-title-medium-emphasized-weight);
+  letter-spacing: var(--md-sys-typescale-title-medium-tracking);
+}
+.md-typescale-title-small {
+  font-family: var(--md-sys-typescale-title-small-font);
+  font-size: var(--md-sys-typescale-title-small-size);
+  line-height: var(--md-sys-typescale-title-small-line-height);
+  font-weight: var(--md-sys-typescale-title-small-weight);
+  letter-spacing: var(--md-sys-typescale-title-small-tracking);
+}
+.md-typescale-title-small-emphasized {
+  font-family: var(--md-sys-typescale-title-small-font);
+  font-size: var(--md-sys-typescale-title-small-size);
+  line-height: var(--md-sys-typescale-title-small-line-height);
+  font-weight: var(--md-sys-typescale-title-small-emphasized-weight);
+  letter-spacing: var(--md-sys-typescale-title-small-tracking);
+}
+.md-typescale-body-large {
+  font-family: var(--md-sys-typescale-body-large-font);
+  font-size: var(--md-sys-typescale-body-large-size);
+  line-height: var(--md-sys-typescale-body-large-line-height);
+  font-weight: var(--md-sys-typescale-body-large-weight);
+  letter-spacing: var(--md-sys-typescale-body-large-tracking);
+}
+.md-typescale-body-large-emphasized {
+  font-family: var(--md-sys-typescale-body-large-font);
+  font-size: var(--md-sys-typescale-body-large-size);
+  line-height: var(--md-sys-typescale-body-large-line-height);
+  font-weight: var(--md-sys-typescale-body-large-emphasized-weight);
+  letter-spacing: var(--md-sys-typescale-body-large-tracking);
+}
+.md-typescale-body-medium {
+  font-family: var(--md-sys-typescale-body-medium-font);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  line-height: var(--md-sys-typescale-body-medium-line-height);
+  font-weight: var(--md-sys-typescale-body-medium-weight);
+  letter-spacing: var(--md-sys-typescale-body-medium-tracking);
+}
+.md-typescale-body-medium-emphasized {
+  font-family: var(--md-sys-typescale-body-medium-font);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  line-height: var(--md-sys-typescale-body-medium-line-height);
+  font-weight: var(--md-sys-typescale-body-medium-emphasized-weight);
+  letter-spacing: var(--md-sys-typescale-body-medium-tracking);
+}
+.md-typescale-body-small {
+  font-family: var(--md-sys-typescale-body-small-font);
+  font-size: var(--md-sys-typescale-body-small-size);
+  line-height: var(--md-sys-typescale-body-small-line-height);
+  font-weight: var(--md-sys-typescale-body-small-weight);
+  letter-spacing: var(--md-sys-typescale-body-small-tracking);
+}
+.md-typescale-body-small-emphasized {
+  font-family: var(--md-sys-typescale-body-small-font);
+  font-size: var(--md-sys-typescale-body-small-size);
+  line-height: var(--md-sys-typescale-body-small-line-height);
+  font-weight: var(--md-sys-typescale-body-small-emphasized-weight);
+  letter-spacing: var(--md-sys-typescale-body-small-tracking);
+}
+.md-typescale-label-large {
+  font-family: var(--md-sys-typescale-label-large-font);
+  font-size: var(--md-sys-typescale-label-large-size);
+  line-height: var(--md-sys-typescale-label-large-line-height);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+  letter-spacing: var(--md-sys-typescale-label-large-tracking);
+}
+.md-typescale-label-large-emphasized {
+  font-family: var(--md-sys-typescale-label-large-font);
+  font-size: var(--md-sys-typescale-label-large-size);
+  line-height: var(--md-sys-typescale-label-large-line-height);
+  font-weight: var(--md-sys-typescale-label-large-emphasized-weight);
+  letter-spacing: var(--md-sys-typescale-label-large-tracking);
+}
+.md-typescale-label-medium {
+  font-family: var(--md-sys-typescale-label-medium-font);
+  font-size: var(--md-sys-typescale-label-medium-size);
+  line-height: var(--md-sys-typescale-label-medium-line-height);
+  font-weight: var(--md-sys-typescale-label-medium-weight);
+  letter-spacing: var(--md-sys-typescale-label-medium-tracking);
+}
+.md-typescale-label-medium-emphasized {
+  font-family: var(--md-sys-typescale-label-medium-font);
+  font-size: var(--md-sys-typescale-label-medium-size);
+  line-height: var(--md-sys-typescale-label-medium-line-height);
+  font-weight: var(--md-sys-typescale-label-medium-emphasized-weight);
+  letter-spacing: var(--md-sys-typescale-label-medium-tracking);
+}
+.md-typescale-label-small {
+  font-family: var(--md-sys-typescale-label-small-font);
+  font-size: var(--md-sys-typescale-label-small-size);
+  line-height: var(--md-sys-typescale-label-small-line-height);
+  font-weight: var(--md-sys-typescale-label-small-weight);
+  letter-spacing: var(--md-sys-typescale-label-small-tracking);
+}
+.md-typescale-label-small-emphasized {
+  font-family: var(--md-sys-typescale-label-small-font);
+  font-size: var(--md-sys-typescale-label-small-size);
+  line-height: var(--md-sys-typescale-label-small-line-height);
+  font-weight: var(--md-sys-typescale-label-small-emphasized-weight);
+  letter-spacing: var(--md-sys-typescale-label-small-tracking);
+}
+
+/* ---------- Styles de base ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  background-color: var(--md-sys-color-surface);
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  font-family: var(--md-ref-typeface-plain);
+  font-size: var(--md-sys-typescale-body-large-size);
+  line-height: var(--md-sys-typescale-body-large-line-height);
+  letter-spacing: var(--md-sys-typescale-body-large-tracking);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* Éléments interactifs : pas de sélection de texte, pas de zoom au double toucher, pas de surbrillance. */
+:where(button, a, summary, [role='button'], [role='switch'], [role='radio'], [role='tab'], [role='checkbox'], [role='menuitem']) {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+:where(button) {
+  appearance: none;
+  margin: 0;
+}
+
+/* Anneau de focus M3 : 3 px, couleur secondaire, décalé de 2 px (visible au clavier uniquement). */
+:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--md-sys-color-secondary);
+  outline-offset: 2px;
+}
+
+:where([tabindex='-1']):focus {
+  outline: none;
+}
+
+/* ---------- Utilitaires ---------- */
+.md-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.md-safe-top {
+  padding-top: var(--md-safe-area-top);
+}
+
+.md-safe-right {
+  padding-right: var(--md-safe-area-right);
+}
+
+.md-safe-bottom {
+  padding-bottom: var(--md-safe-area-bottom);
+}
+
+.md-safe-left {
+  padding-left: var(--md-safe-area-left);
+}
+
+.md-safe-x {
+  padding-left: var(--md-safe-area-left);
+  padding-right: var(--md-safe-area-right);
+}
+
+/* Bloque le défilement du document sous une feuille ou un dialogue modal. */
+html.md-scroll-locked,
+html.md-scroll-locked body {
+  overflow: hidden;
+}
+
+/* Surfaces tonales prêtes à l'emploi. */
+.md-surface {
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+}
+
+.md-surface-container {
+  background-color: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+}
+
+/* ---------- Animations réduites ---------- */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --md-sys-motion-duration-short1: 0.01ms;
+    --md-sys-motion-duration-short2: 0.01ms;
+    --md-sys-motion-duration-short3: 0.01ms;
+    --md-sys-motion-duration-short4: 0.01ms;
+    --md-sys-motion-duration-medium1: 0.01ms;
+    --md-sys-motion-duration-medium2: 0.01ms;
+    --md-sys-motion-duration-medium3: 0.01ms;
+    --md-sys-motion-duration-medium4: 0.01ms;
+    --md-sys-motion-duration-long1: 0.01ms;
+    --md-sys-motion-duration-long2: 0.01ms;
+    --md-sys-motion-duration-long3: 0.01ms;
+    --md-sys-motion-duration-long4: 0.01ms;
+    --md-sys-motion-duration-extra-long1: 0.01ms;
+    --md-sys-motion-duration-extra-long2: 0.01ms;
+    --md-sys-motion-duration-extra-long3: 0.01ms;
+    --md-sys-motion-duration-extra-long4: 0.01ms;
+    --md-sys-motion-spring-fast-spatial-duration: 0.01ms;
+    --md-sys-motion-spring-default-spatial-duration: 0.01ms;
+    --md-sys-motion-spring-slow-spatial-duration: 0.01ms;
+    --md-sys-motion-spring-fast-effects-duration: 0.01ms;
+    --md-sys-motion-spring-default-effects-duration: 0.01ms;
+    --md-sys-motion-spring-slow-effects-duration: 0.01ms;
+  }
+}
+
+/* ---------- Contraste forcé (Windows / navigateurs) ---------- */
+@media (forced-colors: active) {
+  :where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline-color: Highlight;
+  }
+}

@@ -1,0 +1,89 @@
+.md-nav-bar {
+  flex: none;
+  width: 100%;
+  padding-bottom: var(--md-safe-area-bottom);
+  padding-inline: var(--md-safe-area-left) var(--md-safe-area-right);
+  background-color: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.md-nav-bar__list {
+  display: flex;
+  justify-content: space-around;
+  gap: 8px;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.md-nav-bar__item {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 48px;
+}
+
+.md-nav-bar__button {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 64px;
+  margin: 0;
+  padding: 12px 4px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  outline-offset: -4px;
+  border-radius: var(--md-sys-shape-corner-large);
+}
+
+.md-nav-bar__pill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  isolation: isolate;
+  width: 56px;
+  height: 32px;
+  border-radius: var(--md-sys-shape-corner-full);
+}
+
+.md-nav-bar__indicator {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-sys-color-secondary-container);
+}
+
+.md-nav-bar__icons {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  color: var(--md-sys-color-on-surface-variant);
+  transition: color var(--md-sys-motion-spring-default-effects-duration) var(--md-sys-motion-spring-default-effects);
+}
+
+.md-nav-bar__icon {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+}
+
+.md-nav-bar__button--active .md-nav-bar__icons {
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.md-nav-bar__label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color var(--md-sys-motion-spring-default-effects-duration) var(--md-sys-motion-spring-default-effects);
+}
+
+.md-nav-bar__button--active .md-nav-bar__label {
+  color: var(--md-sys-color-on-surface);
+}

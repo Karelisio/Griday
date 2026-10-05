@@ -85,9 +85,12 @@ describe('partie Queens', () => {
     expect(reduceQueens(g, { type: 'tap', cell: 0, now: 2000 })).toBe(g);
   });
 
-  it('indice joué : compteur incrémenté, conservé après « recommencer »', () => {
+  it('indice consulté : compteur incrémenté (sans entrée d’historique), conservé après « recommencer »', () => {
     let g = newGame(puzzle, 0);
-    g = reduceQueens(g, { type: 'set', cell: sol[0]!, mark: MARK_QUEEN, now: 1, hint: true });
+    g = reduceQueens(g, { type: 'hintShown', now: 1 });
+    expect(g.hintsUsed).toBe(1);
+    expect(g.past).toHaveLength(0);
+    g = reduceQueens(g, { type: 'set', cell: sol[0]!, mark: MARK_QUEEN, now: 1 });
     expect(g.hintsUsed).toBe(1);
     g = reduceQueens(g, { type: 'reset', now: 2 });
     expect(g.hintsUsed).toBe(1);
