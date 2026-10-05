@@ -22,15 +22,17 @@ const SCHED: Schedule = {
 };
 
 function gen(over: Partial<GeneratorVersion<number>> = {}): GeneratorVersion<number> {
-  return {
+  const base: GeneratorVersion<number> = {
     version: 1,
     weeklyPlan: PLAN,
     sizes: [6, 7, 8],
     maxAttempts: 10,
+    rate: () => null,
+    accepts: () => true,
     attempt: () => null,
     fallback: (t: GenerationTarget) => ({ puzzle: t.size, rating: { tier: t.tier, score: 1, hardest: 'x' } }),
-    ...over,
   };
+  return { ...base, ...over };
 }
 
 const reg = (versions: Record<number, GeneratorVersion<number>>, id = 'queens'): Registry =>

@@ -64,6 +64,8 @@ function mockVersion(version: number, o: MockOptions): GeneratorVersion<MockPuzz
     weeklyPlan: o.plan ?? PLAN_A,
     sizes: [5, 6, 7],
     maxAttempts: o.maxAttempts ?? 10,
+    rate: () => null,
+    accepts: () => true,
     attempt(rng, target) {
       const probe = Array.from({ length: PROBE }, () => rng.nextU32());
       const k = o.rec.attempts.length;
@@ -84,6 +86,7 @@ const mockDef = (id: string, versions: GeneratorVersion<MockPuzzle>[]): PuzzleTy
   id: T(id),
   versions: Object.fromEntries(versions.map((v) => [v.version, v])),
   encode: (p) => p.label,
+  verify: () => [],
 });
 
 const SEED = '2026-10-05:queens:v1';

@@ -52,6 +52,10 @@ export interface GeneratorVersion<P> {
   readonly maxAttempts: number;
   /** Une tentative déterministe. `null` = rejet (non unique, non logique, mauvaise difficulté). */
   attempt(rng: Rng, target: GenerationTarget): RatedPuzzle<P> | null;
+  /** Note de cette version (null si non résoluble par logique pure). */
+  rate(puzzle: P): DifficultyRating | null;
+  /** Critère d'acceptation de cette version (palier, bandes de score…). */
+  accepts(target: GenerationTarget, rating: DifficultyRating): boolean;
   /** Puzzle de secours pré-calculé, choisi de façon déterministe par `pick` (uint32). */
   fallback(target: GenerationTarget, pick: number): RatedPuzzle<P>;
 }
@@ -61,6 +65,11 @@ export interface PuzzleTypeDefinition<P> {
   readonly versions: Readonly<Record<number, GeneratorVersion<P>>>;
   /** Représentation canonique compacte d'un puzzle (empreintes « golden », stockage). FIGÉE. */
   encode(p: P): string;
+  /**
+   * Vérification indépendante du générateur (structure, solution unique égale à celle fournie).
+   * Renvoie la liste des erreurs (vide = valide). Utilisée par la validation long terme.
+   */
+  verify(p: P): string[];
 }
 
 export interface GeneratedPuzzle<P> {

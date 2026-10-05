@@ -28,7 +28,7 @@ const SOURCES: Readonly<Record<(typeof V1_FROZEN_FILES)[number], string>> = {
   'queens/v1/generator.ts': '0c95a358a3050fefe1a8a8e379048f47',
   'queens/v1/solver.ts': 'b324594039b794079d3c56e011ca30aa',
   'queens/v1/util.ts': 'fbf2cf83dd14380c08fcf8a552fd70a9',
-  'queens/v1/version.ts': '31a3168c9ef5c9ae623f90419b51509a',
+  'queens/v1/version.ts': 'e0cf84c0232d881e8715240c02ac1efd',
 };
 
 const DAILY: Readonly<Record<string, string>> = {

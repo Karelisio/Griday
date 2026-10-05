@@ -1,0 +1,48 @@
+name: Validation du moteur
+
+on:
+  push:
+  pull_request:
+  # Chaque lundi : la fenêtre de 10 ans avance même sans nouveau commit.
+  schedule:
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  engine:
+    name: Tests + validation 10 ans
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Vérification des types
+        run: npm run typecheck
+
+      - name: Tests unitaires
+        run: npm test
+
+      - name: Validation des 10 prochaines années
+        run: npm run validate:future -- --report=validate-report.json
+
+      - name: Rapport de validation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validate-report
+          path: validate-report.json
+          if-no-files-found: ignore

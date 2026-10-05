@@ -79,6 +79,8 @@ export const QUEENS_V1: GeneratorVersion<QueensSolvedPuzzle> = Object.freeze({
   ] as const),
   sizes: Object.freeze([6, 7, 8, 9, 10]),
   maxAttempts: 200,
+  rate: rateQueensV1,
+  accepts: acceptsV1,
 
   attempt(rng: Rng, target: GenerationTarget): RatedPuzzle<QueensSolvedPuzzle> | null {
     const puzzle = generateQueensCandidate(rng, target.size, SHAPE_BY_TIER[target.tier]);
