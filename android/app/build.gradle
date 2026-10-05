@@ -9,6 +9,14 @@ if (!semver.find()) {
 }
 def appVersionCode = (findProperty('versionCode') ?: (semver.group(1).toInteger() * 10000 + semver.group(2).toInteger() * 100 + semver.group(3).toInteger())).toString().toInteger()
 
+// AdMob : identifiant d'application réel via ADMOB_APP_ID (ou -PadmobAppId=…), sinon celui de test de Google
+// (annonces de test uniquement : sans risque pour le compte, jamais rémunérées).
+def admobTestAppId = 'ca-app-pub-3940256099942544~3347511713'
+def admobAppId = (findProperty('admobAppId') ?: System.getenv('ADMOB_APP_ID') ?: admobTestAppId).toString().trim()
+if (!(admobAppId ==~ /ca-app-pub-\d+~\d+/)) {
+    throw new GradleException("ADMOB_APP_ID invalide (format attendu : ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY)")
+}
+
 android {
     namespace = "io.github.karelisio.griday"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -18,6 +26,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode appVersionCode
         versionName packageJson.version
+        manifestPlaceholders += [admobAppId: admobAppId]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

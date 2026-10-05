@@ -29,6 +29,14 @@
 
         </activity>
 
+        <!--
+            Identifiant d'application AdMob (obligatoire dès que le SDK est présent, sinon plantage au démarrage).
+            Fourni par Gradle : variable d'environnement ADMOB_APP_ID, sinon identifiant de test de Google.
+        -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${admobAppId}" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

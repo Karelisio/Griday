@@ -1,0 +1,14 @@
+/* Dialogue des vidéos avec récompense. */
+.reward-dialog p {
+  margin: 0;
+}
+
+.reward-dialog__note {
+  margin-top: 12px !important;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Premium à gauche, Annuler / Regarder à droite. */
+.reward-dialog .reward-dialog__premium {
+  margin-inline-end: auto;
+}
