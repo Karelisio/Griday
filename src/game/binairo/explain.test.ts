@@ -113,7 +113,9 @@ describe('explications des indices', () => {
     ]) {
       expect(seen, key).toContain(key);
     }
-    for (const key of ['pair', 'sandwich', 'count', 'line', 'unique'].map((t) => `hint.binairo.title.${t}`)) expect(titles, key).toContain(key);
+    for (const key of ['pair', 'sandwich', 'count'].map((t) => `hint.binairo.title.${t}`)) expect(titles, key).toContain(key);
+    // Analyse et unicité : titre selon l'orientation (au moins une des deux rencontrée).
+    for (const t of ['line', 'unique']) expect([...titles].some((k) => k.startsWith(`hint.binairo.title.${t}_`)), t).toBe(true);
     expect(titles).toContain('hint.technique.contradiction');
   });
 
@@ -123,6 +125,7 @@ describe('explications des indices', () => {
       ...['row', 'column'].flatMap((k) => ['one', 'other'].map((p) => `hint.binairo.pair.${k}_${p}`)),
       ...['one', 'other'].flatMap((p) => ['count', 'line', 'unique', 'mistake'].map((k) => `hint.binairo.${k}_${p}`)),
       'hint.binairo.sandwich',
+      ...['line', 'unique'].flatMap((t) => ['row', 'column'].map((k) => `hint.binairo.title.${t}_${k}`)),
       'hint.binairo.contradiction.rule',
       'hint.binairo.contradiction.twins',
       'hint.binairo.reveal',
@@ -381,9 +384,11 @@ describe('identité, surbrillance et icône', () => {
     for (const icon of [hintApplyIcon(sun), hintApplyIcon(moon), hintApplyIcon(both), 'backspace', 'contrast'] as const) expect(ICON_PATHS[icon], icon).toBeDefined();
   });
 
-  it('highlightFocus : cases de l’indice, sans doublon, triées', () => {
+  it('highlightFocus : cases à jouer, pivots et erreurs (sans les lignes entières), sans doublon, triées', () => {
     const hl: BinairoHighlight = { line: [8, 9], other: [2, 3], pivots: [9], places: [{ cell: 8, value: CELL_A }], mistakes: [3, 20] };
-    expect(highlightFocus(hl)).toEqual([2, 3, 8, 9, 20]);
+    expect(highlightFocus(hl)).toEqual([3, 8, 9, 20]);
+    // Faute de cases précises : les lignes concernées.
+    expect(highlightFocus({ ...NO_HIGHLIGHT, line: [8, 9], other: [2, 3] })).toEqual([2, 3, 8, 9]);
     expect(highlightFocus(NO_HIGHLIGHT)).toEqual([]);
   });
 

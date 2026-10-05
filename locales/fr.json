@@ -65,7 +65,7 @@
     "difficulty": "Difficulté",
     "newGame": "Nouvelle grille",
     "generating": "Génération d’une grille…",
-    "empty": "Choisissez une taille et une difficulté, puis lancez une nouvelle grille."
+    "empty": "Choisissez un puzzle, une taille et une difficulté, puis lancez une nouvelle grille."
   },
   "game": {
     "board": "Grille {{n}} × {{n}}",
@@ -167,8 +167,10 @@
         "pair": "Paire",
         "sandwich": "Case en sandwich",
         "count": "Quota atteint",
-        "line": "Analyse de la ligne",
-        "unique": "Lignes toutes différentes"
+        "line_row": "Analyse de la ligne",
+        "line_column": "Analyse de la colonne",
+        "unique_row": "Lignes toutes différentes",
+        "unique_column": "Colonnes toutes différentes"
       },
       "pair": {
         "row_one": "Deux {{known}} côte à côte dans {{line}} : on ne peut pas en aligner trois. La case qui les borde est donc forcément {{placedOne}}.",
@@ -230,6 +232,16 @@
     "patterns": {
       "title": "Motifs de régions",
       "description": "Ajouter une texture à chaque région pour mieux les distinguer (daltonisme)"
+    },
+    "premium": {
+      "title": "Premium",
+      "upgrade": "Passer à Premium",
+      "upgradeDescription": "Sans publicité, avec indices et archives illimités",
+      "restoreDescription": "Retrouver un achat fait avec ce compte Google Play"
+    },
+    "privacy": {
+      "title": "Choix de confidentialité",
+      "description": "Modifier votre consentement aux publicités"
     }
   },
   "errors": {
@@ -271,8 +283,11 @@
       "late": "résolu plus tard",
       "frozen": "gel de série utilisé",
       "progress": "en cours",
-      "none": "non joué"
+      "none": "non joué",
+      "locked": "verrouillé"
     },
+    "unlockAction": "Touchez pour débloquer ce puzzle avec une courte vidéo",
+    "lockedNote": "Les {{days}} derniers jours sont libres. Pour un puzzle plus ancien, une courte vidéo le débloque pour de bon. Premium ouvre toutes les archives.",
     "legend": "Légende",
     "summary_one": "{{count}} jour résolu sur {{total}}",
     "summary_other": "{{count}} jours résolus sur {{total}}",
@@ -308,7 +323,10 @@
     "freezes": {
       "title": "Gels de série",
       "count": "Gels disponibles : {{n}} sur {{max}}",
-      "explain": "Un gel protège votre série quand vous manquez un jour. Vous en gagnez un tous les {{every}} jours de série ({{max}} au maximum)."
+      "explain": "Un gel protège votre série quand vous manquez un jour. Vous en gagnez un tous les {{every}} jours de série ({{max}} au maximum).",
+      "get": "Obtenir un gel",
+      "next": "Prochain gel offert le {{date}}",
+      "full": "Réserve pleine"
     },
     "daily": {
       "title": "Puzzles du jour",
@@ -350,5 +368,51 @@
       "streak_one": "Gardez votre série de {{count}} jour 🔥",
       "streak_other": "Gardez votre série de {{count}} jours 🔥"
     }
+  },
+  "ads": {
+    "watch": "Regarder",
+    "loading": "Chargement de la vidéo…",
+    "unavailable": "Aucune vidéo disponible pour le moment. Réessayez plus tard.",
+    "dismissed": "Vidéo interrompue : la récompense n’a pas été accordée.",
+    "reward": {
+      "hint": {
+        "title": "Débloquer cet indice",
+        "body": "Les indices gratuits de cette grille sont épuisés ({{count}} par grille). Regardez une courte vidéo pour obtenir cet indice."
+      },
+      "archive": {
+        "title": "Débloquer ce puzzle",
+        "body": "Les puzzles de plus de {{days}} jours sont verrouillés. Regardez une courte vidéo pour débloquer ce puzzle : il restera disponible."
+      },
+      "freeze": {
+        "title": "Obtenir un gel de série",
+        "body": "Un gel protège votre série quand vous manquez un jour. Regardez une courte vidéo pour en obtenir un."
+      },
+      "premiumNote": "Avec Premium : aucune publicité, indices et archives illimités."
+    }
+  },
+  "premium": {
+    "short": "Premium",
+    "title": "Griday Premium",
+    "subtitle": "Un achat unique pour jouer sans publicité et sans limite.",
+    "benefits": {
+      "noAds": "Plus aucune publicité",
+      "hints": "Indices illimités, sans vidéo",
+      "archives": "Toutes les archives ouvertes",
+      "freeze": "Gel de série sans vidéo"
+    },
+    "buy": "Passer à Premium pour {{price}}",
+    "buyNoPrice": "Passer à Premium",
+    "unavailable": "L’achat n’est pas disponible pour le moment. Il nécessite Google Play et une connexion à Internet.",
+    "restore": "Restaurer mes achats",
+    "restored": "Votre achat a été restauré.",
+    "notFound": "Aucun achat Premium trouvé sur ce compte Google Play.",
+    "promo": "Utiliser un code promo",
+    "promoHint": "Les codes s’échangent dans le Play Store ; Premium s’active ensuite tout seul.",
+    "active": "Premium est actif",
+    "thanks": "Merci de soutenir Griday !",
+    "activated": "Premium est activé. Profitez de tout, sans publicité.",
+    "pending": "Paiement en attente de validation. Premium s’activera dès qu’il sera confirmé.",
+    "error": "L’achat n’a pas pu aboutir. Réessayez plus tard.",
+    "cancelled": "Achat annulé."
   }
 }

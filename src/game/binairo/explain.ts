@@ -112,7 +112,9 @@ function explainStep(step: BinairoStep, p: BinairoPuzzle, tr: Translate): HintEx
     places: step.place,
     mistakes: [],
   };
-  const titleKey = `hint.binairo.title.${step.technique}`;
+  // « Ligne » désigne une rangée dans l'app (« Ligne 3, colonne 4 ») : les titres qui parlent d'une
+  // ligne ou d'une colonne précisent laquelle.
+  const titleKey = step.technique === 'line' || step.technique === 'unique' ? `hint.binairo.title.${step.technique}_${kind}` : `hint.binairo.title.${step.technique}`;
   const symbols = { known: knownNames.plural, knownOne: knownNames.one, placed: placedNames.plural, placedOne: placedNames.one };
 
   switch (step.technique) {
@@ -180,9 +182,14 @@ export function hintMoves(h: BinairoHint): { readonly cell: number; readonly mar
   }
 }
 
-/** Cases à garder visibles au-dessus de la feuille d'indice. */
+/**
+ * Cases à garder visibles au-dessus de la feuille d'indice : celles à jouer, les pivots du
+ * raisonnement et les erreurs. Les lignes entières ne servent que faute de mieux : une colonne
+ * couvre tout le plateau et ferait passer la case à jouer sous la feuille sur un petit écran.
+ */
 export function highlightFocus(hl: BinairoHighlight): number[] {
-  return [...new Set([...hl.line, ...hl.other, ...hl.pivots, ...hl.places.map((x) => x.cell), ...hl.mistakes])].sort((a, b) => a - b);
+  const essential = [...hl.places.map((x) => x.cell), ...hl.pivots, ...hl.mistakes];
+  return [...new Set(essential.length > 0 ? essential : [...hl.line, ...hl.other])].sort((a, b) => a - b);
 }
 
 /** Icône du bouton « Jouer ce coup » : le symbole posé (une coche s'il y en a deux sortes), une gomme pour une erreur. */

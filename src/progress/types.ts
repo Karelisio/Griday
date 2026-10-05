@@ -77,6 +77,8 @@ export interface DailyStats {
 }
 
 export interface SizeStats {
+  /** Présent quand les parties mêlent plusieurs types : une ligne par type et par taille. */
+  readonly type?: PuzzleTypeId;
   readonly size: number;
   readonly count: number;
   readonly averageMs: number | null;

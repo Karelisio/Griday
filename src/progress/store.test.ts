@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { saveJSON } from '../platform/storage';
-import { dailyProgressKey } from '../persistence';
+import { dailyProgressKey, dailyStartedKey } from '../persistence';
 import {
   DAILY_HISTORY_KEY,
   MAX_UNLIMITED_RESULTS,
@@ -94,13 +94,17 @@ describe('persistance de la progression', () => {
     expect(data.streak.freezes).toBe(0);
   });
 
-  it('parties entamées (au moins une marque ou un coup)', async () => {
+  it('parties entamées : au moins un coup joué (pas seulement des marques)', async () => {
     expect(isStartedGame({ marks: '000', past: [] })).toBe(false);
-    expect(isStartedGame({ marks: '010', past: [] })).toBe(true);
+    // Binairo affiché sans être joué : ses cases données figurent dans les marques.
+    expect(isStartedGame({ marks: '012', past: [], future: [] })).toBe(false);
     expect(isStartedGame({ marks: '000', past: ['010'] })).toBe(true);
+    expect(isStartedGame({ marks: '000', past: [], future: ['010'] })).toBe(true); // tout annulé
     expect(isStartedGame('x')).toBe(false);
     await saveJSON(dailyProgressKey('2026-10-05'), { marks: '0200', past: ['0000'] });
-    await saveJSON(dailyProgressKey('2026-10-06'), { marks: '0000', past: [] });
-    expect([...(await loadStartedDays(['2026-10-05', '2026-10-06', '2026-10-07']))]).toEqual(['2026-10-05']);
+    await saveJSON(dailyProgressKey('2026-10-06'), { marks: '1200', past: [] });
+    // Premier coup enregistré pour ce jour (même si la sauvegarde manque).
+    await saveJSON(dailyStartedKey('2026-10-08'), '2026-10-08');
+    expect([...(await loadStartedDays(['2026-10-05', '2026-10-06', '2026-10-07', '2026-10-08']))].sort()).toEqual(['2026-10-05', '2026-10-08']);
   });
 });

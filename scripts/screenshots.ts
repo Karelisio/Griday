@@ -4,7 +4,7 @@
  */
 import { mkdirSync } from 'node:fs';
 import { chromium, type Page } from 'playwright-core';
-import { localISODate } from '../engine/core/date';
+import { addDays, localISODate } from '../engine/core/date';
 import { getDailyPuzzle } from '../engine/index';
 
 const out = process.argv[2] ?? 'screenshots';
@@ -31,7 +31,13 @@ const page = await context.newPage();
 page.on('pageerror', (e) => console.error('ERREUR PAGE :', e.message));
 page.on('console', (m) => m.type() === 'error' && console.error('console :', m.text()));
 
-const daily = getDailyPuzzle(localISODate(new Date()));
+// Les types alternent d'un jour à l'autre : captures sur un jour de Reines (aujourd'hui ou demain),
+// horloge du navigateur figée ce jour-là.
+const today = localISODate(new Date());
+const date = getDailyPuzzle(today).type === 'queens' ? today : addDays(today, 1);
+const daily = getDailyPuzzle(date);
+if (daily.type !== 'queens') throw new Error(`Pas de Reines le ${date}`);
+await page.clock.setFixedTime(new Date(`${date}T12:00:00`));
 const { size: n, solution } = daily.puzzle;
 const queenCells = solution.map((c, r) => r * n + c);
 

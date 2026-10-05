@@ -143,6 +143,21 @@
   cursor: default;
 }
 
+/* Case donnée : petit point dans l'angle, repère qui ne dépend pas de la couleur (en plus de la tuile
+   plus soutenue et du trait plus épais). */
+.bb__cell--given::after {
+  content: '';
+  position: absolute;
+  top: 10%;
+  left: 10%;
+  width: 12%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background-color: currentColor;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
 /* Soleil et lune : tuile teintée + symbole assorti (plus soutenus sur une case donnée). */
 .bb__cell--sun,
 .bb__cell--moon {

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { listKeys, saveJSON } from './platform/storage';
-import { UNLIMITED_CURRENT_KEY, pruneStorage } from './persistence';
+import { UNLIMITED_CURRENT_KEY, pruneStorage, selfCheckKey } from './persistence';
 
 describe('ménage du stockage', () => {
   beforeEach(() => localStorage.clear());
@@ -16,7 +16,7 @@ describe('ménage du stockage', () => {
       'daily.history.v1',
       'unlimited.progress.abc',
       UNLIMITED_CURRENT_KEY,
-      'selfcheck.1.0.0',
+      selfCheckKey('1.0.0'),
       'settings.v1',
     ];
     const drop = [
@@ -29,6 +29,9 @@ describe('ménage du stockage', () => {
       'daily.result.2026-10-01',
       'unlimited.progress.old',
       'selfcheck.0.9.0',
+      // Même version, autres valeurs attendues (moteur mis à jour) : contrôle à refaire.
+      'selfcheck.1.0.0',
+      'selfcheck.1.0.0.ancienne',
     ];
     for (const k of [...keep, ...drop]) await saveJSON(k, k === UNLIMITED_CURRENT_KEY ? { token: 'abc' } : 1);
     // Jours résolus : leur partie n'est plus utile dès le lendemain (sauf aujourd'hui).

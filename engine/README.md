@@ -9,13 +9,14 @@ TypeScript pur, sans dépendance UI. Tout puzzle publié doit rester **identique
 - `queens/v1/` — **Queens V1 figée** : générateur, solveur logique/notation, plan hebdo, bandes de score, secours.
   Autonome à l'exécution (seuls `core/prng.ts` et des imports de types). Verrouillée par `freeze.test.ts`.
 - `binairo/` — Binairo (Takuzu) : types, règles, encodage, solveur exact indépendant (`exact.ts`), indices.
-- `binairo/v1/` — **Binairo V1 figée** (même organisation que Queens V1, voir plus bas). Inscrite au registre et au
-  calendrier des versions mais **hors rotation** tant que l'UI n'est pas prête : validée et figée quand même.
+- `binairo/v1/` — **Binairo V1 figée** (même organisation que Queens V1, voir plus bas). En rotation depuis le n°1 :
+  Queens les jours pairs depuis l'epoch, Binairo les jours impairs (7 étant impair, chacun passe par tous les jours de la semaine).
 - `registry.ts` — définitions par type ; `AnyDailyPuzzle` ne couvre que les types des `rotations` de `config.ts`
   (calendrier littéral `as const satisfies Schedule`) : ajouter un type à la rotation élargit ce type et le
   compilateur signale le code UI à compléter. `getUnlimitedPuzzle('binairo', …)` est typé par son argument.
-- `selfcheck.ts` — auto-vérification à lancer au démarrage de l'app (dans le WebView réel) ; Binairo V1 y est
-  contrôlé par version explicite (indépendant de la rotation).
+- `selfcheck.ts` — auto-vérification à lancer au démarrage de l'app (dans le WebView réel) : jours du calendrier des
+  deux types, plus Binairo V1 par version explicite. Valeurs attendues dans `selfcheck-expected.ts` (données pures :
+  l'app en tire `SELFCHECK_REVISION` et relance le contrôle quand elles changent).
 
 ## Règles de déterminisme
 - Aléatoire : uniquement `core/prng.ts`. Jamais `Math.random`, jamais l'heure dans la logique (lint dans `prng.test.ts`).

@@ -57,6 +57,7 @@ describe('puzzle d’archive', () => {
   it('commencé et fini un autre jour : résultat « plus tard », hors série, signalé sur la carte', async () => {
     const saved = await solveByHints();
     await waitFor(async () => expect((await saved())?.[4]).toBe(1));
+    expect((await saved())?.[6]).toBe('binairo'); // le 6 octobre est un Binairo (jours impairs depuis le n° 1)
     expect(await loadJSON(dailyStartedKey(DATE))).toBe('2026-10-07');
     expect(screen.getByText(/il ne compte pas pour la série/)).toBeTruthy();
   }, 90_000);

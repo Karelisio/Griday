@@ -30,9 +30,12 @@ export function SizeTable({ sizes }: { sizes: readonly SizeStats[] }) {
           </tr>
         </thead>
         <tbody className="md-typescale-body-large">
-          {sizes.map(({ size, count, averageMs, bestMs }) => (
-            <tr key={size}>
-              <th scope="row">{t('unlimited.sizeValue', { n: size })}</th>
+          {sizes.map(({ type, size, count, averageMs, bestMs }) => (
+            <tr key={`${type ?? ''}${size}`}>
+              <th scope="row">
+                {type && <span className="size-table__type">{t(`puzzle.${type}.name`)} </span>}
+                {t('unlimited.sizeValue', { n: size })}
+              </th>
               <td>{formatNumber(count, lang)}</td>
               <td>{time(averageMs)}</td>
               <td>{time(bestMs)}</td>

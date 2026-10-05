@@ -57,6 +57,18 @@ describe('statistiques', () => {
     });
   });
 
+  it('mode illimité, types mêlés : une ligne par type et par taille (ordre du registre)', () => {
+    const u = (type: 'queens' | 'binairo' | undefined, size: number, timeMs: number): UnlimitedResult => ({ type, size, tier: 2, timeMs, hintsUsed: 0, solvedOn: '2026-10-05' });
+    // Un résultat sans type (ancienne version) est un Queens.
+    expect(unlimitedStats([u('binairo', 8, 400), u(undefined, 8, 100), u('queens', 6, 50), u('binairo', 8, 200)]).bySize).toEqual([
+      { type: 'queens', size: 6, count: 1, averageMs: 50, bestMs: 50 },
+      { type: 'queens', size: 8, count: 1, averageMs: 100, bestMs: 100 },
+      { type: 'binairo', size: 8, count: 2, averageMs: 300, bestMs: 200 },
+    ]);
+    // Un seul type : lignes par taille, sans type.
+    expect(unlimitedStats([u('binairo', 8, 400)]).bySize).toEqual([{ size: 8, count: 1, averageMs: 400, bestMs: 400 }]);
+  });
+
   it('état d’un jour du calendrier', () => {
     const history = new Map([
       ['2026-10-05', r('2026-10-05', 1)],

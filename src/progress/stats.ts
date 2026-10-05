@@ -1,6 +1,6 @@
 /** Statistiques (logique pure) : puzzles du jour, mode illimité, état d'un jour du calendrier. */
 import { compareISO, type ISODate } from '../../engine/core/date';
-import type { DifficultyTier } from '../../engine/core/types';
+import { PUZZLE_TYPE_IDS, type DifficultyTier, type PuzzleTypeId } from '../../engine/core/types';
 import type { DailyResult, DailyStats, DayStatus, SizeStats, TierStats, UnlimitedResult, UnlimitedStats } from './types';
 
 const TIERS: readonly DifficultyTier[] = [1, 2, 3, 4];
@@ -34,13 +34,25 @@ export function dailyStats(results: Iterable<DailyResult>): DailyStats {
   };
 }
 
-/** `total` : parties résolues depuis toujours (la liste ne garde que les plus récentes). */
+/**
+ * `total` : parties résolues depuis toujours (la liste ne garde que les plus récentes).
+ * Plusieurs types mêlés : une ligne par type et par taille (des temps de jeux différents ne se comparent pas).
+ */
 export function unlimitedStats(results: readonly UnlimitedResult[], total = results.length): UnlimitedStats {
-  const sizes = [...new Set(results.map((r) => r.size))].sort((a, b) => a - b);
-  const bySize: SizeStats[] = sizes.map((size) => {
-    const of = results.filter((r) => r.size === size);
-    return { size, count: of.length, ...times(of) };
-  });
+  const typeOf = (r: UnlimitedResult): PuzzleTypeId => r.type ?? 'queens';
+  const sizesOf = (of: readonly UnlimitedResult[]) => [...new Set(of.map((r) => r.size))].sort((a, b) => a - b);
+  const row = (of: readonly UnlimitedResult[], size: number) => {
+    const same = of.filter((r) => r.size === size);
+    return { size, count: same.length, ...times(same) };
+  };
+  const types = PUZZLE_TYPE_IDS.filter((type) => results.some((r) => typeOf(r) === type));
+  const bySize: SizeStats[] =
+    types.length > 1
+      ? types.flatMap((type) => {
+          const of = results.filter((r) => typeOf(r) === type);
+          return sizesOf(of).map((size) => ({ type, ...row(of, size) }));
+        })
+      : sizesOf(results).map((size) => row(results, size));
   return { solved: Math.max(total, results.length), noHint: results.filter((r) => r.hintsUsed === 0).length, averageMs: times(results).averageMs, bySize };
 }
 

@@ -7,7 +7,7 @@ import { PUZZLE_TYPE_IDS, type PuzzleTypeId } from '../../engine/core/types';
 import { BINAIRO_MAX_SIZE, BINAIRO_MIN_SIZE } from '../../engine/binairo/types';
 import { QUEENS_MAX_SIZE, QUEENS_MIN_SIZE } from '../../engine/queens/types';
 import { isTier } from '../game/queens/validate';
-import { dailyProgressKey } from '../persistence';
+import { dailyProgressKey, dailyStartedKey } from '../persistence';
 import { loadJSON, saveJSON } from '../platform/storage';
 import { EMPTY_STREAK, MAX_FREEZES } from './streak';
 import type { DailyResult, StreakState, UnlimitedResult } from './types';
@@ -112,20 +112,24 @@ export const saveUnlimitedHistory = (results: readonly UnlimitedResult[], total:
   saveJSON(UNLIMITED_HISTORY_KEY, encodeUnlimitedHistory(results, total));
 export const saveStreak = (state: StreakState) => saveJSON(STREAK_KEY, state);
 
-/** Partie sauvegardée entamée (au moins une marque ou un coup joué). */
+/**
+ * Partie sauvegardée entamée : au moins un coup joué (historique d'annulation ou de rétablissement).
+ * Les marques seules ne suffisent pas : celles d'un Binairo contiennent ses cases données dès l'affichage.
+ */
 export function isStartedGame(saved: unknown): boolean {
   if (!isRecord(saved)) return false;
-  const marks = saved['marks'];
   const past = saved['past'];
-  return (typeof marks === 'string' && /[12]/.test(marks)) || (Array.isArray(past) && past.length > 0);
+  const future = saved['future'];
+  return (Array.isArray(past) && past.length > 0) || (Array.isArray(future) && future.length > 0);
 }
 
-/** Jours (parmi `dates`) dont la partie du jour est entamée. */
+/** Jours (parmi `dates`) dont la partie du jour est entamée : premier coup enregistré ou sauvegarde jouée. */
 export async function loadStartedDays(dates: readonly ISODate[]): Promise<Set<ISODate>> {
   const started = new Set<ISODate>();
   await Promise.all(
     dates.map(async (date) => {
-      if (isStartedGame(await loadJSON<unknown>(dailyProgressKey(date)))) started.add(date);
+      const [firstMove, saved] = await Promise.all([loadJSON<unknown>(dailyStartedKey(date)), loadJSON<unknown>(dailyProgressKey(date))]);
+      if (isDate(firstMove) || isStartedGame(saved)) started.add(date);
     }),
   );
   return started;

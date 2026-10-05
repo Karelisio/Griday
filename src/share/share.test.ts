@@ -44,6 +44,12 @@ describe('texte partagé', () => {
 });
 
 describe('partage', () => {
+  it('Binairo : emoji et nom du jeu dans les deux langues', () => {
+    const daily = { kind: 'daily', type: 'binairo', n: 2, size: 8, tier: 1, timeMs: 95_000, hintsUsed: 0, streak: 2 } as const;
+    expect(shareText(daily, i18n.getFixedT('fr'), 'fr').split('\n')[0]).toMatch(/^Griday n°\s2 · 🌓 Binairo 8\s×\s8 · Facile$/);
+    expect(shareText({ ...daily, kind: 'unlimited' }, i18n.getFixedT('en'), 'en').split('\n')[0]).toBe('Griday ∞ · 🌓 Binairo 8 × 8 · Easy');
+  });
+
   it('natif : feuille de partage Android ; annulation silencieuse', async () => {
     shareMock.native = true;
     shareMock.share.mockResolvedValueOnce({});

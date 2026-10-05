@@ -1,5 +1,6 @@
 /** Clés du stockage local et ménage des données périmées. */
 import { diffDays, isValidISODate, type ISODate } from '../engine/core/date';
+import { SELFCHECK_REVISION } from '../engine/selfcheck-expected';
 import { listKeys, loadJSON, removeKey } from './platform/storage';
 
 export const dailyPuzzleKey = (date: ISODate) => `daily.puzzle.${date}`;
@@ -9,7 +10,9 @@ export const dailyStartedKey = (date: ISODate) => `daily.started.${date}`;
 export const UNLIMITED_CURRENT_KEY = 'unlimited.current.v1';
 export const UNLIMITED_PREFS_KEY = 'unlimited.prefs.v1';
 export const unlimitedProgressKey = (token: string) => `unlimited.progress.${token}`;
-export const selfCheckKey = (appVersion: string) => `selfcheck.${appVersion}`;
+/** Résultat de l'auto-vérification : un par version de l'app et par jeu de valeurs attendues. */
+const selfCheckId = (appVersion: string) => `${appVersion}.${SELFCHECK_REVISION}`;
+export const selfCheckKey = (appVersion: string) => `selfcheck.${selfCheckId(appVersion)}`;
 
 /** Grilles du jour en cache (régénérables) gardées N jours. */
 export const PUZZLE_CACHE_DAYS = 7;
@@ -39,7 +42,7 @@ export async function pruneStorage(today: ISODate, appVersion: string, solved: R
       case 'unlimited.progress':
         return id !== token;
       case 'selfcheck':
-        return id !== appVersion;
+        return id !== selfCheckId(appVersion);
       default:
         return false;
     }

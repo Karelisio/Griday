@@ -65,7 +65,7 @@
     "difficulty": "Difficulty",
     "newGame": "New grid",
     "generating": "Generating a grid…",
-    "empty": "Pick a size and a difficulty, then start a new grid."
+    "empty": "Pick a puzzle, a size and a difficulty, then start a new grid."
   },
   "game": {
     "board": "{{n}} × {{n}} grid",
@@ -167,8 +167,10 @@
         "pair": "Pair",
         "sandwich": "Sandwiched cell",
         "count": "Quota reached",
-        "line": "Line analysis",
-        "unique": "No identical lines"
+        "line_row": "Row analysis",
+        "line_column": "Column analysis",
+        "unique_row": "No identical rows",
+        "unique_column": "No identical columns"
       },
       "pair": {
         "row_one": "Two {{known}} side by side in {{line}}: a third one would make three in a row. The cell next to them must be {{placedOne}}.",
@@ -230,6 +232,16 @@
     "patterns": {
       "title": "Region patterns",
       "description": "Add a texture to each region to tell them apart (color blindness)"
+    },
+    "premium": {
+      "title": "Premium",
+      "upgrade": "Get Premium",
+      "upgradeDescription": "No ads, with unlimited hints and archives",
+      "restoreDescription": "Recover a purchase made with this Google Play account"
+    },
+    "privacy": {
+      "title": "Privacy choices",
+      "description": "Change your consent for ads"
     }
   },
   "errors": {
@@ -271,8 +283,11 @@
       "late": "solved later",
       "frozen": "streak freeze used",
       "progress": "in progress",
-      "none": "not played"
+      "none": "not played",
+      "locked": "locked"
     },
+    "unlockAction": "Tap to unlock this puzzle with a short video",
+    "lockedNote": "The last {{days}} days are free. For an older puzzle, a short video unlocks it for good. Premium opens every archive.",
     "legend": "Legend",
     "summary_one": "{{count}} of {{total}} days solved",
     "summary_other": "{{count}} of {{total}} days solved",
@@ -308,7 +323,10 @@
     "freezes": {
       "title": "Streak freezes",
       "count": "Streak freezes available: {{n}} of {{max}}",
-      "explain": "A freeze protects your streak when you miss a day. You earn one every {{every}} days of streak (up to {{max}})."
+      "explain": "A freeze protects your streak when you miss a day. You earn one every {{every}} days of streak (up to {{max}}).",
+      "get": "Get a freeze",
+      "next": "Next free freeze on {{date}}",
+      "full": "Reserve full"
     },
     "daily": {
       "title": "Daily puzzles",
@@ -350,5 +368,51 @@
       "streak_one": "Keep your {{count}}-day streak going 🔥",
       "streak_other": "Keep your {{count}}-day streak going 🔥"
     }
+  },
+  "ads": {
+    "watch": "Watch",
+    "loading": "Loading the video…",
+    "unavailable": "No video available right now. Try again later.",
+    "dismissed": "Video interrupted: no reward was granted.",
+    "reward": {
+      "hint": {
+        "title": "Unlock this hint",
+        "body": "This grid’s free hints are used up ({{count}} per grid). Watch a short video to get this one."
+      },
+      "archive": {
+        "title": "Unlock this puzzle",
+        "body": "Puzzles older than {{days}} days are locked. Watch a short video to unlock this one: it will stay available."
+      },
+      "freeze": {
+        "title": "Get a streak freeze",
+        "body": "A freeze protects your streak when you miss a day. Watch a short video to get one."
+      },
+      "premiumNote": "With Premium: no ads, unlimited hints and archives."
+    }
+  },
+  "premium": {
+    "short": "Premium",
+    "title": "Griday Premium",
+    "subtitle": "One purchase to play without ads and without limits.",
+    "benefits": {
+      "noAds": "No more ads",
+      "hints": "Unlimited hints, no videos",
+      "archives": "Every archive puzzle unlocked",
+      "freeze": "Streak freezes without videos"
+    },
+    "buy": "Get Premium for {{price}}",
+    "buyNoPrice": "Get Premium",
+    "unavailable": "Purchasing isn’t available right now. It requires Google Play and an internet connection.",
+    "restore": "Restore purchases",
+    "restored": "Your purchase has been restored.",
+    "notFound": "No Premium purchase found on this Google Play account.",
+    "promo": "Redeem a promo code",
+    "promoHint": "Codes are redeemed in the Play Store; Premium then activates by itself.",
+    "active": "Premium is active",
+    "thanks": "Thank you for supporting Griday!",
+    "activated": "Premium is active. Enjoy everything, ad-free.",
+    "pending": "Payment pending. Premium will activate as soon as it’s confirmed.",
+    "error": "The purchase could not be completed. Please try again later.",
+    "cancelled": "Purchase canceled."
   }
 }

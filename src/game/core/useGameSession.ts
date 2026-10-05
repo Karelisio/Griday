@@ -138,18 +138,20 @@ export function useGameSession<P>(rules: GameRules<P>, { puzzle, storageKey, vis
 
   // Sauvegarde différée de chaque changement (immédiate en pause), écrite sans attendre au
   // changement de grille et au démontage.
-  const pending = useRef<{ storageKey: string; game: GameState<P> } | null>(null);
+  // Les règles voyagent avec la partie : au changement de type (mode illimité), la sauvegarde en
+  // attente de l'ancienne grille est écrite avec ses propres règles, pas celles de la nouvelle.
+  const pending = useRef<{ storageKey: string; game: GameState<P>; rules: GameRules<P> } | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flush = useCallback(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = null;
     const p = pending.current;
     pending.current = null;
-    if (p) void saveJSON(p.storageKey, serializeGame(rulesRef.current, p.game, now()));
+    if (p) void saveJSON(p.storageKey, serializeGame(p.rules, p.game, now()));
   }, []);
   useEffect(() => {
     if (!game || !storageKey) return;
-    pending.current = { storageKey, game };
+    pending.current = { storageKey, game, rules: rulesRef.current };
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(flush, game.runningSince === null ? 0 : 400);
   }, [game, storageKey, flush]);
@@ -221,13 +223,14 @@ export function useGameSession<P>(rules: GameRules<P>, { puzzle, storageKey, vis
 
   // Un même indice redemandé (sans nouvelle déduction) n'est compté qu'une fois.
   const lastHint = useRef<{ key: string | null; hint: string } | null>(null);
+  const isNewHint = useCallback((hintKey: string) => !(lastHint.current?.key === key && lastHint.current.hint === hintKey), [key]);
   const noteHint = useCallback(
     (hintKey: string) => {
-      if (lastHint.current?.key === key && lastHint.current.hint === hintKey) return;
+      if (!isNewHint(hintKey)) return;
       lastHint.current = { key, hint: hintKey };
       act({ type: 'hintShown', now: now() });
     },
-    [act, key],
+    [act, key, isNewHint],
   );
 
   const applyHint = useCallback(
@@ -255,6 +258,8 @@ export function useGameSession<P>(rules: GameRules<P>, { puzzle, storageKey, vis
       release();
       act({ type: 'reset', now: now() });
     },
+    /** Cet indice compterait-il comme un nouvel indice ? (faux pour le dernier indice compté, redemandé sans nouvelle déduction) */
+    isNewHint,
     /** Indice affiché au joueur : compté une fois par déduction distincte (`hintKey`). */
     noteHint,
     /** Joue les cases d'un indice (une seule entrée d'historique). */

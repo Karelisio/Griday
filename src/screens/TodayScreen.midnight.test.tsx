@@ -68,6 +68,9 @@ describe('minuit pendant une partie', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Jouer le nouveau' }));
     expect(await screen.findByText('jeudi 8 octobre')).toBeTruthy();
+    // Le nouveau jour est de l'autre type (alternance) : sa grille Binairo s'affiche.
+    expect(await screen.findByText('Binairo', {}, { timeout: 15_000 })).toBeTruthy();
+    await waitFor(() => expect(within(screen.getByRole('grid')).getAllByRole('gridcell')).toHaveLength(64), { timeout: 15_000 });
     await waitFor(() => expect(screen.queryByText(/Finissez celui d’hier/)).toBeNull());
     expect(screen.queryByText('Série : 1 jour')).toBeNull();
   }, 60_000);

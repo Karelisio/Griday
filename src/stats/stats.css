@@ -216,6 +216,18 @@
   gap: 8px;
 }
 
+/* Gel offert : bouton tonal sous l'explication, ou état (prochain jour possible, réserve pleine). */
+.streak-card__claim {
+  align-self: flex-start;
+}
+
+.streak-card__offer-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+}
+
 /* Gel disponible : disque plein ; emplacement vide : anneau et flocon estompé (la forme porte l'état). */
 .streak-card__slot {
   display: grid;
@@ -534,4 +546,9 @@
   .streak-card__slot {
     forced-color-adjust: none;
   }
+}
+
+/* Types mêlés : le nom du jeu précède la taille, plus discret. */
+.size-table__type {
+  color: var(--md-sys-color-on-surface-variant);
 }
