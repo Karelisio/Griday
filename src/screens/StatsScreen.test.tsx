@@ -1,17 +1,24 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { i18n, initI18n, setLanguage } from '../i18n';
 import { formatClock, formatDuration } from '../i18n/format';
 import { ProgressProvider } from '../progress/ProgressContext';
 import type { ProgressData } from '../progress/store';
 import { formatPercent, formatShortDate } from '../stats/format';
-import { daily, day, progress, unlimited } from '../stats/testing';
+import { daily, day, freezeToday, progress, unlimited } from '../stats/testing';
 import { StatsScreen } from './StatsScreen';
+
+const NBSP = ' ';
 
 beforeAll(async () => {
   await initI18n('fr');
 });
+// Date du jour figée : les jeux de données y sont relatifs (la vraie date ne doit jamais entrer en jeu).
+beforeEach(() => {
+  freezeToday();
+});
 afterEach(async () => {
+  vi.useRealTimers();
   await setLanguage('fr');
   localStorage.clear();
 });
@@ -77,8 +84,8 @@ describe('écran des statistiques', () => {
     expect(within(tile(dailyGroup, 'Temps moyen')).getByText(formatClock(207_500, 'fr'))).toBeTruthy();
     expect(tile(dailyGroup, 'Temps moyen').textContent).toContain(formatDuration(207_500, 'fr')); // lu en toutes lettres
     expect(within(tile(dailyGroup, 'Meilleur temps')).getByText('0:45')).toBeTruthy();
-    // 5 résolus le jour même sur 6, 4 sans indice sur 6.
-    const onTime = tile(dailyGroup, 'Le jour même');
+    // 5 résolus à temps sur 6, 4 sans indice sur 6.
+    const onTime = tile(dailyGroup, 'À temps');
     expect(onTime.textContent).toContain('5');
     expect(onTime.textContent).toContain(formatPercent(5 / 6, 'fr'));
     const noHint = tile(dailyGroup, 'Sans indice');
@@ -90,11 +97,11 @@ describe('écran des statistiques', () => {
   it('carte de série : série en cours, record, gels et rappel du jour', () => {
     const { container } = renderStats(populated());
     const hero = screen.getByRole('region', { name: 'Série en cours' });
-    // Aujourd'hui, hier, avant-hier et il y a 3 jours résolus le jour même ; le puzzle d'archive ne compte pas.
+    // Aujourd'hui, hier, avant-hier et il y a 3 jours résolus à temps ; le puzzle résolu plus tard ne compte pas.
     expect(within(hero).getByText('4', { selector: '.streak-card__count span' })).toBeTruthy();
     expect(within(hero).getByText('jours')).toBeTruthy();
     expect(within(hero).getByText(/Record/).textContent).toMatch(/^Record\s: 4$/);
-    expect(within(hero).getByRole('img', { name: '1 sur 2' })).toBeTruthy();
+    expect(within(hero).getByRole('img', { name: `Gels disponibles${NBSP}: 1 sur 2` })).toBeTruthy();
     expect(container.querySelectorAll('.streak-card__slot').length).toBe(2);
     expect(container.querySelectorAll('.streak-card__slot[data-filled]').length).toBe(1);
     expect(within(hero).getByText(/tous les 7 jours de série \(2 au maximum\)/)).toBeTruthy();
@@ -106,7 +113,7 @@ describe('écran des statistiques', () => {
     const hero = screen.getByRole('region', { name: 'Série en cours' });
     expect(within(hero).getByText(/Résolvez le puzzle du jour avant minuit/)).toBeTruthy();
     expect(within(hero).queryByText(/Puzzle du jour résolu/)).toBeNull();
-    expect(within(hero).getByRole('img', { name: '0 sur 2' })).toBeTruthy();
+    expect(within(hero).getByRole('img', { name: `Gels disponibles${NBSP}: 0 sur 2` })).toBeTruthy();
   });
 
   it('graphique 1 : libellé accessible par difficulté, palier vide signalé', () => {
@@ -128,7 +135,7 @@ describe('écran des statistiques', () => {
     expect((rows[0] as HTMLElement).style.getPropertyValue('--v')).toBe('0.25');
   });
 
-  it('graphique 2 : libellé accessible, archive hachurée, détail du puzzle choisi', () => {
+  it('graphique 2 : libellé accessible, puzzle résolu plus tard hachuré, détail du puzzle choisi', () => {
     const { container } = renderStats(populated());
     const chart = screen.getByRole('img', { name: /^Temps de vos 6 derniers puzzles du jour/ });
     const label = chart.getAttribute('aria-label')!;
@@ -138,21 +145,22 @@ describe('écran des statistiques', () => {
 
     const bars = container.querySelectorAll('.recent-chart__bar');
     expect(bars.length).toBe(6);
-    // Du plus ancien au plus récent ; l'archive (tier 4, il y a 4 jours) est la seule hachurée.
+    // Du plus ancien au plus récent ; le puzzle résolu plus tard (tier 4, il y a 4 jours) est le seul hachuré.
     expect([...bars].map((b) => b.getAttribute('data-tier'))).toEqual(['1', '4', '3', '2', '1', '1']);
     expect([...bars].map((b) => b.hasAttribute('data-archive'))).toEqual([false, true, false, false, false, false]);
 
     // Par défaut : le dernier puzzle ; le curseur change de puzzle et le détail suit.
     const slider = screen.getByRole('slider', { name: 'Choisir un puzzle' }) as HTMLInputElement;
     expect(slider.value).toBe('5');
-    expect(slider.getAttribute('aria-valuetext')).toContain('Facile');
+    expect(slider.getAttribute('aria-valuetext')).toMatch(/Facile.*résolu à temps$/);
     fireEvent.change(slider, { target: { value: '1' } });
     expect(slider.getAttribute('aria-valuetext')).toBe(
-      [formatShortDate(day(4), 'fr', true), formatDuration(600_000, 'fr'), 'Expert', i18n.t('unlimited.sizeValue', { n: 10 }), 'sans indice', 'en archive'].join(', '),
+      [formatShortDate(day(4), 'fr', true), formatDuration(600_000, 'fr'), 'Expert', i18n.t('unlimited.sizeValue', { n: 10 }), 'sans indice', 'résolu plus tard'].join(', '),
     );
     const readout = container.querySelector('.recent-chart__readout')!;
     expect(readout.textContent).toContain('10:00');
-    expect(readout.textContent).toContain('en archive');
+    expect(readout.textContent).toContain('résolu plus tard');
+    expect(container.querySelector('.recent-chart__legend [data-archive]')!.textContent).toBe('Résolu plus tard');
     expect(container.querySelector('.recent-chart__slot[data-selected]')).toBe(container.querySelectorAll('.recent-chart__slot')[1]);
     // Version texte complète pour les lecteurs d'écran.
     expect(container.querySelectorAll('ol.md-sr-only li').length).toBe(6);
@@ -215,22 +223,23 @@ describe('écran des statistiques', () => {
   });
 
   it('anglais : textes, pourcentages et temps localisés', async () => {
-    renderStats(populated());
+    const { container } = renderStats(populated());
     await act(() => setLanguage('en'));
     expect(screen.getByRole('heading', { level: 1, name: 'Statistics' })).toBeTruthy();
     const hero = screen.getByRole('region', { name: 'Current streak' });
     expect(within(hero).getByText('days')).toBeTruthy();
-    expect(within(hero).getByText('Best: 4')).toBeTruthy();
-    expect(within(hero).getByRole('img', { name: '1 of 2' })).toBeTruthy();
+    expect(within(hero).getByText('Best streak: 4')).toBeTruthy();
+    expect(within(hero).getByRole('img', { name: 'Streak freezes available: 1 of 2' })).toBeTruthy();
     expect(within(hero).getByText(/every 7 days of streak \(up to 2\)/)).toBeTruthy();
 
     const dailyGroup = group('Daily puzzles');
-    expect(within(tile(dailyGroup, 'On the day')).getByText('83%')).toBeTruthy();
+    expect(within(tile(dailyGroup, 'On time')).getByText('83%')).toBeTruthy();
     expect(within(tile(dailyGroup, 'No hints')).getByText('67%')).toBeTruthy();
     expect(within(tile(dailyGroup, 'Average time')).getByText('3:27')).toBeTruthy();
     expect(screen.getByRole('img', { name: /^Average time by difficulty\. Easy: / })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Your last 6 times' })).toBeTruthy();
     expect(screen.getByRole('slider', { name: 'Pick a puzzle' }).getAttribute('aria-valuetext')).toContain(formatShortDate(day(0), 'en', true));
+    expect(container.querySelector('.recent-chart__legend [data-archive]')!.textContent).toBe('Solved later');
     expect(within(group('Unlimited mode')).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Size', 'Solved', 'Average time', 'Best time']);
   });
 });

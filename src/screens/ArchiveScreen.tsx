@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { SCHEDULE } from '../../engine/config';
 import { compareISO, type ISODate } from '../../engine/core/date';
 import { ArchiveCalendar } from '../archive/ArchiveCalendar';
-import { clampMonth, monthKey, monthOf, playableDays, type MonthRef } from '../archive/calendarModel';
+import { clampMonth, diffMonths, monthKey, monthOf, playableDays, type MonthRef } from '../archive/calendarModel';
 import { useProgress } from '../progress/ProgressContext';
 import { dayStatus } from '../progress/stats';
 import { loadStartedDays } from '../progress/store';
@@ -17,11 +17,15 @@ const FIRST_DAY = SCHEDULE.epoch;
 export function ArchiveScreen({ visible, onOpen }: { visible: boolean; onOpen: (date: ISODate) => void }) {
   const { t } = useTranslation();
   const { today, ready, history, streak } = useProgress();
-  const [requested, setRequested] = useState<MonthRef>(() => monthOf(today));
+  // Mois choisi par le joueur ; `null` tant qu'il reste sur le mois courant, que l'écran suit alors quand le calendrier
+  // change de mois (app restée ouverte). S'il s'en est éloigné exprès, son choix est gardé.
+  const [picked, setPicked] = useState<MonthRef | null>(null);
+  const current = monthOf(today);
   // Toujours entre le mois de l'epoch et le mois courant (l'horloge peut avoir changé).
-  const month = clampMonth(requested, FIRST_DAY, today);
+  const month = clampMonth(picked ?? current, FIRST_DAY, today);
   const key = monthKey(month);
   const days = useMemo(() => playableDays(month, FIRST_DAY, today), [key, today]);
+  const changeMonth = (next: MonthRef) => setPicked(diffMonths(next, current) === 0 ? null : next);
 
   // Parties entamées du mois affiché : relues à chaque retour sur l'écran et à chaque partie terminée.
   const [started, setStarted] = useState<ReadonlySet<ISODate>>(() => new Set());
@@ -39,6 +43,8 @@ export function ArchiveScreen({ visible, onOpen }: { visible: boolean; onOpen: (
   const frozen = useMemo(() => new Set(streak.frozen), [streak.frozen]);
   const status = useCallback((date: ISODate) => dayStatus(date, history, frozen, started), [history, frozen, started]);
   const solved = days.filter((date) => history.has(date)).length;
+  // Résumé du mois ; texte à part pour un seul jour jouable (en anglais, le nom suit le total : « of 1 day »).
+  const summary = t(days.length === 1 ? 'archive.summaryOneDay' : 'archive.summary', { count: solved, total: days.length });
   // Aucun jour passé : les archives se remplissent à partir de demain.
   const empty = compareISO(today, FIRST_DAY) <= 0;
 
@@ -51,7 +57,7 @@ export function ArchiveScreen({ visible, onOpen }: { visible: boolean; onOpen: (
         <p className="md-typescale-body-large screen__subtitle">{t('archive.subtitle')}</p>
         {ready && !empty && (
           <div className="screen__chips">
-            <InfoChip icon="event_available">{t('archive.summary', { solved, count: days.length })}</InfoChip>
+            <InfoChip icon="event_available">{summary}</InfoChip>
           </div>
         )}
       </header>
@@ -65,7 +71,7 @@ export function ArchiveScreen({ visible, onOpen }: { visible: boolean; onOpen: (
           <p className="md-typescale-body-large">{t('archive.empty')}</p>
         </div>
       ) : (
-        <ArchiveCalendar month={month} onMonthChange={setRequested} today={today} first={FIRST_DAY} status={status} onSelect={onOpen} />
+        <ArchiveCalendar month={month} onMonthChange={changeMonth} today={today} first={FIRST_DAY} status={status} onSelect={onOpen} />
       )}
     </section>
   );

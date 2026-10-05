@@ -82,12 +82,12 @@ describe('calendrier des archives', () => {
       />,
     );
     const name = (date: ISODate) => day(date).getAttribute('aria-label');
-    expect(name('2026-11-02')).toBe(`lundi 2 novembre 2026${NBSP}: résolu le jour même`);
+    expect(name('2026-11-02')).toBe(`lundi 2 novembre 2026${NBSP}: résolu à temps`);
     expect(name('2026-11-03')).toBe(`mardi 3 novembre 2026${NBSP}: résolu plus tard`);
     expect(name('2026-11-04')).toBe(`mercredi 4 novembre 2026${NBSP}: gel de série utilisé`);
     expect(name('2026-11-05')).toBe(`jeudi 5 novembre 2026${NBSP}: en cours`);
     expect(name('2026-11-06')).toBe(`vendredi 6 novembre 2026${NBSP}: non joué`);
-    expect(name('2026-11-18')).toBe(`mercredi 18 novembre 2026 (aujourd’hui)${NBSP}: résolu le jour même`);
+    expect(name('2026-11-18')).toBe(`mercredi 18 novembre 2026 (aujourd’hui)${NBSP}: résolu à temps`);
     // Accessible par rôle et nom.
     expect(screen.getByRole('button', { name: /^mardi 3 novembre 2026\s: résolu plus tard$/ })).toBe(day('2026-11-03'));
     // Pastille de coin pour les états résolu, tardif et gelé ; point pour « en cours » ; rien sinon.
@@ -291,7 +291,7 @@ describe('calendrier des archives', () => {
     render(<Harness />);
     const legend = screen.getByRole('list', { name: 'Légende' });
     const items = within(legend).getAllByRole('listitem');
-    expect(items.map((item) => item.textContent)).toEqual(['résolu le jour même', 'résolu plus tard', 'gel de série utilisé', 'en cours']);
+    expect(items.map((item) => item.textContent)).toEqual(['résolu à temps', 'résolu plus tard', 'gel de série utilisé', 'en cours']);
     expect(items.map((item) => item.dataset['status'])).toEqual(['solved', 'late', 'frozen', 'progress']);
     expect(items.map((item) => item.querySelectorAll('svg').length)).toEqual([1, 1, 1, 0]);
     expect(items[3]!.querySelector('.archive-day__dot')).not.toBeNull();
@@ -299,7 +299,7 @@ describe('calendrier des archives', () => {
 
   it('anglais : mois, jours, états et boutons traduits', async () => {
     await setLanguage('en');
-    render(<Harness statuses={{ '2026-11-03': 'late' }} />);
+    render(<Harness statuses={{ '2026-11-02': 'solved', '2026-11-03': 'late' }} />);
     expect(heading()).toBe('November 2026');
     expect(screen.getAllByRole('columnheader').map((h) => h.getAttribute('aria-label'))).toEqual([
       'Monday',
@@ -311,11 +311,13 @@ describe('calendrier des archives', () => {
       'Sunday',
     ]);
     expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['M', 'T', 'W', 'T', 'F', 'S', 'S']);
+    expect(day('2026-11-02').getAttribute('aria-label')).toBe('Monday, November 2, 2026: solved on time');
     expect(day('2026-11-03').getAttribute('aria-label')).toBe('Tuesday, November 3, 2026: solved later');
     expect(day(TODAY).getAttribute('aria-label')).toBe('Wednesday, November 18, 2026 (today): not played');
     expect(screen.getByRole('button', { name: 'Previous month' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Next month' })).toBeTruthy();
-    expect(screen.getByRole('list', { name: 'Legend' })).toBeTruthy();
+    const legend = screen.getByRole('list', { name: 'Legend' });
+    expect(within(legend).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['solved on time', 'solved later', 'streak freeze used', 'in progress']);
   });
 
   it('aucun jour jouable (horloge avant l’epoch) : tout est désactivé, rien ne plante', () => {

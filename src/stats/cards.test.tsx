@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
-import { beforeAll, describe, expect, it } from 'vitest';
-import { initI18n } from '../i18n';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { initI18n, setLanguage } from '../i18n';
 import { formatClock, formatDuration } from '../i18n/format';
 import type { StreakSummary } from '../progress/types';
 import { StatTile } from './StatTile';
@@ -10,6 +10,11 @@ import { TimeValue } from './TimeValue';
 beforeAll(async () => {
   await initI18n('fr');
 });
+afterEach(async () => {
+  await setLanguage('fr');
+});
+
+const NBSP = ' ';
 
 const summary = (over: Partial<StreakSummary> = {}): StreakSummary => ({ current: 12, best: 21, freezes: 2, todaySolved: false, atRisk: true, ...over });
 
@@ -27,18 +32,26 @@ describe('carte de série', () => {
     expect(screen.queryByText(/^Record/)).toBeNull(); // pas de record à afficher
   });
 
-  it('gels : emplacements pleins puis vides, nommés « n sur max »', () => {
+  it('gels : emplacements pleins puis vides, nommés « Gels disponibles : n sur max »', () => {
     const { container, rerender } = render(<StreakCard summary={summary({ freezes: 2 })} />);
     const filled = () => container.querySelectorAll('.streak-card__slot[data-filled]').length;
-    expect(screen.getByRole('img', { name: '2 sur 2' })).toBeTruthy();
+    const slots = (n: number) => screen.getByRole('img', { name: `Gels disponibles${NBSP}: ${n} sur 2` });
+    expect(slots(2)).toBeTruthy();
     expect(filled()).toBe(2);
     rerender(<StreakCard summary={summary({ freezes: 1 })} />);
-    expect(screen.getByRole('img', { name: '1 sur 2' })).toBeTruthy();
+    expect(slots(1)).toBeTruthy();
     expect(filled()).toBe(1);
     rerender(<StreakCard summary={summary({ freezes: 0 })} />);
-    expect(screen.getByRole('img', { name: '0 sur 2' })).toBeTruthy();
+    expect(slots(0)).toBeTruthy();
     expect(filled()).toBe(0);
     expect(container.querySelectorAll('.streak-card__slot').length).toBe(2);
+  });
+
+  it('anglais : record et gels nommés en toutes lettres', async () => {
+    await setLanguage('en');
+    render(<StreakCard summary={summary({ freezes: 1 })} />);
+    expect(screen.getByText('Best streak: 21')).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Streak freezes available: 1 of 2' })).toBeTruthy();
   });
 
   it('une seule phrase d’état : menace, jour résolu ou série à lancer', () => {

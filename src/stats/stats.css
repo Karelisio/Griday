@@ -13,17 +13,19 @@
 /*
  * Graphiques. La surface de la carte sert de référence aux teintes mélangées ci-dessous.
  * Difficulté = rampe ordinale à une seule teinte (la couleur primaire du thème), de la plus pâle (facile) à la plus
- * intense (expert). Chaque marche s'éloigne du fond (plus sombre en clair, plus lumineuse en sombre) sans réglage
- * par mode. Contrôlée avec le validateur de rampes ordinales sur la couleur de la marque et huit autres couleurs
- * sources, en clair et en sombre : clarté monotone, écart ≥ 0,06 entre marches voisines, marche la plus pâle à
- * plus de 2:1 du fond. La couleur n'est jamais seule : libellés, détail du puzzle choisi et liste masquée la doublent.
+ * intense (expert), interpolée entre deux ancres : la pâle (75 % de primaire sur la carte) et l'intense (moitié
+ * primaire, moitié texte), d'où des marches de clarté égale. Chaque marche s'éloigne du fond (plus sombre en clair,
+ * plus lumineuse en sombre) sans réglage par mode. Contrôlée en rendu réel (Chromium) avec le validateur de rampes
+ * ordinales sur la couleur de la marque et 47 autres couleurs sources, en clair et en sombre : clarté monotone,
+ * écart ≥ 0,06 entre marches voisines, chaque marche à plus de 3:1 de la carte (WCAG 1.4.11 ; 3,18:1 au plus bas).
+ * La couleur n'est jamais seule : libellés, détail du puzzle choisi et liste masquée la doublent.
  */
 .md-card.stats-card {
   --stats-surface: var(--md-card-container);
-  --stats-tier-1: color-mix(in oklab, var(--md-sys-color-primary) 50%, var(--stats-surface));
-  --stats-tier-2: color-mix(in oklab, var(--md-sys-color-primary) 72%, var(--stats-surface));
-  --stats-tier-3: color-mix(in oklab, var(--md-sys-color-primary) 92%, var(--stats-surface));
-  --stats-tier-4: color-mix(in oklab, var(--md-sys-color-on-surface) 30%, var(--md-sys-color-primary));
+  --stats-tier-1: color-mix(in oklab, var(--md-sys-color-primary) 75%, var(--stats-surface));
+  --stats-tier-2: color-mix(in oklab, var(--stats-tier-1) 67%, var(--stats-tier-4));
+  --stats-tier-3: color-mix(in oklab, var(--stats-tier-1) 33%, var(--stats-tier-4));
+  --stats-tier-4: color-mix(in oklab, var(--md-sys-color-on-surface) 50%, var(--md-sys-color-primary));
   /* Quadrillage et axe : un cran au-dessus de la surface, filets pleins de 1 px. */
   --stats-grid: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
   --stats-axis: color-mix(in srgb, var(--md-sys-color-on-surface) 32%, transparent);

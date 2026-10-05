@@ -1,7 +1,8 @@
 /**
  * Graphique 2 : temps des derniers puzzles du jour, du plus ancien au plus récent (une colonne par puzzle).
- * Couleur = difficulté (rampe ordinale), hachures = puzzle d'archive. Un curseur invisible superposé au tracé
- * donne le détail d'un puzzle (toucher, glisser ou flèches du clavier) ; la liste masquée en est la version texte.
+ * Couleur = difficulté (rampe ordinale), hachures = puzzle résolu plus tard (archive). Un curseur invisible
+ * superposé au tracé donne le détail d'un puzzle (toucher, glisser ou flèches du clavier) ; la liste masquée en est
+ * la version texte.
  */
 import { useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,7 +11,7 @@ import { formatClock, formatDuration } from '../i18n/format';
 import type { DailyResult } from '../progress/types';
 import { Card } from '../ui';
 import { cssVars, outlierLimit, share, timeScale } from './chart';
-import { formatShortDate } from './format';
+import { capitalize, formatShortDate } from './format';
 import './stats.css';
 
 const TIERS = [1, 2, 3, 4] as const;
@@ -31,11 +32,12 @@ export function RecentChart({ results }: { results: readonly DailyResult[] }) {
   if (n === 0) return null;
   const [first, last, shown] = [results[0]!, results[n - 1]!, results[index]!];
 
+  // Même vocabulaire que le calendrier des archives : « résolu à temps » / « résolu plus tard ».
   const details = (r: DailyResult) => [
     t(`difficulty.${r.tier}`),
     t('unlimited.sizeValue', { n: r.size }),
     t('victory.hints', { count: r.hintsUsed }).toLocaleLowerCase(lang),
-    t(r.mode === 'daily' ? 'stats.daily.onTime' : 'stats.recent.archive').toLocaleLowerCase(lang),
+    t(r.mode === 'daily' ? 'archive.status.solved' : 'archive.status.late'),
   ];
   const spoken = (r: DailyResult) => [formatShortDate(r.date, lang, true), formatDuration(r.timeMs, lang), ...details(r)].join(', ');
   const summary = t('stats.recent.label', {
@@ -62,7 +64,7 @@ export function RecentChart({ results }: { results: readonly DailyResult[] }) {
         ))}
         <li data-archive>
           <span className="recent-chart__swatch" />
-          {t('stats.recent.archive')}
+          {capitalize(t('archive.status.late'), lang)}
         </li>
       </ul>
 

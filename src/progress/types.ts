@@ -60,9 +60,9 @@ export interface TierStats {
 }
 
 export interface DailyStats {
-  /** Puzzles du jour résolus (le jour même ou en archive). */
+  /** Puzzles du jour résolus (à temps ou plus tard, depuis les archives). */
   readonly solved: number;
-  /** Résolus le jour même. */
+  /** Résolus à temps : commencés le jour même, finis au plus tard le lendemain. */
   readonly onTime: number;
   readonly noHint: number;
   readonly averageMs: number | null;

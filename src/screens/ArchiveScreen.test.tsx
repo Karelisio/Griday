@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ISODate } from '../../engine/core/date';
 import { initI18n, setLanguage } from '../i18n';
@@ -30,6 +30,14 @@ function setToday(year: number, month: number, day: number): void {
   vi.setSystemTime(new Date(year, month - 1, day, 12));
 }
 
+/** Minuit passé, l'app revient au premier plan : la date du jour est relue (écran resté monté). */
+function nextDay(year: number, month: number, day: number): void {
+  setToday(year, month, day);
+  act(() => {
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+}
+
 const NBSP = ' ';
 const result = (date: ISODate, mode: 'daily' | 'archive', solvedOn: ISODate = date): DailyResult => ({
   date,
@@ -41,7 +49,7 @@ const result = (date: ISODate, mode: 'daily' | 'archive', solvedOn: ISODate = da
   solvedOn,
 });
 
-/** Progression : en novembre deux jours résolus (un le jour même, un rattrapé) et un jour gelé ; le 5 octobre résolu. */
+/** Progression : en novembre deux jours résolus (un à temps, un rattrapé) et un jour gelé ; le 5 octobre résolu. */
 function progress(): ProgressData {
   return {
     history: new Map([
@@ -99,7 +107,7 @@ describe('écran des archives', () => {
 
     // Parties entamées relues du stockage (asynchrone).
     expect(await screen.findByRole('button', { name: /^jeudi 5 novembre 2026\s: en cours$/ })).toBeTruthy();
-    expect(label('2026-11-02')).toBe(`lundi 2 novembre 2026${NBSP}: résolu le jour même`);
+    expect(label('2026-11-02')).toBe(`lundi 2 novembre 2026${NBSP}: résolu à temps`);
     expect(label('2026-11-03')).toBe(`mardi 3 novembre 2026${NBSP}: résolu plus tard`);
     expect(label('2026-11-04')).toBe(`mercredi 4 novembre 2026${NBSP}: gel de série utilisé`);
     expect(label('2026-11-06')).toBe(`vendredi 6 novembre 2026${NBSP}: non joué`);
@@ -110,9 +118,9 @@ describe('écran des archives', () => {
     expect(day('2026-11-18').getAttribute('aria-current')).toBe('date');
   });
 
-  it('résumé du mois : jours résolus (le jour même ou plus tard) sur jours jouables', () => {
+  it('résumé du mois : jours résolus (à temps ou plus tard) sur jours jouables', () => {
     renderScreen();
-    expect(screen.getByText('2 sur 18 jours résolus')).toBeTruthy();
+    expect(screen.getByText('2 jours résolus sur 18')).toBeTruthy();
   });
 
   it('toucher un jour appelle onOpen avec sa date, aujourd’hui compris', () => {
@@ -133,17 +141,63 @@ describe('écran des archives', () => {
 
     fireEvent.click(button('Mois précédent'));
     expect(month()).toBe('octobre 2026');
-    expect(screen.getByText('1 sur 27 jours résolus')).toBeTruthy(); // du 5 au 31 octobre
+    expect(screen.getByText('1 jour résolu sur 27')).toBeTruthy(); // du 5 au 31 octobre
     expect(await screen.findByRole('button', { name: /^mardi 20 octobre 2026\s: en cours$/ })).toBeTruthy();
     expect(day('2026-10-04').disabled).toBe(true); // avant le jour n° 1
     expect(day('2026-10-05').disabled).toBe(false);
-    expect(label('2026-10-05')).toBe(`lundi 5 octobre 2026${NBSP}: résolu le jour même`);
+    expect(label('2026-10-05')).toBe(`lundi 5 octobre 2026${NBSP}: résolu à temps`);
     expect([button('Mois précédent').disabled, button('Mois suivant').disabled]).toEqual([true, false]);
 
     fireEvent.click(button('Mois suivant'));
     expect(month()).toBe('novembre 2026');
-    expect(screen.getByText('2 sur 18 jours résolus')).toBeTruthy();
+    expect(screen.getByText('2 jours résolus sur 18')).toBeTruthy();
     expect([button('Mois précédent').disabled, button('Mois suivant').disabled]).toEqual([false, true]);
+  });
+
+  it('app restée ouverte au changement de mois : l’écran suit le nouveau mois courant', () => {
+    setToday(2026, 11, 30);
+    renderScreen({ data: blank('2026-11-29') });
+    expect(month()).toBe('novembre 2026');
+    expect(screen.getByText('0 jour résolu sur 30')).toBeTruthy();
+
+    nextDay(2026, 12, 1);
+    expect(month()).toBe('décembre 2026');
+    expect(screen.getByText('0 jour résolu sur 1')).toBeTruthy(); // le 1er : un seul jour jouable
+    expect(day('2026-12-01').getAttribute('aria-current')).toBe('date');
+    expect(day('2026-12-02').disabled).toBe(true);
+    expect([button('Mois précédent').disabled, button('Mois suivant').disabled]).toEqual([false, true]);
+
+    nextDay(2027, 1, 1); // et ainsi de suite, passage d’année compris
+    expect(month()).toBe('janvier 2027');
+  });
+
+  it('mois choisi exprès : gardé au changement de mois, suivi de nouveau dès le retour au mois courant', () => {
+    setToday(2026, 11, 30);
+    renderScreen({ data: blank('2026-11-29') });
+    fireEvent.click(button('Mois précédent'));
+    expect(month()).toBe('octobre 2026');
+
+    nextDay(2026, 12, 1);
+    expect(month()).toBe('octobre 2026'); // le joueur a quitté le mois courant : son choix est respecté
+    expect(button('Mois suivant').disabled).toBe(false); // novembre et décembre sont désormais atteignables
+
+    fireEvent.click(button('Mois suivant'));
+    expect(month()).toBe('novembre 2026');
+    nextDay(2026, 12, 2);
+    expect(month()).toBe('novembre 2026'); // toujours son choix : novembre n’est plus le mois courant
+
+    fireEvent.click(button('Mois suivant'));
+    expect(month()).toBe('décembre 2026'); // de retour sur le mois courant : l’écran le suit de nouveau
+    nextDay(2027, 1, 1);
+    expect(month()).toBe('janvier 2027');
+  });
+
+  it('résumé d’un mois à un seul jour jouable : « sur 1 jour » au singulier dans les deux langues', async () => {
+    setToday(2026, 12, 1);
+    renderScreen({ data: { ...blank('2026-11-30'), history: new Map([['2026-12-01', result('2026-12-01', 'daily')]]) } });
+    expect(screen.getByText('1 jour résolu sur 1')).toBeTruthy();
+    await act(() => setLanguage('en'));
+    expect(screen.getByText('1 of 1 day solved')).toBeTruthy();
   });
 
   it('parties entamées relues quand l’écran redevient visible (retour d’une partie)', async () => {
@@ -169,18 +223,18 @@ describe('écran des archives', () => {
     await saveJSON(dailyProgressKey('2026-11-10'), startedGame);
     renderScreen({ solved: result('2026-11-10', 'archive', '2026-11-18') });
     expect(await screen.findByRole('button', { name: /^mardi 10 novembre 2026\s: en cours$/ })).toBeTruthy();
-    expect(screen.getByText('2 sur 18 jours résolus')).toBeTruthy();
+    expect(screen.getByText('2 jours résolus sur 18')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'record' }));
     expect(await screen.findByRole('button', { name: /^mardi 10 novembre 2026\s: résolu plus tard$/ })).toBeTruthy();
-    expect(screen.getByText('3 sur 18 jours résolus')).toBeTruthy();
+    expect(screen.getByText('3 jours résolus sur 18')).toBeTruthy();
   });
 
   it('lendemain du jour n° 1 : un seul mois, deux jours jouables', () => {
     setToday(2026, 10, 6);
     renderScreen({ data: blank('2026-10-05') });
     expect(month()).toBe('octobre 2026');
-    expect(screen.getByText('0 sur 2 jours résolus')).toBeTruthy();
+    expect(screen.getByText('0 jour résolu sur 2')).toBeTruthy();
     expect(day('2026-10-04').disabled).toBe(true);
     expect(day('2026-10-05').disabled).toBe(false);
     expect(day('2026-10-06').disabled).toBe(false);

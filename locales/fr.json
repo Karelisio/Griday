@@ -190,8 +190,7 @@
     "label_one": "Série : {{count}} jour",
     "label_other": "Série : {{count}} jours",
     "label_zero": "Pas encore de série",
-    "freezeEarned": "Gel de série gagné ! Il protégera votre série un jour manqué.",
-    "best": "Record : {{count}}"
+    "freezeEarned": "Gel de série gagné ! Il protégera votre série un jour manqué."
   },
   "share": {
     "daily": "Griday n° {{n}} 👑 {{size}} · {{difficulty}}",
@@ -215,15 +214,16 @@
     "day": "{{date}} : {{status}}",
     "dayToday": "{{date}} (aujourd’hui) : {{status}}",
     "status": {
-      "solved": "résolu le jour même",
+      "solved": "résolu à temps",
       "late": "résolu plus tard",
       "frozen": "gel de série utilisé",
       "progress": "en cours",
       "none": "non joué"
     },
     "legend": "Légende",
-    "summary_one": "{{solved}} sur {{count}} jour résolu",
-    "summary_other": "{{solved}} sur {{count}} jours résolus",
+    "summary_one": "{{count}} jour résolu sur {{total}}",
+    "summary_other": "{{count}} jours résolus sur {{total}}",
+    "summaryOneDay": "{{count}} jour résolu sur 1",
     "emptyTitle": "Pas encore d’archives",
     "empty": "Les puzzles passés s’afficheront ici dès demain, pour les jouer ou les rattraper quand vous voulez."
   },
@@ -243,18 +243,19 @@
       "title": "Série en cours",
       "days_one": "jour",
       "days_other": "jours",
+      "best": "Record : {{count}}",
       "atRisk": "Résolvez le puzzle du jour avant minuit pour garder votre série.",
       "done": "Puzzle du jour résolu !",
       "start": "Résolvez le puzzle du jour pour lancer une série."
     },
     "freezes": {
       "title": "Gels de série",
-      "count": "{{n}} sur {{max}}",
+      "count": "Gels disponibles : {{n}} sur {{max}}",
       "explain": "Un gel protège votre série quand vous manquez un jour. Vous en gagnez un tous les {{every}} jours de série ({{max}} au maximum)."
     },
     "daily": {
       "title": "Puzzles du jour",
-      "onTime": "Le jour même",
+      "onTime": "À temps",
       "noHint": "Sans indice",
       "empty": "Aucun puzzle du jour résolu pour l’instant."
     },
@@ -266,7 +267,6 @@
     "recent": {
       "title_one": "Votre dernier temps",
       "title_other": "Vos {{count}} derniers temps",
-      "archive": "En archive",
       "label": "Temps de vos {{n}} derniers puzzles du jour, du {{from}} au {{to}} : de {{min}} à {{max}}, le dernier en {{last}}.",
       "pick": "Choisir un puzzle",
       "needMore": "Résolvez au moins deux puzzles du jour pour voir l’évolution de vos temps."

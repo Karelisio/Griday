@@ -35,7 +35,7 @@ export function StreakCard({ summary }: { summary: StreakSummary }) {
             <span className="md-typescale-title-large">{t('stats.streak.days', { count: current })}</span>
           </p>
         </div>
-        {best > 0 ? <InfoChip icon="emoji_events">{t('streak.best', { count: best })}</InfoChip> : null}
+        {best > 0 ? <InfoChip icon="emoji_events">{t('stats.streak.best', { count: best })}</InfoChip> : null}
       </div>
 
       <p className="streak-card__status md-typescale-label-large" data-status={status.key}>

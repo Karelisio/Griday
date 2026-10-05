@@ -190,8 +190,7 @@
     "label_one": "Streak: {{count}} day",
     "label_other": "Streak: {{count}} days",
     "label_zero": "No streak yet",
-    "freezeEarned": "Streak freeze earned! It will protect your streak on a missed day.",
-    "best": "Best: {{count}}"
+    "freezeEarned": "Streak freeze earned! It will protect your streak on a missed day."
   },
   "share": {
     "daily": "Griday #{{n}} 👑 {{size}} · {{difficulty}}",
@@ -215,15 +214,16 @@
     "day": "{{date}}: {{status}}",
     "dayToday": "{{date}} (today): {{status}}",
     "status": {
-      "solved": "solved on the day",
+      "solved": "solved on time",
       "late": "solved later",
       "frozen": "streak freeze used",
       "progress": "in progress",
       "none": "not played"
     },
     "legend": "Legend",
-    "summary_one": "{{solved}} of {{count}} day solved",
-    "summary_other": "{{solved}} of {{count}} days solved",
+    "summary_one": "{{count}} of {{total}} days solved",
+    "summary_other": "{{count}} of {{total}} days solved",
+    "summaryOneDay": "{{count}} of 1 day solved",
     "emptyTitle": "No archives yet",
     "empty": "Past puzzles will show up here starting tomorrow, so you can play or catch up on them whenever you like."
   },
@@ -243,18 +243,19 @@
       "title": "Current streak",
       "days_one": "day",
       "days_other": "days",
+      "best": "Best streak: {{count}}",
       "atRisk": "Solve today’s puzzle before midnight to keep your streak.",
       "done": "Today’s puzzle solved!",
       "start": "Solve today’s puzzle to start a streak."
     },
     "freezes": {
       "title": "Streak freezes",
-      "count": "{{n}} of {{max}}",
+      "count": "Streak freezes available: {{n}} of {{max}}",
       "explain": "A freeze protects your streak when you miss a day. You earn one every {{every}} days of streak (up to {{max}})."
     },
     "daily": {
       "title": "Daily puzzles",
-      "onTime": "On the day",
+      "onTime": "On time",
       "noHint": "No hints",
       "empty": "No daily puzzle solved yet."
     },
@@ -266,7 +267,6 @@
     "recent": {
       "title_one": "Your last time",
       "title_other": "Your last {{count}} times",
-      "archive": "From the archive",
       "label": "Times of your last {{n}} daily puzzles, from {{from}} to {{to}}: from {{min}} to {{max}}, the latest in {{last}}.",
       "pick": "Pick a puzzle",
       "needMore": "Solve at least two daily puzzles to see how your times evolve."

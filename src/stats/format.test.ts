@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { DASH, formatPercent, formatShortDate } from './format';
+import { capitalize, DASH, formatPercent, formatShortDate } from './format';
 
 describe('formats des statistiques', () => {
+  it('majuscule initiale (accents compris), reste du texte inchangé', () => {
+    expect(capitalize('résolu plus tard', 'fr')).toBe('Résolu plus tard');
+    expect(capitalize('à temps', 'fr')).toBe('À temps');
+    expect(capitalize('solved on time', 'en')).toBe('Solved on time');
+    expect(capitalize('Déjà', 'fr')).toBe('Déjà');
+    expect(capitalize('', 'en')).toBe('');
+  });
+
   it('pourcentage entier localisé (espace insécable avant « % » en français)', () => {
     // L'espace insécable (U+00A0 ou U+202F selon la version d'ICU) ne doit jamais être une espace ordinaire.
     expect(formatPercent(0.9, 'fr')).toMatch(/^90\s%$/);

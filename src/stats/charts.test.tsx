@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { beforeAll, describe, expect, it } from 'vitest';
-import { initI18n } from '../i18n';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { i18n, initI18n, setLanguage } from '../i18n';
 import { dailyStats, unlimitedStats } from '../progress/stats';
 import type { DailyResult } from '../progress/types';
+import { capitalize } from './format';
 import { RecentChart } from './RecentChart';
 import { SizeTable } from './SizeTable';
 import { TierChart } from './TierChart';
@@ -10,6 +11,9 @@ import { daily, unlimited } from './testing';
 
 beforeAll(async () => {
   await initI18n('fr');
+});
+afterEach(async () => {
+  await setLanguage('fr');
 });
 
 const row = (container: HTMLElement, i: number) => container.querySelectorAll<HTMLElement>('.tier-chart__row')[i]!;
@@ -63,15 +67,31 @@ describe('graphique d’évolution', () => {
     expect(readout.textContent).toContain('2:00');
     expect(readout.textContent).toContain('Difficile');
     expect(readout.textContent).toContain('2 indices utilisés');
-    expect(readout.textContent).toContain('en archive');
-    expect(screen.getByRole('slider').getAttribute('aria-valuetext')).toMatch(/Difficile, 8\s×\s8, 2 indices utilisés, en archive$/);
+    expect(readout.textContent).toContain('résolu plus tard');
+    expect(screen.getByRole('slider').getAttribute('aria-valuetext')).toMatch(/Difficile, 8\s×\s8, 2 indices utilisés, résolu plus tard$/);
+    // Puzzle rendu à temps : même formule que l'état du jour dans le calendrier des archives.
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '2' } });
+    expect(readout.textContent).toContain('résolu à temps');
+    expect(screen.getByRole('slider').getAttribute('aria-valuetext')).toMatch(/Facile, 6\s×\s6, sans indice, résolu à temps$/);
   });
 
-  it('légende : quatre difficultés dans l’ordre puis l’archive, masquée aux lecteurs d’écran', () => {
+  it('légende : quatre difficultés dans l’ordre puis « résolu plus tard », masquée aux lecteurs d’écran', () => {
     const { container } = render(<RecentChart results={recent(2)} />);
     const legend = container.querySelector('.recent-chart__legend')!;
-    expect([...legend.querySelectorAll('li')].map((li) => li.textContent)).toEqual(['Facile', 'Moyen', 'Difficile', 'Expert', 'En archive']);
+    expect([...legend.querySelectorAll('li')].map((li) => li.textContent)).toEqual(['Facile', 'Moyen', 'Difficile', 'Expert', 'Résolu plus tard']);
     expect(legend.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it.each(['fr', 'en'] as const)('mêmes noms que le calendrier des archives (%s)', async (lang) => {
+    await setLanguage(lang);
+    const { container } = render(<RecentChart results={recent(2, (i) => (i === 0 ? { mode: 'archive' as const } : {}))} />);
+    const readout = container.querySelector('.recent-chart__readout')!;
+    const slider = screen.getByRole('slider');
+    expect(container.querySelector('.recent-chart__legend [data-archive]')!.textContent).toBe(capitalize(i18n.t('archive.status.late'), lang));
+    expect(readout.textContent).toContain(i18n.t('archive.status.solved')); // dernier puzzle : à temps
+    fireEvent.change(slider, { target: { value: '0' } });
+    expect(readout.textContent).toContain(i18n.t('archive.status.late'));
+    expect(slider.getAttribute('aria-valuetext')).toMatch(new RegExp(`${i18n.t('archive.status.late')}$`));
   });
 
   it('une valeur aberrante est tronquée seulement si elle dépasse l’axe', () => {
