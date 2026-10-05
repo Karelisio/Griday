@@ -8,6 +8,7 @@
 }
 
 .app__content {
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -17,4 +18,42 @@
   padding-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
   /* Hauteur réservée par une feuille non modale ouverte (indice) : la grille reste atteignable. */
   padding-bottom: var(--sheet-inset, 0px);
+}
+
+/* Réglages : bouton en haut à droite de chaque onglet (défile avec le contenu). */
+.app__actions {
+  position: absolute;
+  top: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 4px);
+  right: calc(var(--safe-area-inset-right, env(safe-area-inset-right, 0px)) + 4px);
+  z-index: 1;
+}
+
+/* Page secondaire (réglages, puzzle d'archive) : plein écran au-dessus des onglets. */
+.app-page {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+}
+
+.app-page__bar {
+  display: flex;
+  align-items: center;
+  flex: none;
+  min-height: 56px;
+  padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 4px) 4px 0
+    calc(var(--safe-area-inset-left, env(safe-area-inset-left, 0px)) + 4px);
+}
+
+.app-page__content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+  padding-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
+  padding-bottom: calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + var(--sheet-inset, 0px));
 }

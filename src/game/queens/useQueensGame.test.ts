@@ -117,4 +117,16 @@ describe('useQueensGame', () => {
     await act(() => sleep(DOUBLE_TAP_MS + 60));
     expect(result.current.conflicts).toEqual([]);
   });
+
+  it('puzzle déjà résolu sans sauvegarde : partie reconstituée gagnée (solution, temps, indices)', async () => {
+    const { result } = renderHook(() =>
+      useQueensGame({ puzzle: A, storageKey: 'gagne', visible: true, autoCross: false, solvedFallback: { timeMs: 83_000, hintsUsed: 2 } }),
+    );
+    await waitFor(() => expect(result.current.game).not.toBeNull());
+    const g = result.current.game!;
+    expect(g.solved).toBe(true);
+    expect(g.elapsedMs).toBe(83_000);
+    expect(g.hintsUsed).toBe(2);
+    expect(A.solution.every((c, r) => g.marks[r * A.size + c] === MARK_QUEEN)).toBe(true);
+  });
 });

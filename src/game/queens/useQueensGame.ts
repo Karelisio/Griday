@@ -10,7 +10,7 @@ import { loadJSON, saveJSON } from '../../platform/storage';
 import type { HintMove } from './explain';
 import { DOUBLE_TAP_MS, type GestureEvent } from './gestures';
 import { MARK_CROSS, MARK_EMPTY, MARK_QUEEN, attackedCells, decodeMarks, encodeMarks } from './marks';
-import { elapsedAt, newGame, reduceQueens, type QueensAction, type QueensGame } from './state';
+import { elapsedAt, newGame, reduceQueens, solvedGame, type QueensAction, type QueensGame } from './state';
 
 /** Sauvegarde d'une partie (marques compactes, historique borné). */
 export interface SavedQueensGame {
@@ -88,9 +88,11 @@ export interface UseQueensGameOptions {
   readonly visible: boolean;
   readonly autoCross: boolean;
   readonly onSolved?: (game: QueensGame) => void;
+  /** Sans sauvegarde : partie reconstituée gagnée (puzzle déjà résolu, sauvegarde nettoyée). */
+  readonly solvedFallback?: { readonly timeMs: number; readonly hintsUsed: number } | null;
 }
 
-export function useQueensGame({ puzzle, storageKey, visible, autoCross, onSolved }: UseQueensGameOptions) {
+export function useQueensGame({ puzzle, storageKey, visible, autoCross, onSolved, solvedFallback }: UseQueensGameOptions) {
   const [state, dispatch] = useReducer(internalReducer, { key: null, game: null });
   const key = useMemo(() => (puzzle && storageKey ? `${storageKey}|${puzzleKey(puzzle)}` : null), [puzzle, storageKey]);
   const game = key !== null && state.key === key ? state.game : null;
@@ -99,6 +101,8 @@ export function useQueensGame({ puzzle, storageKey, visible, autoCross, onSolved
   gameRef.current = game;
   const onSolvedRef = useRef(onSolved);
   onSolvedRef.current = onSolved;
+  const fallbackRef = useRef(solvedFallback);
+  fallbackRef.current = solvedFallback;
 
   // Chargement (sauvegarde ou nouvelle partie) à chaque nouvelle grille.
   useEffect(() => {
@@ -106,7 +110,9 @@ export function useQueensGame({ puzzle, storageKey, visible, autoCross, onSolved
     let cancelled = false;
     void loadJSON<unknown>(storageKey).then((saved) => {
       if (cancelled) return;
-      dispatch({ type: 'load', key, game: deserializeGame(saved, puzzle) ?? newGame(puzzle, null) });
+      const won = fallbackRef.current;
+      const fresh = won ? solvedGame(puzzle, won.timeMs, won.hintsUsed) : newGame(puzzle, null);
+      dispatch({ type: 'load', key, game: deserializeGame(saved, puzzle) ?? fresh });
     });
     return () => {
       cancelled = true;

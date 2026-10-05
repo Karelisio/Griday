@@ -32,6 +32,8 @@ export interface GameViewProps {
   readonly api: QueensGameApi;
   /** Contenu de la carte de victoire sous le titre (compte à rebours, nouvelle grille…). */
   readonly victoryExtra?: ReactNode;
+  /** Puces ajoutées à côté de celle des indices (série…). */
+  readonly victoryChips?: ReactNode;
   readonly visible: boolean;
 }
 
@@ -92,7 +94,7 @@ function useSheetInset(
   }, [open, sheetContent, anchor, reduce]);
 }
 
-export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) {
+export function GameView({ puzzle, api, victoryExtra, victoryChips, visible }: GameViewProps) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language as Language;
   const { regionColors } = useTheme();
@@ -285,6 +287,7 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
               </div>
               <div className="victory-card__chips">
                 <InfoChip icon="lightbulb">{t('victory.hints', { count: game.hintsUsed })}</InfoChip>
+                {victoryChips}
               </div>
               {victoryExtra}
               <Button variant="text" icon="visibility" onClick={() => setVictoryOpen(false)}>

@@ -27,10 +27,18 @@ describe('application', () => {
     });
     await waitFor(() => expect(within(grid).getAllByRole('gridcell')[0]!.getAttribute('aria-label')).toMatch(/reine/));
 
-    // Navigation vers les réglages puis l'illimité.
-    fireEvent.click(screen.getByText('Réglages', { selector: 'nav *' }));
+    // Réglages : page secondaire ouverte par l'engrenage, refermée par la flèche de retour.
+    fireEvent.click(screen.getByRole('button', { name: 'Réglages' }));
     expect(await screen.findByRole('heading', { name: 'Réglages' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Retour' }));
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Réglages' })).toBeNull());
+
+    // Onglets : archives, illimité, statistiques.
+    fireEvent.click(screen.getByText('Archives', { selector: 'nav *' }));
+    expect(await screen.findByRole('heading', { name: 'Archives' })).toBeTruthy();
     fireEvent.click(screen.getByText('Illimité', { selector: 'nav *' }));
     expect(await screen.findByRole('heading', { name: 'Mode illimité' })).toBeTruthy();
+    fireEvent.click(screen.getByText('Stats', { selector: 'nav *' }));
+    expect(await screen.findByRole('heading', { name: 'Statistiques' })).toBeTruthy();
   }, 30_000);
 });

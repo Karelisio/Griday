@@ -36,7 +36,7 @@ describe('traductions', () => {
     for (const [k, v] of f) {
       expect(v, k).not.toMatch(/(^|[^\u202f])[;!?]/); // espace fine insécable (U+202F) avant ; ! ?
       expect(v, k).not.toMatch(/(^|[^\u00a0]):/); // espace insécable (U+00A0) avant :
-      expect(v, k).not.toMatch(/« | »|N° | × /);
+      expect(v, k).not.toMatch(/« | »|[Nn]° | × /);
       expect(v, k).not.toMatch(/'/);
     }
   });

@@ -36,7 +36,8 @@
     "nextIn": "Next puzzle in {{time}}",
     "updateAvailable": "A Griday update may be available: install it to keep playing the same grids as everyone else.",
     "newPuzzle": "A new daily puzzle is available.",
-    "play": "Play"
+    "play": "Play",
+    "archiveTitle": "Puzzle #{{n}}"
   },
   "unlimited": {
     "title": "Unlimited mode",
@@ -180,7 +181,8 @@
     "generation": "The grid could not be prepared. Please try again.",
     "engineCheck": "This device computes grids differently: your daily puzzle might not match other players’.",
     "hint": "Couldn’t work out a hint. Try again.",
-    "screen": "Something went wrong on this screen. Retrying reloads it and resets its current puzzle."
+    "screen": "Something went wrong on this screen. Retrying reloads it and resets its current puzzle.",
+    "share": "Couldn’t share the result."
   },
   "streak": {
     "label_one": "Streak: {{count}} day",

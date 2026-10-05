@@ -49,6 +49,13 @@ export function newGame(puzzle: QueensSolvedPuzzle, now: number | null): QueensG
   return { puzzle, marks: emptyMarks(puzzle), past: [], future: [], elapsedMs: 0, runningSince: now, solved: false, hintsUsed: 0, stroke: null };
 }
 
+/** Partie déjà gagnée reconstituée depuis la solution (sauvegarde effacée, résultat connu). */
+export function solvedGame(puzzle: QueensSolvedPuzzle, elapsedMs: number, hintsUsed: number): QueensGame {
+  const marks = emptyMarks(puzzle);
+  puzzle.solution.forEach((c, r) => (marks[r * puzzle.size + c] = MARK_QUEEN));
+  return { ...newGame(puzzle, null), marks, elapsedMs, hintsUsed, solved: true };
+}
+
 /** Temps écoulé affichable à l'instant `now`. */
 export function elapsedAt(g: QueensGame, now: number): number {
   return g.elapsedMs + (g.runningSince === null ? 0 : Math.max(0, now - g.runningSince));

@@ -101,10 +101,18 @@ await page.screenshot({ path: `${out}/07c-unlimited-sheet-dark.png` });
 await page.keyboard.press('Escape');
 await page.waitForTimeout(400);
 
-// 7. Réglages.
-await page.locator('nav').getByText('Réglages', { exact: true }).click();
-await page.waitForTimeout(500);
-await page.screenshot({ path: `${out}/08-settings-dark.png` });
+// 7. Statistiques, archives, réglages (page secondaire).
+await page.locator('nav').getByText('Stats', { exact: true }).click();
+await page.waitForTimeout(600);
+await page.screenshot({ path: `${out}/08a-stats-dark.png` });
+await page.locator('nav').getByText('Archives', { exact: true }).click();
+await page.waitForTimeout(600);
+await page.screenshot({ path: `${out}/08b-archive-dark.png` });
+await page.getByRole('button', { name: 'Réglages' }).click();
+await page.waitForTimeout(600);
+await page.screenshot({ path: `${out}/08c-settings-dark.png` });
+await page.getByRole('button', { name: 'Retour' }).click();
+await page.waitForTimeout(400);
 
 // 8. Anglais, clair.
 await open(page, { language: 'en' });
@@ -118,6 +126,66 @@ await open(smallPage, {});
 await smallPage.getByRole('button', { name: 'Indice' }).click();
 await smallPage.waitForTimeout(1000);
 await smallPage.screenshot({ path: `${out}/10-hint-small.png` });
+
+// 10. Progression simulée au 20 octobre (série de 14 jours, un jour gelé puis rattrapé en archive) :
+// série sur « Aujourd'hui », calendrier des archives, statistiques.
+{
+  const PLAN = [
+    [6, 1],
+    [7, 1],
+    [7, 2],
+    [8, 2],
+    [8, 3],
+    [9, 3],
+    [10, 4],
+  ] as const; // lundi → dimanche
+  const results: Record<string, unknown[]> = {};
+  for (let d = 5; d <= 19; d++) {
+    const date = `2026-10-${String(d).padStart(2, '0')}`;
+    const [size, tier] = PLAN[(d - 5) % 7]!;
+    const timeMs = (40 + size * 12 + tier * 35 + ((d * 37) % 50)) * 1000;
+    results[date] = d === 8 ? [timeMs + 30_000, 1, size, tier, 1, '2026-10-10'] : [timeMs, d % 4 === 0 ? 1 : 0, size, tier, 0, date];
+  }
+  const unlimited = [
+    [6, 1, 52_000, 0, '2026-10-12'],
+    [8, 2, 184_000, 1, '2026-10-14'],
+    [8, 3, 251_000, 0, '2026-10-15'],
+    [10, 4, 612_000, 2, '2026-10-18'],
+  ];
+  const seeded = await browser.newContext({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+  await seeded.clock.setFixedTime(new Date('2026-10-20T10:00:00'));
+  const p = await seeded.newPage();
+  p.on('pageerror', (e) => console.error('ERREUR PAGE :', e.message));
+  await p.goto(url);
+  await p.evaluate(
+    ({ s, history, streak, unl }) => {
+      localStorage.clear();
+      localStorage.setItem('CapacitorStorage.settings.v1', s);
+      localStorage.setItem('CapacitorStorage.daily.history.v1', JSON.stringify({ v: 1, results: history }));
+      localStorage.setItem('CapacitorStorage.streak.v1', JSON.stringify(streak));
+      localStorage.setItem('CapacitorStorage.unlimited.history.v1', JSON.stringify({ v: 1, results: unl }));
+    },
+    {
+      s: settings({}),
+      history: results,
+      streak: { freezes: 1, frozen: ['2026-10-08'], rewarded: ['2026-10-12'], settledThrough: '2026-10-19' },
+      unl: unlimited,
+    },
+  );
+  await p.reload();
+  await p.waitForSelector('[data-cell="0"]', { timeout: 20_000 });
+  await p.waitForTimeout(500);
+  await p.screenshot({ path: `${out}/11a-today-streak.png` });
+  await p.locator('nav').getByText('Archives', { exact: true }).click();
+  await p.waitForTimeout(700);
+  await p.screenshot({ path: `${out}/11b-archive.png` });
+  await p.locator('nav').getByText('Stats', { exact: true }).click();
+  await p.waitForTimeout(700);
+  await p.setViewportSize({ width: 412, height: 2000 }); // écran entier (le contenu défile dans l'app, pas la page)
+  await p.waitForTimeout(400);
+  await p.screenshot({ path: `${out}/11c-stats.png` });
+  await seeded.close();
+}
 
 await browser.close();
 console.log(`Captures dans ${out}/`);

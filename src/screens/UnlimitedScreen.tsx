@@ -1,16 +1,20 @@
 /** Mode illimité : grilles aléatoires à la demande (taille et difficulté au choix), partie en cours sauvegardée. */
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { localISODate } from '../../engine/core/date';
 import type { DifficultyTier, GenerationTarget } from '../../engine/core/types';
 import type { AnyGeneratedPuzzle } from '../../engine/registry';
 import { engine } from '../engine-client/client';
 import { GameView } from '../game/GameView';
 import { isGenerationTarget, isStoredQueensPuzzle } from '../game/queens/validate';
 import { useQueensGame } from '../game/queens/useQueensGame';
+import type { QueensGame } from '../game/queens/state';
 import { UNLIMITED_CURRENT_KEY, UNLIMITED_PREFS_KEY, unlimitedProgressKey } from '../persistence';
 import { pushBackHandler } from '../platform';
 import { loadJSON, removeKey, saveJSON } from '../platform/storage';
+import { useProgress } from '../progress/ProgressContext';
 import { useSettings } from '../settings/SettingsContext';
+import { ShareButton } from '../share/ShareButton';
 import { BottomSheet, Button, CircularProgress, Icon, InfoChip, SegmentedButton } from '../ui';
 import { useToday } from '../useToday';
 import './screens.css';
@@ -137,11 +141,20 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
     }
   };
 
+  const { recordUnlimited } = useProgress();
+  const played = current?.target;
+  const onSolved = useCallback(
+    (g: QueensGame) => {
+      if (played) recordUnlimited({ size: played.size, tier: played.tier, timeMs: Math.floor(g.elapsedMs), hintsUsed: g.hintsUsed, solvedOn: localISODate(new Date()) });
+    },
+    [played, recordUnlimited],
+  );
   const api = useQueensGame({
     puzzle: current && current.puzzle.type === 'queens' ? current.puzzle.puzzle : null,
     storageKey: current ? unlimitedProgressKey(current.token) : null,
     visible,
     autoCross: settings.autoCross,
+    onSolved,
   });
 
   return (
@@ -183,9 +196,15 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
           api={api}
           visible={visible}
           victoryExtra={
-            <Button variant="filled" icon="add" onClick={() => setPickerOpen(true)}>
-              {t('victory.newGame')}
-            </Button>
+            <div className="victory-card__actions">
+              <Button variant="filled" icon="add" onClick={() => setPickerOpen(true)}>
+                {t('victory.newGame')}
+              </Button>
+              <ShareButton
+                variant="tonal"
+                result={{ kind: 'unlimited', size: current.target.size, tier: current.target.tier, timeMs: api.game.elapsedMs, hintsUsed: api.game.hintsUsed }}
+              />
+            </div>
           }
         />
       ) : loaded && !current ? (

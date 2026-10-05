@@ -36,7 +36,8 @@
     "nextIn": "Prochain puzzle dans {{time}}",
     "updateAvailable": "Une mise à jour de Griday est peut-être disponible : installez-la pour continuer à jouer les mêmes grilles que tout le monde.",
     "newPuzzle": "Un nouveau puzzle du jour est disponible.",
-    "play": "Jouer"
+    "play": "Jouer",
+    "archiveTitle": "Puzzle n° {{n}}"
   },
   "unlimited": {
     "title": "Mode illimité",
@@ -180,7 +181,8 @@
     "generation": "Impossible de préparer la grille. Réessayez.",
     "engineCheck": "Cet appareil calcule les grilles différemment : votre puzzle du jour pourrait ne pas être celui des autres joueurs.",
     "hint": "Impossible de calculer un indice. Réessayez.",
-    "screen": "Un problème est survenu sur cet écran. Réessayer le recharge et réinitialise sa grille en cours."
+    "screen": "Un problème est survenu sur cet écran. Réessayer le recharge et réinitialise sa grille en cours.",
+    "share": "Impossible de partager le résultat."
   },
   "streak": {
     "label_one": "Série : {{count}} jour",

@@ -5,15 +5,17 @@ import type { Language } from './index';
 const BCP47: Record<Language, string> = { fr: 'fr-FR', en: 'en-US' };
 
 /** Date civile ISO formatée sans décalage de fuseau (construite à midi UTC, affichée en UTC). */
-export function formatDate(date: ISODate, lang: Language, style: 'long' | 'medium' | 'weekday' = 'long'): string {
+export function formatDate(date: ISODate, lang: Language, style: 'full' | 'long' | 'medium' | 'weekday' = 'long'): string {
   const [y, m, d] = date.split('-').map(Number) as [number, number, number];
   const instant = new Date(Date.UTC(y, m - 1, d, 12));
   const options: Intl.DateTimeFormatOptions =
-    style === 'long'
-      ? { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }
-      : style === 'medium'
-        ? { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }
-        : { weekday: 'long', timeZone: 'UTC' };
+    style === 'full'
+      ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }
+      : style === 'long'
+        ? { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }
+        : style === 'medium'
+          ? { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }
+          : { weekday: 'long', timeZone: 'UTC' };
   return new Intl.DateTimeFormat(BCP47[lang], options).format(instant);
 }
 
