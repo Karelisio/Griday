@@ -1,5 +1,5 @@
 import { isoWeekday, type ISODate } from './date';
-import { cyrb128, rngFromString } from './prng';
+import { cyrb128, hashHex, rngFromString } from './prng';
 import { dayNumber, typeForDate, versionForDate, type Schedule } from './schedule';
 import type {
   DailyPuzzle,
@@ -56,6 +56,14 @@ export function generateWithAttempts<P>(
   const fb = gen.fallback(target, cyrb128(seed)[0]);
   const source = timedOut ? 'emergency' : 'fallback';
   return { type: def.id, version, seed, attempt: -1, source, target, puzzle: fb.puzzle, rating: fb.rating };
+}
+
+/** Empreinte d'un puzzle généré (métadonnées + contenu) : tests golden, auto-vérification, validation long terme. */
+export function fingerprintPuzzle<P>(def: PuzzleTypeDefinition<P>, g: GeneratedPuzzle<P>): string {
+  const { target, rating } = g;
+  return hashHex(
+    [g.type, `v${g.version}`, g.seed, g.attempt, g.source, target.size, target.tier, rating.tier, rating.score, rating.hardest, def.encode(g.puzzle)].join('|'),
+  );
 }
 
 /** Puzzle du jour, identique pour tous les joueurs à une date donnée. */

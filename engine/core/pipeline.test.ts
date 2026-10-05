@@ -83,6 +83,7 @@ const T = (s: string): PuzzleTypeId => s as PuzzleTypeId;
 const mockDef = (id: string, versions: GeneratorVersion<MockPuzzle>[]): PuzzleTypeDefinition<MockPuzzle> => ({
   id: T(id),
   versions: Object.fromEntries(versions.map((v) => [v.version, v])),
+  encode: (p) => p.label,
 });
 
 const SEED = '2026-10-05:queens:v1';

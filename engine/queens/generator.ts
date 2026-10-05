@@ -30,6 +30,7 @@
  * Arithmétique entière, ordres de parcours fixes, aucun hasard hors `rng`.
  */
 import type { Rng } from '../core/prng';
+import type { DifficultyTier } from '../core/types';
 import { canonicalizeRegions } from './encoding';
 import { popcount32 } from './exact';
 import { QUEENS_MAX_SIZE, QUEENS_MIN_SIZE, type QueensSolvedPuzzle } from './types';
@@ -63,31 +64,47 @@ export interface QueensShapeParams {
 }
 
 /**
- * Préréglages, du plus « facile » au plus « expert » d'aspect. Mesures : scripts/queens-gen-stats.ts.
+ * Préréglages, du plus « facile » au plus « expert » d'aspect (mesures : scripts/queens-gen-stats.ts).
+ * - beginner : 2 reines données, petites régions, formes compactes (palier 1 sur grandes grilles).
+ * - easy : 1 reine donnée, petites régions, formes compactes (palier 1).
+ * - medium : 1 reine donnée, petites régions, tailles plus resserrées (palier 2).
+ * - hard : aucune reine donnée, régions d'au moins 3 cases, compactes (palier 3).
+ * - expert : aucune reine donnée, régions d'au moins 3 cases, équilibrées, formes libres (palier 4).
  * FIGÉS une fois publiés (voir l'en-tête).
  */
 export const QUEENS_SHAPE_PRESETS: Readonly<Record<string, QueensShapeParams>> = freezePresets({
+  beginner: {
+    singleRegions: [2, 2],
+    minSize: 2,
+    maxSizePct: 220,
+    smallRegions: [3, 4],
+    smallMaxSize: 3,
+    spreadPct: 20,
+    neighborWeights: [1, 10, 60, 100],
+    straightPct: 100,
+    diagonalPct: 150,
+  },
   easy: {
     singleRegions: [1, 1],
     minSize: 2,
     maxSizePct: 220,
     smallRegions: [3, 4],
     smallMaxSize: 3,
-    spreadPct: 60,
+    spreadPct: 20,
+    neighborWeights: [1, 10, 60, 100],
+    straightPct: 100,
+    diagonalPct: 150,
+  },
+  medium: {
+    singleRegions: [1, 1],
+    minSize: 2,
+    maxSizePct: 180,
+    smallRegions: [3, 4],
+    smallMaxSize: 3,
+    spreadPct: 40,
     neighborWeights: [4, 10, 30, 60],
     straightPct: 300,
     diagonalPct: 100,
-  },
-  medium: {
-    singleRegions: [0, 0],
-    minSize: 2,
-    maxSizePct: 200,
-    smallRegions: [1, 2],
-    smallMaxSize: 4,
-    spreadPct: 50,
-    neighborWeights: [2, 8, 30, 80],
-    straightPct: 120,
-    diagonalPct: 120,
   },
   hard: {
     singleRegions: [0, 0],
@@ -96,22 +113,39 @@ export const QUEENS_SHAPE_PRESETS: Readonly<Record<string, QueensShapeParams>> =
     smallRegions: [0, 1],
     smallMaxSize: 4,
     spreadPct: 35,
-    neighborWeights: [4, 8, 16, 32],
+    neighborWeights: [1, 8, 40, 80],
     straightPct: 100,
-    diagonalPct: 100,
+    diagonalPct: 130,
   },
   expert: {
     singleRegions: [0, 0],
     minSize: 3,
-    maxSizePct: 170,
+    maxSizePct: 150,
     smallRegions: [0, 0],
     smallMaxSize: 4,
     spreadPct: 30,
-    neighborWeights: [12, 5, 3, 2],
-    straightPct: 130,
-    diagonalPct: 60,
+    neighborWeights: [4, 4, 4, 4],
+    straightPct: 100,
+    diagonalPct: 100,
   },
 });
+
+/**
+ * Préréglage conseillé pour une cible (taille, palier), d'après les mesures (acceptation par
+ * tentative la plus haute). Simple recommandation : l'appelant reste libre de son choix.
+ */
+export function recommendedQueensPreset(size: number, tier: DifficultyTier): string {
+  switch (tier) {
+    case 1:
+      return size <= 7 ? 'easy' : 'beginner';
+    case 2:
+      return 'medium';
+    case 3:
+      return 'hard';
+    case 4:
+      return 'expert';
+  }
+}
 
 function freezePresets(
   presets: Record<string, QueensShapeParams>,

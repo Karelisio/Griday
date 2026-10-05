@@ -59,6 +59,8 @@ export interface GeneratorVersion<P> {
 export interface PuzzleTypeDefinition<P> {
   readonly id: PuzzleTypeId;
   readonly versions: Readonly<Record<number, GeneratorVersion<P>>>;
+  /** Représentation canonique compacte d'un puzzle (empreintes « golden », stockage). FIGÉE. */
+  encode(p: P): string;
 }
 
 export interface GeneratedPuzzle<P> {
