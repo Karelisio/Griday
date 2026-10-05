@@ -1,5 +1,14 @@
 apply plugin: 'com.android.application'
 
+// Version : package.json fait foi. versionName = version npm (relue par l'app via App.getInfo()) ;
+// versionCode = M*10000 + m*100 + p (0.1.0 donne 100), surchargeable : ./gradlew assembleRelease -PversionCode=N.
+def packageJson = new groovy.json.JsonSlurper().parse(file('../../package.json'))
+def semver = (packageJson.version =~ /^(\d+)\.(\d+)\.(\d+)/)
+if (!semver.find()) {
+    throw new GradleException("package.json : version semver attendue, trouvée '${packageJson.version}'")
+}
+def appVersionCode = (findProperty('versionCode') ?: (semver.group(1).toInteger() * 10000 + semver.group(2).toInteger() * 100 + semver.group(3).toInteger())).toString().toInteger()
+
 android {
     namespace = "io.github.karelisio.griday"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +16,8 @@ android {
         applicationId "io.github.karelisio.griday"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode appVersionCode
+        versionName packageJson.version
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

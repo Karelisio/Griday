@@ -10,6 +10,11 @@ const config: CapacitorConfig = {
     allowMixedContent: false,
   },
   plugins: {
+    App: {
+      // Retour système rendu à Android tant qu'aucun écran secondaire n'est ouvert (animation prédictive
+      // « retour à l'accueil ») ; src/platform/back.ts réactive le gestionnaire quand la pile n'est pas vide.
+      disableBackButtonHandler: true,
+    },
     SystemBars: {
       // Edge-to-edge : variables CSS --safe-area-inset-* injectées dans le WebView.
       insetsHandling: 'css',

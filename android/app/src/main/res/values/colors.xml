@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Marque : graine #5B4FC4 (palette tonale dérivée dans src/theme). -->
+    <color name="colorPrimary">#5B4FC4</color>
+    <color name="colorPrimaryDark">#4132A9</color>
+    <color name="colorAccent">#5B4FC4</color>
+
+    <!-- Fond de l'écran de démarrage (Android 12+ : fond du splash système). -->
+    <color name="griday_splash_background">#5B4FC4</color>
+
+    <!-- Fond de la fenêtre avant le premier rendu de la page (qui peint ensuite le sien). -->
+    <color name="griday_window_background">#FCF8FE</color>
+
+    <!-- Barre de navigation : voile sombre avant Android 8 (icônes toujours blanches, non modifiables) ; transparente ensuite (values-v26). -->
+    <color name="griday_navigation_bar">#80000000</color>
+</resources>

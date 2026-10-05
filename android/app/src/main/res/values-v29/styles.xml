@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pas de voile de contraste forcé par le système derrière les barres (navigation à 3 boutons). -->
+    <style name="AppTheme.NoActionBar" parent="Base.AppTheme.NoActionBar">
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+    </style>
+
+    <!-- Theme.SplashScreen réactive ce voile à partir d'Android 12 : on le désactive aussi au lancement. -->
+    <style name="AppTheme.NoActionBarLaunch" parent="Base.AppTheme.NoActionBarLaunch">
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+    </style>
+</resources>
