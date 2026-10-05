@@ -4,9 +4,13 @@
  * - Teintes : la région 0 prend la teinte principale du thème (HCT) ; les autres se répartissent
  *   à pas égaux sur le cercle des teintes selon un parcours « à pas d'or » : deux indices consécutifs
  *   (souvent voisins sur la grille) diffèrent d'au moins ~90° de teinte, jusqu'à ~140°.
+ * - Teintes boueuses : la bande jaune-vert/olive (kaki en clair, olive foncé en sombre) est exclue du
+ *   cercle : les teintes sont réparties sur le reste, sans jamais tomber dans la bande. Aucune couleur
+ *   n'est « détestée » au sens de `DislikeAnalyzer` de Material (teinte 90-111°, chroma > 16, ton < 65).
  * - Tons : deux niveaux alternés entre indices consécutifs (clair/foncé). Cet écart de luminance
  *   reste visible sans distinction des couleurs (protanopie, deutéranopie, tritanopie). Le parcours
  *   conserve la parité : deux teintes voisines sur le cercle ont aussi des tons différents.
+ *   Clair : pastels (tons 93 et 81). Sombre : conteneurs tonals doux (tons 46 et 33, chroma modéré).
  * - `on` (reine, croix) est contrasté ≥ 4,5:1 sur TOUS les fonds de la palette.
  * - `pattern` (0..3) désigne une texture optionnelle (voir `regionPatternStyle` et regions.css).
  */
@@ -35,33 +39,34 @@ export interface RegionPaletteOptions {
   readonly count: number;
 }
 
-/** Niveaux de ton (clair puis foncé, alternés par indice), chroma de fond et teinte neutre des symboles. */
+/**
+ * Niveaux de ton (haut puis bas, alternés par indice), chroma de fond, ton des symboles et bande de
+ * teintes HCT exclue [début, fin] (jaune-vert/olive, boueux à ces tons : kaki en clair, olive en sombre).
+ */
 const LEVELS = {
-  light: { tones: [90, 75], chroma: 40, onTone: 10, onChroma: 12 },
-  dark: { tones: [43, 28], chroma: 36, onTone: 98, onChroma: 12 },
+  light: { tones: [93, 81], chroma: 38, onTone: 10, onChroma: 12, avoid: [84, 132] },
+  dark: { tones: [46, 33], chroma: 29, onTone: 98, onChroma: 12, avoid: [70, 135] },
 } as const;
 
+/** Bande de teintes HCT [début, fin] à ne jamais utiliser pour un fond. */
+type HueBand = readonly [start: number, end: number];
+
 /**
- * Parcours des teintes pour n régions : indice → case de l'anneau (de taille paire N).
- * Contraintes : case 0 pour la région 0 ; indice pair ↔ case paire (tons alternés le long de
- * l'anneau comme le long des indices) ; pour n impair, une case impaire reste vide.
- * Tables obtenues par recherche exhaustive (coût Σ 1/(|i−j|·sep²), sep = distance de teinte
- * combinée à l'écart de ton) ; au-delà de 12, pas multiplicatif impair proche de 0,382·N.
+ * Teinte HCT de la case `slot` de l'anneau (`size` cases) autour de la teinte de base, en sautant la
+ * bande exclue : le cercle est « refermé » sur le reste des teintes, les cases y sont à pas égaux.
+ * Une base située dans la bande est ramenée sur son bord le plus proche.
  */
-const HUE_ORDER: Readonly<Record<number, readonly number[]>> = {
-  1: [0],
-  2: [0, 1],
-  3: [0, 3, 2],
-  4: [0, 1, 2, 3],
-  5: [0, 3, 2, 1, 4],
-  6: [0, 3, 2, 5, 4, 1],
-  7: [0, 5, 2, 7, 4, 1, 6],
-  8: [0, 5, 2, 7, 4, 1, 6, 3],
-  9: [0, 7, 4, 1, 8, 5, 2, 9, 6],
-  10: [0, 7, 4, 1, 8, 5, 2, 9, 6, 3],
-  11: [0, 7, 4, 11, 8, 5, 2, 9, 6, 1, 10],
-  12: [0, 7, 4, 11, 8, 3, 10, 5, 2, 9, 6, 1],
-};
+export function ringHue(base: number, slot: number, size: number, [start, end]: HueBand): number {
+  const width = end - start;
+  const span = 360 - width;
+  // Coordonnée de la base sur le cercle refermé ; dans la bande, on prend le bord le plus proche.
+  let baseRaw: number;
+  if (base <= start) baseRaw = base;
+  else if (base >= end) baseRaw = base - width;
+  else baseRaw = base - start <= end - base ? start : start + 1e-9; // `start` donne la teinte `start`, `start + ε` la teinte `end`
+  const r = (baseRaw + (slot * span) / size) % span;
+  return r <= start ? r : r + width;
+}
 
 const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
 
@@ -92,7 +97,7 @@ export function regionPalette({ seed = GRIDAY_SEED, palettes, dark, count }: Reg
   const level = dark ? LEVELS.dark : LEVELS.light;
   const { size, order } = hueRing(n);
   const palette = order.map((slot, i): RegionColor => {
-    const hue = (base + (slot * 360) / size) % 360;
+    const hue = ringHue(base, slot, size, level.avoid);
     return {
       fill: argbToHex(Hct.from(hue, level.chroma, level.tones[i % 2] as number).toInt()),
       on: argbToHex(Hct.from(hue, level.onChroma, level.onTone).toInt()),
