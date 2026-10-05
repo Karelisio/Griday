@@ -30,14 +30,21 @@ export interface UseModalOptions {
   readonly initialFocusRef?: RefObject<HTMLElement | null>;
   /** Échap ferme la modale (défaut : oui). */
   readonly closeOnEscape?: boolean;
+  /**
+   * `false` : feuille non modale. Le focus entre bien dans la feuille (puis revient à la fermeture) et
+   * Échap la ferme, mais la page reste active : pas de piège à focus, pas d'`inert`, défilement libre.
+   * Défaut : `true`.
+   */
+  readonly modal?: boolean;
 }
 
 /**
  * Comportement commun des modales (feuille, dialogue) : Échap, piège à focus, focus initial puis
  * restauré à la fermeture, reste de la page inerte (`inert` + `aria-hidden`) et défilement bloqué.
  * Les éléments portant `data-md-keep` (ex. zone des snackbars) restent actifs.
+ * Avec `modal: false`, seuls Échap et la gestion du focus (entrée puis retour) sont conservés.
  */
-export function useModal({ open, onClose, containerRef, initialFocusRef, closeOnEscape = true }: UseModalOptions): void {
+export function useModal({ open, onClose, containerRef, initialFocusRef, closeOnEscape = true, modal = true }: UseModalOptions): void {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   const escapeRef = useRef(closeOnEscape);
@@ -50,17 +57,18 @@ export function useModal({ open, onClose, containerRef, initialFocusRef, closeOn
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const container = containerRef.current;
 
-    // Reste de la page : inerte et masqué aux lecteurs d'écran.
+    // Reste de la page : inerte et masqué aux lecteurs d'écran (modale uniquement).
     const saved: { el: HTMLElement; inert: boolean; ariaHidden: string | null }[] = [];
-    for (const el of Array.from(document.body.children)) {
-      if (!(el instanceof HTMLElement) || el === container || el.contains(container) || el.hasAttribute('data-md-keep')) continue;
-      saved.push({ el, inert: el.inert, ariaHidden: el.getAttribute('aria-hidden') });
-      el.inert = true;
-      el.setAttribute('aria-hidden', 'true');
+    if (modal) {
+      for (const el of Array.from(document.body.children)) {
+        if (!(el instanceof HTMLElement) || el === container || el.contains(container) || el.hasAttribute('data-md-keep')) continue;
+        saved.push({ el, inert: el.inert, ariaHidden: el.getAttribute('aria-hidden') });
+        el.inert = true;
+        el.setAttribute('aria-hidden', 'true');
+      }
+      scrollLocks += 1;
+      document.documentElement.classList.add('md-scroll-locked');
     }
-
-    scrollLocks += 1;
-    document.documentElement.classList.add('md-scroll-locked');
 
     // Focus initial.
     (initialFocusRef?.current ?? container)?.focus({ preventScroll: true });
@@ -73,7 +81,7 @@ export function useModal({ open, onClose, containerRef, initialFocusRef, closeOn
         onCloseRef.current();
         return;
       }
-      if (event.key !== 'Tab' || !containerRef.current) return;
+      if (!modal || event.key !== 'Tab' || !containerRef.current) return;
       const items = focusableIn(containerRef.current);
       if (items.length === 0) {
         event.preventDefault();
@@ -102,9 +110,11 @@ export function useModal({ open, onClose, containerRef, initialFocusRef, closeOn
         if (ariaHidden === null) el.removeAttribute('aria-hidden');
         else el.setAttribute('aria-hidden', ariaHidden);
       }
-      scrollLocks = Math.max(0, scrollLocks - 1);
-      if (scrollLocks === 0) document.documentElement.classList.remove('md-scroll-locked');
+      if (modal) {
+        scrollLocks = Math.max(0, scrollLocks - 1);
+        if (scrollLocks === 0) document.documentElement.classList.remove('md-scroll-locked');
+      }
       if (previouslyFocused?.isConnected) previouslyFocused.focus({ preventScroll: true });
     };
-  }, [open, containerRef, initialFocusRef]);
+  }, [open, modal, containerRef, initialFocusRef]);
 }

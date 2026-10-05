@@ -160,7 +160,7 @@ function SnackbarView({ item, closeLabel, onDismiss }: { readonly item: Item; re
       {item.actionLabel ? (
         <button
           type="button"
-          className="md-snackbar__action md-state-host md-typescale-label-large"
+          className="md-snackbar__action md-state-host md-touch-target md-typescale-label-large"
           onClick={() => {
             item.onAction?.();
             onDismiss(item.id);

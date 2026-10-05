@@ -44,7 +44,7 @@ export interface RegionPaletteOptions {
  * teintes HCT exclue [début, fin] (jaune-vert/olive, boueux à ces tons : kaki en clair, olive en sombre).
  */
 const LEVELS = {
-  light: { tones: [93, 81], chroma: 38, onTone: 10, onChroma: 12, avoid: [84, 132] },
+  light: { tones: [93, 81], chroma: 38, onTone: 10, onChroma: 12, avoid: [84, 142] },
   dark: { tones: [46, 33], chroma: 29, onTone: 98, onChroma: 12, avoid: [70, 135] },
 } as const;
 
@@ -67,6 +67,28 @@ export function ringHue(base: number, slot: number, size: number, [start, end]: 
   const r = (baseRaw + (slot * span) / size) % span;
   return r <= start ? r : r + width;
 }
+
+/**
+ * Parcours des teintes pour n régions : indice → case de l'anneau (de taille paire N).
+ * Contraintes : case 0 pour la région 0 ; indice pair ↔ case paire (tons alternés le long de
+ * l'anneau comme le long des indices) ; pour n impair, une case impaire reste vide.
+ * Tables obtenues par recherche exhaustive (coût Σ 1/(|i−j|·sep²), sep = distance de teinte
+ * combinée à l'écart de ton) ; au-delà de 12, pas multiplicatif impair proche de 0,382·N.
+ */
+const HUE_ORDER: Readonly<Record<number, readonly number[]>> = {
+  1: [0],
+  2: [0, 1],
+  3: [0, 3, 2],
+  4: [0, 1, 2, 3],
+  5: [0, 3, 2, 1, 4],
+  6: [0, 3, 2, 5, 4, 1],
+  7: [0, 5, 2, 7, 4, 1, 6],
+  8: [0, 5, 2, 7, 4, 1, 6, 3],
+  9: [0, 7, 4, 1, 8, 5, 2, 9, 6],
+  10: [0, 7, 4, 1, 8, 5, 2, 9, 6, 3],
+  11: [0, 7, 4, 11, 8, 5, 2, 9, 6, 1, 10],
+  12: [0, 7, 4, 11, 8, 3, 10, 5, 2, 9, 6, 1],
+};
 
 const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
 

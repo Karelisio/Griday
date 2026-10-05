@@ -60,7 +60,7 @@ function FabShell({ size = 'md', color = 'primary', visible = true, extended, in
           type={type}
           disabled={disabled}
           aria-label={ariaLabel}
-          className={cx('md-fab', 'md-state-host', `md-fab--${color}`, `md-fab--${size}`, extended && 'md-fab--extended', className)}
+          className={cx('md-fab', 'md-state-host', 'md-touch-target', `md-fab--${color}`, `md-fab--${size}`, extended && 'md-fab--extended', className)}
           initial={{ scale: 0.5, opacity: 0, borderRadius: m.radius }}
           animate={{ scale: 1, opacity: 1, borderRadius: m.radius }}
           exit={{ scale: 0.5, opacity: 0 }}

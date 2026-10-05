@@ -72,6 +72,21 @@ describe('tokens.css', () => {
     expect(css).toContain('--md-ref-typeface-plain: \'Google Sans Flex\', \'Google Sans\', Roboto, system-ui, sans-serif;');
   });
 
+  it('anneau de focus M3 visible au clavier, sans règle qui le masque sur les contrôles à tabindex=-1', () => {
+    const ring = /:where\([^)]*\):focus-visible \{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(ring).toContain('outline: 3px solid var(--md-sys-color-secondary)');
+    expect(ring).toContain('outline-offset: 2px');
+    // Les contrôles à focus itinérant (segments, cases) portent tabindex=-1 : leur anneau doit rester visible.
+    expect(css).not.toMatch(/\[tabindex=['"]?-1['"]?\][^{]*:focus\s*\{[^}]*outline:\s*none/);
+  });
+
+  it('les durées et les ressorts passent à ~0 avec prefers-reduced-motion', () => {
+    const reduced = /@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}\n/.exec(css)?.[1] ?? '';
+    expect(reduced).toContain('--md-sys-motion-duration-medium2: 0.01ms;');
+    expect(reduced).toContain('--md-sys-motion-spring-default-spatial-duration: 0.01ms;');
+    expect(reduced).toContain('--md-sys-motion-spring-fast-effects-duration: 0.01ms;');
+  });
+
   it('les ressorts CSS correspondent à motion.ts', () => {
     for (const [group, specs] of Object.entries(SPRING_SPECS)) {
       for (const [speed, spec] of Object.entries(specs)) {

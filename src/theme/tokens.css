@@ -583,10 +583,6 @@ textarea {
   outline-offset: 2px;
 }
 
-:where([tabindex='-1']):focus {
-  outline: none;
-}
-
 /* ---------- Utilitaires ---------- */
 .md-sr-only {
   position: absolute;

@@ -116,7 +116,7 @@
 
 .md-button--outlined {
   --md-button-content: var(--md-sys-color-primary);
-  --md-button-outline: var(--md-sys-color-outline-variant);
+  --md-button-outline: var(--md-sys-color-outline);
 }
 
 .md-button--text {

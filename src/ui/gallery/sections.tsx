@@ -508,6 +508,7 @@ export function ProgressSection() {
 export function OverlaySection({ initial }: { initial: string | null }) {
   const [dialog, setDialog] = useState(initial === 'dialog');
   const [sheet, setSheet] = useState(initial === 'sheet');
+  const [floating, setFloating] = useState(initial === 'sheet-nonmodal');
   const snackbar = useSnackbar();
   const countRef = useRef(0);
   return (
@@ -518,6 +519,9 @@ export function OverlaySection({ initial }: { initial: string | null }) {
         </Button>
         <Button variant="tonal" onClick={() => setSheet(true)} data-testid="open-sheet">
           Bottom sheet
+        </Button>
+        <Button variant="tonal" onClick={() => setFloating(true)} data-testid="open-sheet-nonmodal">
+          Non-modal sheet
         </Button>
         <Button
           variant="tonal"
@@ -556,6 +560,14 @@ export function OverlaySection({ initial }: { initial: string | null }) {
               Show cell
             </Button>
             <Button onClick={() => setSheet(false)}>Play this move</Button>
+          </div>
+        </div>
+      </BottomSheet>
+      <BottomSheet open={floating} modal={false} onClose={() => setFloating(false)} aria-label="Hint (non-modal)" dismissLabel="Close">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="md-typescale-title-large">Non-modal sheet</div>
+          <div className="md-typescale-body-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+            No scrim, the page stays visible and usable. Swipe down, press Escape or use the handle to close.
           </div>
         </div>
       </BottomSheet>

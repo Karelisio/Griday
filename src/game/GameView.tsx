@@ -3,7 +3,7 @@
  * indice expliqué (feuille du bas), règles, carte de victoire.
  */
 import { motion, AnimatePresence } from 'motion/react';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { QueensHint } from '../../engine/queens/hint';
 import type { QueensSolvedPuzzle } from '../../engine/queens/types';
@@ -56,10 +56,12 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
   useBackClose(visible && rulesOpen, closeRules);
   useBackClose(visible && resetOpen, closeReset);
 
-  // Toute modification de la grille invalide l'indice affiché.
+  // Toute modification de la grille rend l'indice affiché obsolète : on le referme.
+  const hintMarks = useRef<readonly unknown[] | null>(null);
   useEffect(() => {
-    if (!hintOpen) setHint(null);
-  }, [game?.marks, hintOpen]);
+    if (hintOpen && hintMarks.current && game && game.marks !== hintMarks.current) setHintOpen(false);
+    if (!hintOpen) hintMarks.current = null;
+  }, [game, hintOpen]);
 
   const askHint = async () => {
     if (!game || hintLoading) return;
@@ -69,6 +71,7 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
       const ex = explainHint(h, puzzle, lang, (key, n) => t(key, { n }));
       if (h.kind === 'step' || h.kind === 'reveal') api.noteHint();
       setHint({ hint: h, ex });
+      hintMarks.current = game.marks;
       setHintOpen(true);
     } finally {
       setHintLoading(false);
@@ -77,8 +80,8 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
 
   const applyHint = () => {
     const h = hint?.hint;
-    if (h && (h.kind === 'step' || h.kind === 'reveal')) api.applyHint(h.reveal.cell, h.reveal.mark);
     setHintOpen(false);
+    if (h && (h.kind === 'step' || h.kind === 'reveal')) api.applyHint(h.reveal.cell, h.reveal.mark);
   };
 
   if (!game) return null;
@@ -173,7 +176,7 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
         )}
       </AnimatePresence>
 
-      <BottomSheet open={hintOpen} onClose={closeHint} aria-label={t('hint.title')} dismissLabel={t('common.close')} closeOnScrim>
+      <BottomSheet open={hintOpen} onClose={closeHint} modal={false} aria-label={t('hint.title')} dismissLabel={t('common.close')}>
         {hint && (
           <div className="hint-sheet">
             <div className="hint-sheet__head">

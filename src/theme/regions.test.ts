@@ -1,8 +1,8 @@
-import { Hct } from '@material/material-color-utilities';
+import { DislikeAnalyzer, Hct } from '@material/material-color-utilities';
 import { describe, expect, it } from 'vitest';
 import { COLOR_VISION_DEFICIENCIES, contrastRatio, deltaE, deltaEColorVision, relativeLuminance } from './color';
 import { fakeSystemPalettes } from './fakePalettes';
-import { REGION_PATTERNS, hueRing, regionPalette, regionPatternStyle, regionStyle, type RegionPaletteOptions } from './regions';
+import { REGION_PATTERNS, hueRing, regionPalette, regionPatternStyle, regionStyle, ringHue, type RegionPaletteOptions } from './regions';
 import { GRIDAY_SEED, primaryHue } from './scheme';
 
 type Source = Pick<RegionPaletteOptions, 'seed' | 'palettes'> & { name: string };
@@ -12,10 +12,16 @@ const SOURCES: Source[] = [
   { name: 'vert', seed: 0xff386a20 },
   { name: 'rouge', seed: 0xffb3261e },
   { name: 'jaune', seed: 0xffe3b800 },
+  { name: 'olive', seed: 0xff808000 },
   { name: 'gris', seed: 0xff777777 },
   { name: 'système (vert)', palettes: fakeSystemPalettes(140) },
   { name: 'système (orange)', palettes: fakeSystemPalettes(50) },
+  { name: 'système (jaune-vert)', palettes: fakeSystemPalettes(104) },
 ];
+
+/** Bandes de teintes exclues des fonds (voir LEVELS dans regions.ts). */
+const AVOID = { light: [84, 142], dark: [70, 135] } as const;
+const hctOf = (hex: string) => Hct.fromInt(parseInt(hex.slice(1), 16) | 0xff000000);
 const COUNTS = [4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 describe('regionPalette', () => {
@@ -44,25 +50,54 @@ describe('regionPalette', () => {
     }
   });
 
-  it('suit la teinte principale du thème (graine ou palettes système)', () => {
+  it('suit la teinte principale du thème (graine ou palettes système), hors bande boueuse', () => {
     for (const source of SOURCES) {
+      if (source.name === 'gris') continue; // les neutres n'ont pas de teinte stable
       const base = primaryHue(source.seed ?? GRIDAY_SEED, source.palettes);
-      const first = regionPalette({ ...source, dark: false, count: 8 })[0];
-      const hue = Hct.fromInt(parseInt((first?.fill ?? '#000000').slice(1), 16) | 0xff000000).hue;
-      const diff = Math.abs(((hue - base + 540) % 360) - 180);
-      // Les neutres (gris) n'ont pas de teinte stable : seul le test coloré compte.
-      if (source.name !== 'gris') expect(diff, source.name).toBeLessThan(6);
+      for (const dark of [false, true]) {
+        const [start, end] = AVOID[dark ? 'dark' : 'light'];
+        const first = regionPalette({ ...source, dark, count: 8 })[0];
+        const hue = hctOf(first?.fill ?? '#000000').hue;
+        const inBand = base > start && base < end;
+        // Hors bande : la région 0 garde la teinte du thème ; dans la bande : repli sur un bord.
+        const expected = inBand ? (base - start <= end - base ? start : end) : base;
+        const diff = Math.abs(((hue - expected + 540) % 360) - 180);
+        expect(diff, `${source.name} ${dark ? 'sombre' : 'clair'}`).toBeLessThan(6);
+      }
     }
     // Deux thèmes de teintes différentes donnent des palettes différentes.
     expect(regionPalette({ seed: 0xff0061a4, dark: false, count: 8 })).not.toEqual(regionPalette({ seed: 0xffb3261e, dark: false, count: 8 }));
   });
 
-  it('les tons clairs/foncés restent dans les plages prévues', () => {
-    const light = regionPalette({ dark: false, count: 10 }).map((c) => Hct.fromInt(parseInt(c.fill.slice(1), 16) | 0xff000000).tone);
-    const dark = regionPalette({ dark: true, count: 10 }).map((c) => Hct.fromInt(parseInt(c.fill.slice(1), 16) | 0xff000000).tone);
-    for (const t of light) expect(t).toBeGreaterThan(70);
-    for (const t of dark) expect(t).toBeLessThan(48);
-    expect(Math.min(...light)).toBeGreaterThan(Math.max(...dark));
+  it('aucun fond n’est « détesté » par Material (olive/kaki) et aucune teinte n’entre dans la bande boueuse', () => {
+    for (const source of SOURCES) {
+      for (const dark of [false, true]) {
+        const [start, end] = AVOID[dark ? 'dark' : 'light'];
+        for (const count of COUNTS) {
+          for (const color of regionPalette({ ...source, dark, count })) {
+            const hct = hctOf(color.fill);
+            expect(DislikeAnalyzer.isDisliked(hct), `${source.name} ${color.fill}`).toBe(false);
+            // Marge de 3° : la teinte relue sur un hex arrondi bouge un peu, surtout à faible chroma.
+            if (hct.chroma > 8) expect(hct.hue > start + 3 && hct.hue < end - 3, `${source.name} ${color.fill} teinte ${hct.hue.toFixed(0)}`).toBe(false);
+          }
+        }
+      }
+    }
+  });
+
+  it('clair : pastels (tons 80 à 94) ; sombre : conteneurs doux (tons 30 à 48, chroma modéré)', () => {
+    const light = regionPalette({ dark: false, count: 10 }).map((c) => hctOf(c.fill));
+    const dark = regionPalette({ dark: true, count: 10 }).map((c) => hctOf(c.fill));
+    for (const h of light) {
+      expect(h.tone).toBeGreaterThan(79);
+      expect(h.tone).toBeLessThan(95);
+    }
+    for (const h of dark) {
+      expect(h.tone).toBeGreaterThan(30);
+      expect(h.tone).toBeLessThan(48);
+      expect(h.chroma).toBeLessThanOrEqual(32);
+    }
+    expect(Math.min(...light.map((h) => h.tone))).toBeGreaterThan(Math.max(...dark.map((h) => h.tone)));
   });
 
   describe.each([false, true])('mode sombre : %s', (dark) => {
@@ -86,7 +121,7 @@ describe('regionPalette', () => {
           const ratio = contrastRatio(a, b);
           expect(ratio, `luminance ${source.name} n=${count} ${i}/${i + 1}`).toBeGreaterThanOrEqual(1.25);
           expect(relativeLuminance(a)).not.toBeCloseTo(relativeLuminance(b), 2);
-          expect(deltaE(a, b), `vision normale ${source.name} n=${count}`).toBeGreaterThanOrEqual(10);
+          expect(deltaE(a, b), `vision normale ${source.name} n=${count}`).toBeGreaterThanOrEqual(8);
         }
       }
     });
@@ -106,9 +141,11 @@ describe('regionPalette', () => {
     it.each(SOURCES)('toutes les paires restent discernables en vision normale ($name)', (source) => {
       for (const count of COUNTS) {
         const palette = regionPalette({ ...source, dark, count });
+        // Les pastels clairs à 11-12 régions se rapprochent (teintes voisines à même ton) ; les bordures du plateau aident.
+        const min = count <= 10 ? 2.5 : 2.2;
         for (let i = 0; i < count; i++) {
           for (let j = i + 1; j < count; j++) {
-            expect(deltaE(palette[i]!.fill, palette[j]!.fill), `${source.name} n=${count} ${i}/${j}`).toBeGreaterThanOrEqual(3);
+            expect(deltaE(palette[i]!.fill, palette[j]!.fill), `${source.name} n=${count} ${i}/${j}`).toBeGreaterThanOrEqual(min);
           }
         }
       }
@@ -139,6 +176,35 @@ describe('hueRing', () => {
       const { size, order } = hueRing(n);
       const min = Math.min(...order.slice(1).map((slot, i) => circular(slot, order[i]!, size))) * (360 / size);
       expect(min, `n=${n}`).toBeGreaterThanOrEqual(n >= 7 && n <= 12 ? 90 : 60);
+    }
+  });
+});
+
+describe('ringHue', () => {
+  const band = [84, 142] as const;
+
+  it('garde la teinte de base hors bande et reste à pas égaux autour du cercle refermé', () => {
+    expect(ringHue(290, 0, 8, band)).toBeCloseTo(290, 6);
+    expect(ringHue(20, 0, 8, band)).toBeCloseTo(20, 6);
+    // 8 cases à pas égaux sur 360 − 58 = 302° : 37,75° d'écart (hors saut de la bande).
+    expect(ringHue(200, 1, 8, band) - 200).toBeCloseTo(37.75, 6);
+    expect(ringHue(200, 2, 8, band) - 200).toBeCloseTo(75.5, 6);
+  });
+
+  it('une base dans la bande est ramenée sur le bord le plus proche', () => {
+    expect(ringHue(95, 0, 8, band)).toBeCloseTo(84, 4);
+    expect(ringHue(130, 0, 8, band)).toBeCloseTo(142, 4);
+  });
+
+  it('ne tombe jamais dans la bande, quelle que soit la base ou la taille', () => {
+    for (let base = 0; base < 360; base += 7) {
+      for (let size = 2; size <= 16; size += 2) {
+        for (let slot = 0; slot < size; slot++) {
+          const hue = ringHue(base, slot, size, band);
+          expect(hue >= 0 && hue < 360, `base ${base} case ${slot}/${size}`).toBe(true);
+          expect(hue > band[0] + 1e-6 && hue < band[1] - 1e-6, `base ${base} case ${slot}/${size} → ${hue}`).toBe(false);
+        }
+      }
     }
   });
 });

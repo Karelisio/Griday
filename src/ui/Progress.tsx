@@ -29,8 +29,52 @@ const smoothstep = (a: number, b: number, x: number): number => {
   const t = clamp01((x - a) / (b - a));
   return t * t * (3 - 2 * t);
 };
-/** Accélération/décélération douce (cubique) de 0 à 1. */
-const easeInOut = (t: number): number => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+
+/** Courbe de Bézier cubique CSS `cubic-bezier(x1, y1, x2, y2)`, évaluée en x ∈ [0, 1] (dichotomie). */
+function bezier(x1: number, y1: number, x2: number, y2: number): (x: number) => number {
+  const cx = 3 * x1;
+  const bx = 3 * (x2 - x1) - cx;
+  const ax = 1 - cx - bx;
+  const cy = 3 * y1;
+  const by = 3 * (y2 - y1) - cy;
+  const ay = 1 - cy - by;
+  return (x) => {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    let lo = 0;
+    let hi = 1;
+    let t = x;
+    for (let i = 0; i < 24; i++) {
+      const value = ((ax * t + bx) * t + cx) * t;
+      if (Math.abs(value - x) < 1e-5) break;
+      if (value < x) lo = t;
+      else hi = t;
+      t = (lo + hi) / 2;
+    }
+    return ((ay * t + by) * t + cy) * t;
+  };
+}
+
+interface Keyframe {
+  readonly delay: number;
+  readonly duration: number;
+  readonly ease: (x: number) => number;
+}
+
+/** Position (0..1) d'une extrémité de trait à l'instant `t` (ms) de son mouvement. */
+const along = (t: number, { delay, duration, ease }: Keyframe): number => ease(clamp01((t - delay) / duration));
+
+/**
+ * Indéterminé linéaire (mêmes temps que Material 3) : deux traits traversent la barre ; chacun a une
+ * tête et une queue qui partent avec un décalage et des courbes différentes. Cycle de 1,8 s.
+ */
+const INDETERMINATE_CYCLE = 1800;
+const INDETERMINATE_LINES = [
+  { head: { delay: 0, duration: 750, ease: bezier(0.2, 0, 0.8, 1) }, tail: { delay: 333, duration: 850, ease: bezier(0.4, 0, 1, 1) } },
+  { head: { delay: 1000, duration: 567, ease: bezier(0, 0, 0.65, 1) }, tail: { delay: 1267, duration: 533, ease: bezier(0.1, 0, 0.45, 1) } },
+] as const;
+/** Instant montré quand les animations sont réduites (premier trait bien étendu). */
+const INDETERMINATE_STILL = 700;
 
 /** Boucle d'animation : appelle `frame(tempsMs)` à chaque image tant que `active` ; une image fixe sinon. */
 function useFrameLoop(frame: (timeMs: number) => void, active: boolean): void {
@@ -94,40 +138,39 @@ export function LinearProgress({ value, variant = 'wavy', className, 'aria-label
     const cy = LINEAR_HEIGHT / 2;
     const left = r;
     const right = width - r;
-    const gap = LINEAR_GAP + LINEAR_STROKE;
+    const gap = LINEAR_GAP + LINEAR_STROKE; // trou entre indicateur et piste, caps arrondis compris
     const phase = reduced ? 0 : (timeMs / 1000) * LINEAR_WAVELENGTH;
 
-    let from: number;
-    let to: number;
-    let amplitudeFactor: number;
+    // Intervalles actifs [début, fin] en px.
+    const spans: [number, number][] = [];
+    let amplitudeFactor = 1;
     if (indeterminate) {
-      // Un segment parcourt la barre en boucle (2,2 s), la tête allant plus vite que la queue.
-      const t = reduced ? 0.5 : (timeMs % 2200) / 2200;
-      const head = left + (right - left + 0.45 * width) * easeInOut(clamp01(t * 1.15)) - 0.45 * width * 0.1;
-      const tail = head - (0.15 + 0.3 * Math.sin(Math.PI * t)) * width;
-      from = Math.max(left, tail);
-      to = Math.min(right, head);
-      amplitudeFactor = 1;
+      const t = reduced ? INDETERMINATE_STILL : timeMs % INDETERMINATE_CYCLE;
+      for (const line of INDETERMINATE_LINES) {
+        const from = left + along(t, line.tail) * (right - left);
+        const to = left + along(t, line.head) * (right - left);
+        if (to - from >= 1) spans.push([from, to]);
+      }
     } else {
-      from = left;
-      to = left + progress * (right - left);
+      spans.push([left, left + progress * (right - left)]);
       amplitudeFactor = smoothstep(0, 0.1, progress) * (1 - smoothstep(0.92, 1, progress));
     }
     const amplitude = wavy ? LINEAR_AMPLITUDE * amplitudeFactor : 0;
-    active.setAttribute('d', wavePath(from, Math.max(from, to), cy, amplitude, LINEAR_WAVELENGTH, phase));
-    active.style.visibility = to > from || !indeterminate ? 'visible' : 'hidden';
+    active.setAttribute('d', spans.map(([from, to]) => wavePath(from, Math.max(from, to), cy, amplitude, LINEAR_WAVELENGTH, phase)).join(''));
 
-    // Piste : à droite de l'indicateur, et à gauche en mode indéterminé.
-    const trackFrom = indeterminate ? left : to + gap;
+    // Piste : le complément des intervalles actifs, avec un trou de chaque côté.
     let trackD = '';
-    if (indeterminate && from - gap > left) trackD += `M${left} ${cy}H${(from - gap).toFixed(1)}`;
-    const rightStart = indeterminate ? to + gap : trackFrom;
-    if (rightStart < right) trackD += `M${rightStart.toFixed(1)} ${cy}H${right}`;
+    let cursor = left;
+    for (const [from, to] of [...spans].sort((a, b) => a[0] - b[0])) {
+      if (from - gap > cursor) trackD += `M${cursor.toFixed(1)} ${cy}H${(from - gap).toFixed(1)}`;
+      cursor = Math.max(cursor, to + gap);
+    }
+    if (cursor < right) trackD += `M${cursor.toFixed(1)} ${cy}H${right}`;
     track.setAttribute('d', trackD);
-    // Repère de fin de piste (point), tant que la piste est visible.
+    // Repère de fin de piste (point) : déterminé seulement, tant que la piste va jusqu'au bout.
     stop.setAttribute('cx', String(right));
     stop.setAttribute('cy', String(cy));
-    stop.style.visibility = rightStart < right ? 'visible' : 'hidden';
+    stop.style.visibility = !indeterminate && cursor < right ? 'visible' : 'hidden';
   };
   useFrameLoop(frame, indeterminate && !reduced);
   // Redessine aussi quand la valeur ou la largeur changent (image fixe).

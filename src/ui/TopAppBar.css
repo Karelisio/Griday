@@ -63,7 +63,7 @@
   display: flex;
   flex: none;
   align-items: center;
-  gap: 0;
+  gap: 8px; /* boutons de 40 px espacés de 8 px : zones tactiles de 48 px sans chevauchement */
 }
 
 .md-top-app-bar__title {

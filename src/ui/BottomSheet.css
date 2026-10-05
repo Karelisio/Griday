@@ -7,6 +7,18 @@
   justify-content: center;
 }
 
+/* Feuille non modale : la couche ne capte rien, seule la feuille reçoit les gestes. */
+.md-sheet-root--non-modal {
+  pointer-events: none;
+}
+
+.md-sheet-root--non-modal > .md-sheet {
+  pointer-events: auto;
+  /* Sans voile, la feuille doit se détacher seule de la page : conteneur plus marqué et ombre plus nette. */
+  background-color: var(--md-sys-color-surface-container-high);
+  box-shadow: var(--md-sys-elevation-level3);
+}
+
 .md-sheet {
   position: relative;
   display: flex;

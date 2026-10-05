@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p engine/tsconfig.json && tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.app.json",
     "validate:future": "tsx scripts/validate-future.ts",
-    "cap:sync": "npm run build && cap sync android"
+    "cap:sync": "npm run build && cap sync android",
+    "build:icons": "tsx scripts/build-icons.ts"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.2",
