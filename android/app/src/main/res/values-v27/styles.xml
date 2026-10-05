@@ -2,6 +2,7 @@
 <resources>
     <style name="AppTheme.NoActionBar" parent="Base.AppTheme.NoActionBar">
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <item name="android:windowLightNavigationBar">@bool/griday_light_bars</item>
     </style>
 
     <style name="AppTheme.NoActionBarLaunch" parent="Base.AppTheme.NoActionBarLaunch">

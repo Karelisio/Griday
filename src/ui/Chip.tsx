@@ -56,3 +56,23 @@ export function Chip({ children, variant = 'assist', icon, selected = false, ele
     </button>
   );
 }
+
+export interface InfoChipProps {
+  readonly children: ReactNode;
+  readonly icon?: IconName;
+  readonly className?: string;
+}
+
+/** Puce d'information non interactive (métadonnées : taille, difficulté…), même allure qu'une puce d'assistance. */
+export function InfoChip({ children, icon, className }: InfoChipProps) {
+  return (
+    <span className={cx('md-chip', 'md-chip--assist', 'md-chip--static', className)}>
+      {icon ? (
+        <span className="md-chip__icon">
+          <Icon name={icon} size={18} />
+        </span>
+      ) : null}
+      <span className="md-chip__label md-typescale-label-large">{children}</span>
+    </span>
+  );
+}

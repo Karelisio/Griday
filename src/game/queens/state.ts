@@ -20,6 +20,8 @@ export interface QueensGame {
   readonly runningSince: number | null;
   readonly solved: boolean;
   readonly hintsUsed: number;
+  /** Trait de glisser qui a produit la dernière entrée d'historique (ses peintures suivantes s'y ajoutent). */
+  readonly stroke: number | null;
 }
 
 export type QueensAction =
@@ -27,9 +29,14 @@ export type QueensAction =
   | { type: 'tap'; cell: number; now: number }
   /** Second toucher rapide : remplace l'effet du premier par une croix (ou efface une croix). */
   | { type: 'doubleTap'; cell: number; now: number }
-  /** Glisser : croix sur les cases vides traversées (ou efface les croix), une seule entrée d'historique. */
-  | { type: 'paint'; cells: readonly number[]; mode: 'cross' | 'erase'; now: number }
+  /**
+   * Glisser : croix sur les cases vides traversées (ou efface les croix). Les peintures d'un même
+   * trait (`stroke`) forment une seule entrée d'historique.
+   */
+  | { type: 'paint'; cells: readonly number[]; mode: 'cross' | 'erase'; stroke?: number; now: number }
   | { type: 'set'; cell: number; mark: QueensMark; now: number }
+  /** Plusieurs cases d'un coup (déduction d'un indice), une seule entrée d'historique. */
+  | { type: 'setMany'; changes: readonly { cell: number; mark: QueensMark }[]; now: number }
   /** Indice consulté (compté même s'il n'est pas joué). */
   | { type: 'hintShown'; now: number }
   | { type: 'undo'; now: number }
@@ -39,7 +46,7 @@ export type QueensAction =
   | { type: 'resume'; now: number };
 
 export function newGame(puzzle: QueensSolvedPuzzle, now: number | null): QueensGame {
-  return { puzzle, marks: emptyMarks(puzzle), past: [], future: [], elapsedMs: 0, runningSince: now, solved: false, hintsUsed: 0 };
+  return { puzzle, marks: emptyMarks(puzzle), past: [], future: [], elapsedMs: 0, runningSince: now, solved: false, hintsUsed: 0, stroke: null };
 }
 
 /** Temps écoulé affichable à l'instant `now`. */
@@ -51,11 +58,14 @@ function stopClock(g: QueensGame, now: number): QueensGame {
   return g.runningSince === null ? g : { ...g, elapsedMs: elapsedAt(g, now), runningSince: null };
 }
 
-/** Applique de nouvelles marques comme une entrée d'historique, puis teste la victoire. */
-function commit(g: QueensGame, marks: QueensMark[], now: number, extra: Partial<QueensGame> = {}): QueensGame {
+/**
+ * Applique de nouvelles marques comme une entrée d'historique (ou, avec `amend`, en complétant la
+ * dernière entrée), puis teste la victoire.
+ */
+function commit(g: QueensGame, marks: QueensMark[], now: number, stroke: number | null = null, amend = false): QueensGame {
   if (marks.every((m, i) => m === g.marks[i])) return g;
-  const past = [...g.past, g.marks].slice(-MAX_HISTORY);
-  let next: QueensGame = { ...g, ...extra, marks, past, future: [] };
+  const past = amend ? g.past : [...g.past, g.marks].slice(-MAX_HISTORY);
+  let next: QueensGame = { ...g, marks, past, future: [], stroke };
   // Toute action relance le chronomètre s'il était en pause (sauf partie finie).
   if (next.runningSince === null && !next.solved) next = { ...next, runningSince: now };
   if (checkQueensBoard(next.puzzle, marks).solved) next = { ...stopClock(next, now), solved: true };
@@ -63,7 +73,7 @@ function commit(g: QueensGame, marks: QueensMark[], now: number, extra: Partial<
 }
 
 export function reduceQueens(g: QueensGame, a: QueensAction): QueensGame {
-  if (g.solved && a.type !== 'pause' && a.type !== 'resume' && a.type !== 'reset') return g;
+  if (g.solved && a.type !== 'pause' && a.type !== 'resume') return g;
   switch (a.type) {
     case 'tap': {
       const marks = [...g.marks];
@@ -85,11 +95,17 @@ export function reduceQueens(g: QueensGame, a: QueensAction): QueensGame {
         if (a.mode === 'cross' && marks[cell] === MARK_EMPTY) marks[cell] = MARK_CROSS;
         else if (a.mode === 'erase' && marks[cell] === MARK_CROSS) marks[cell] = MARK_EMPTY;
       }
-      return commit(g, marks, a.now);
+      const stroke = a.stroke ?? null;
+      return commit(g, marks, a.now, stroke, stroke !== null && stroke === g.stroke && g.past.length > 0);
     }
     case 'set': {
       const marks = [...g.marks];
       marks[a.cell] = a.mark;
+      return commit(g, marks, a.now);
+    }
+    case 'setMany': {
+      const marks = [...g.marks];
+      for (const { cell, mark } of a.changes) marks[cell] = mark;
       return commit(g, marks, a.now);
     }
     case 'hintShown':
@@ -97,15 +113,16 @@ export function reduceQueens(g: QueensGame, a: QueensAction): QueensGame {
     case 'undo': {
       const prev = g.past.at(-1);
       if (!prev) return g;
-      return { ...g, marks: prev, past: g.past.slice(0, -1), future: [g.marks, ...g.future].slice(0, MAX_HISTORY) };
+      return { ...g, marks: prev, past: g.past.slice(0, -1), future: [g.marks, ...g.future].slice(0, MAX_HISTORY), stroke: null };
     }
     case 'redo': {
       const next = g.future[0];
       if (!next) return g;
-      return { ...g, marks: next, past: [...g.past, g.marks].slice(-MAX_HISTORY), future: g.future.slice(1) };
+      return { ...g, marks: next, past: [...g.past, g.marks].slice(-MAX_HISTORY), future: g.future.slice(1), stroke: null };
     }
     case 'reset':
-      return { ...newGame(g.puzzle, a.now), hintsUsed: g.hintsUsed };
+      // Grille effacée (annulable) ; le chronomètre et les indices comptés continuent.
+      return commit(g, emptyMarks(g.puzzle), a.now);
     case 'pause':
       return stopClock(g, a.now);
     case 'resume':

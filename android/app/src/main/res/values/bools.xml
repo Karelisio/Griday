@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Icônes sombres des barres système sur le fond clair, avant que la page ne prenne la main. -->
+    <bool name="griday_light_bars">true</bool>
+</resources>

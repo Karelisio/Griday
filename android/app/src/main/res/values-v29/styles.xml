@@ -3,6 +3,7 @@
     <!-- Pas de voile de contraste forcé par le système derrière les barres (navigation à 3 boutons). -->
     <style name="AppTheme.NoActionBar" parent="Base.AppTheme.NoActionBar">
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <item name="android:windowLightNavigationBar">@bool/griday_light_bars</item>
         <item name="android:enforceStatusBarContrast">false</item>
         <item name="android:enforceNavigationBarContrast">false</item>
     </style>

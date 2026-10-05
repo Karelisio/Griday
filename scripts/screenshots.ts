@@ -79,6 +79,9 @@ for (const cell of queenCells) {
 }
 await page.waitForTimeout(1200);
 await page.screenshot({ path: `${out}/05-victory.png` });
+await page.getByRole('button', { name: 'Voir la grille' }).click();
+await page.waitForTimeout(600);
+await page.screenshot({ path: `${out}/05b-victory-board.png` });
 
 // 5. Sombre.
 await open(page, { theme: 'dark' });
@@ -106,6 +109,15 @@ await page.screenshot({ path: `${out}/08-settings-dark.png` });
 // 8. Anglais, clair.
 await open(page, { language: 'en' });
 await page.screenshot({ path: `${out}/09-today-light-en.png` });
+
+// 9. Petit écran (360 × 740) : la feuille d'indice laisse voir les cases concernées.
+const small = await browser.newContext({ viewport: { width: 360, height: 740 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+const smallPage = await small.newPage();
+smallPage.on('pageerror', (e) => console.error('ERREUR PAGE :', e.message));
+await open(smallPage, {});
+await smallPage.getByRole('button', { name: 'Indice' }).click();
+await smallPage.waitForTimeout(1000);
+await smallPage.screenshot({ path: `${out}/10-hint-small.png` });
 
 await browser.close();
 console.log(`Captures dans ${out}/`);

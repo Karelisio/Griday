@@ -1,5 +1,20 @@
-/* Grille Queens — tokens M3 (variables --md-sys-*) avec valeurs de repli. */
+/*
+ * Grille Queens — tokens M3 (variables --md-sys-*) avec valeurs de repli.
+ *
+ * Contraste des marqueurs (WCAG 1.4.11, ≥ 3:1 sur tous les fonds, clair et sombre) :
+ * - la reine garde TOUJOURS la couleur `on` de sa région (≥ 4,5:1) : un état ne la recolore jamais ;
+ * - les états (conflit, erreur, case de l'indice, focus clavier) sont des anneaux à deux tons : liseré
+ *   coloré à l'extérieur, liseré couleur `on` à l'intérieur. Le liseré `on` garantit le contraste même quand
+ *   la couleur de rôle (erreur, primaire…) est proche du fond, en thème sombre surtout ;
+ * - les marqueurs secondaires (croix, fantômes, croix « exclue ») sont en couleur `on` à l'opacité de
+ *   MARKER_ALPHA (QueensBoard.tsx), vérifiée par QueensBoard.test.tsx.
+ */
 .qb {
+  /* Anneaux d'état : épaisseur du liseré coloré / du liseré `on`, retrait par rapport à la case. */
+  --qb-ring-outer: 3px;
+  --qb-ring-inner: 2px;
+  --qb-ring-inset: 2px;
+  --qb-ring-radius: 6px;
   position: relative;
   width: 100%;
   aspect-ratio: 1;
@@ -10,7 +25,16 @@
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
   transition: transform 300ms cubic-bezier(0.2, 0, 0, 1), box-shadow 300ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Grandes grilles (cases d'environ 30 px) : anneaux plus fins pour ne pas mordre sur la reine. */
+.qb[data-dense] {
+  --qb-ring-outer: 2.5px;
+  --qb-ring-inner: 1.5px;
+  --qb-ring-inset: 1.5px;
+  --qb-ring-radius: 4px;
 }
 
 .qb--disabled .qb__grid {
@@ -43,60 +67,113 @@
   min-width: 0;
   min-height: 0;
   outline: none;
+  /* Couches de fond, de haut en bas : teinte d'indice, rayures de conflit, motif de région (--qb-wash,
+     --qb-stripes, --qb-pattern sont posées par les classes d'état ci-dessous). */
+  background-image: var(--qb-wash, none), var(--qb-stripes, none), var(--qb-pattern, none);
+  background-size: auto, auto, var(--qb-pattern-size, auto);
   transition: background-color 400ms cubic-bezier(0.2, 0, 0, 1);
 }
 
-.qb__cell:focus-visible::after {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  border-radius: 8px;
-  outline: 3px solid var(--md-sys-color-secondary, #625b71);
-  outline-offset: -1px;
-  z-index: 3;
+/* --- Surbrillance d'indice : unités concernées, cibles des éliminations, erreurs --- */
+.qb__cell--focus {
+  --qb-tint: color-mix(in srgb, var(--md-sys-color-primary, #6750a4) 26%, transparent);
 }
 
-/* Surbrillance d'indice : unité concernée, cibles des éliminations. */
+.qb__cell--target {
+  --qb-tint: color-mix(in srgb, var(--md-sys-color-tertiary, #7d5260) 16%, transparent);
+}
+
+.qb__cell--mistake {
+  --qb-tint: color-mix(in srgb, var(--md-sys-color-error, #b3261e) 22%, transparent);
+}
+
+.qb__cell--focus,
+.qb__cell--target,
+.qb__cell--mistake {
+  --qb-wash: linear-gradient(var(--qb-tint), var(--qb-tint));
+}
+
+/* Conflit : rayures discrètes (repère sans couleur) ; l'anneau porte le signal principal. */
+.qb__cell--conflict {
+  --qb-stripes: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--md-sys-color-error, #b3261e) 14%, transparent) 0 3px,
+    transparent 3px 9px
+  );
+}
+
+/* --- Anneaux d'état (::before), sous la reine et la croix --- */
 .qb__cell--focus::before,
-.qb__cell--target::before,
-.qb__cell--mistake::before,
-.qb__cell--reveal::before {
+.qb__cell--reveal::before,
+.qb__cell--conflict::before,
+.qb__cell--mistake::before {
   content: '';
   position: absolute;
-  inset: 0;
   z-index: 1;
   pointer-events: none;
 }
 
+/* Unité de l'indice : simple filet collé au bord (la teinte porte l'essentiel). */
 .qb__cell--focus::before {
-  background: color-mix(in srgb, var(--md-sys-color-primary, #6750a4) 26%, transparent);
+  inset: 0;
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--md-sys-color-primary, #6750a4) 70%, transparent);
 }
 
-.qb__cell--target::before {
-  background: color-mix(in srgb, var(--md-sys-color-tertiary, #7d5260) 16%, transparent);
+.qb__cell--reveal {
+  --qb-ring-color: var(--md-sys-color-primary, #6750a4);
 }
 
+/* Après `reveal` : l'erreur prime sur la case de l'indice si les deux se cumulent. */
+.qb__cell--conflict,
+.qb__cell--mistake {
+  --qb-ring-color: var(--md-sys-color-error, #b3261e);
+}
+
+/* Double anneau : liseré coloré à l'extérieur, liseré `on` (currentColor) à l'intérieur. */
+.qb__cell--reveal::before,
+.qb__cell--conflict::before,
 .qb__cell--mistake::before {
-  background: color-mix(in srgb, var(--md-sys-color-error, #b3261e) 30%, transparent);
-  box-shadow: inset 0 0 0 3px var(--md-sys-color-error, #b3261e);
+  inset: var(--qb-ring-inset);
+  border-radius: var(--qb-ring-radius);
+  box-shadow:
+    inset 0 0 0 var(--qb-ring-outer) var(--qb-ring-color),
+    inset 0 0 0 calc(var(--qb-ring-outer) + var(--qb-ring-inner)) currentColor;
 }
 
+/* Case jouée par l'indice : seul le liseré coloré pulse, le liseré `on` reste plein. */
 .qb__cell--reveal::before {
-  box-shadow: inset 0 0 0 3px var(--md-sys-color-primary, #6750a4);
   animation: qb-pulse 1.2s cubic-bezier(0.2, 0, 0, 1) infinite;
 }
 
 @keyframes qb-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
   50% {
-    opacity: 0.35;
+    box-shadow:
+      inset 0 0 0 var(--qb-ring-outer) color-mix(in srgb, var(--qb-ring-color) 30%, transparent),
+      inset 0 0 0 calc(var(--qb-ring-outer) + var(--qb-ring-inner)) currentColor;
   }
 }
 
+/* --- Focus clavier (::after, au-dessus des anneaux d'état) : double anneau `on` + secondaire --- */
+.qb__cell:focus-visible::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  inset: var(--qb-ring-inset);
+  border-radius: var(--qb-ring-radius);
+  box-shadow:
+    inset 0 0 0 var(--qb-ring-outer) var(--md-sys-color-secondary, #625b71),
+    inset 0 0 0 calc(var(--qb-ring-outer) + var(--qb-ring-inner)) currentColor;
+}
+
+/* Case déjà cerclée par un état : l'anneau clavier se loge à l'intérieur de l'anneau d'état. */
+.qb__cell--reveal:focus-visible::after,
+.qb__cell--conflict:focus-visible::after,
+.qb__cell--mistake:focus-visible::after {
+  inset: calc(var(--qb-ring-inset) + var(--qb-ring-outer) + var(--qb-ring-inner));
+}
+
+/* --- Marqueurs --- */
 .qb__queen,
 .qb__cross {
   position: relative;
@@ -105,6 +182,7 @@
   pointer-events: none;
 }
 
+/* La reine ne change jamais de couleur (`on` de la région) : conflit et erreur passent par l'anneau. */
 .qb__queen {
   width: 64%;
   height: 64%;
@@ -112,61 +190,52 @@
   filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.18));
 }
 
-.qb__cell--conflict .qb__queen {
-  fill: var(--md-sys-color-error, #b3261e);
-}
-
-.qb__cell--conflict {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    color-mix(in srgb, var(--md-sys-color-error, #b3261e) 22%, transparent) 0 4px,
-    transparent 4px 9px
-  ) !important;
-}
-
+/* Reine fantôme (indice) : contour pointillé `on`, remplissage léger ; opacité = MARKER_ALPHA.ghost. */
 .qb__queen--ghost {
-  fill: var(--md-sys-color-primary, #6750a4);
-  opacity: 0.55;
+  fill-opacity: 0.3;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-dasharray: 2.6 2.2;
   filter: none;
 }
 
+/* Croix du joueur ; son opacité (MARKER_ALPHA.cross) est animée par motion. */
 .qb__cross {
   width: 34%;
   height: 34%;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.6;
+  stroke-width: 2.8;
   stroke-linecap: round;
-  opacity: 0.72;
 }
 
+/* Case interdite par une reine (croix automatiques) : petite croix fine ; opacité = MARKER_ALPHA.attacked. */
+.qb__cross--attacked {
+  width: 26%;
+  height: 26%;
+  stroke-width: 2.4;
+}
+
+/* Croix fantôme (indice) : tirets bien séparés (extrémités plates) ; opacité = MARKER_ALPHA.ghost. */
 .qb__cross--ghost {
-  stroke: var(--md-sys-color-primary, #6750a4);
-  stroke-dasharray: 3 3;
-  opacity: 0.9;
-}
-
-.qb__dot {
-  width: 14%;
-  height: 14%;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.38;
-  grid-area: 1 / 1;
+  stroke-width: 2.4;
+  stroke-linecap: butt;
+  stroke-dasharray: 2.6 2.4;
 }
 
 /* Motifs de régions (mode accessibilité) : points, rayures, quadrillage. */
 .qb__cell--pattern-1 {
-  background-image: radial-gradient(circle, color-mix(in srgb, currentColor 22%, transparent) 1.2px, transparent 1.6px);
-  background-size: 8px 8px;
+  --qb-pattern: radial-gradient(circle, color-mix(in srgb, currentColor 22%, transparent) 1.2px, transparent 1.6px);
+  --qb-pattern-size: 8px 8px;
 }
 
 .qb__cell--pattern-2 {
-  background-image: repeating-linear-gradient(45deg, color-mix(in srgb, currentColor 16%, transparent) 0 2px, transparent 2px 8px);
+  --qb-pattern: repeating-linear-gradient(45deg, color-mix(in srgb, currentColor 16%, transparent) 0 2px, transparent 2px 8px);
 }
 
 .qb__cell--pattern-3 {
-  background-image:
+  --qb-pattern:
     repeating-linear-gradient(0deg, color-mix(in srgb, currentColor 14%, transparent) 0 1.5px, transparent 1.5px 8px),
     repeating-linear-gradient(90deg, color-mix(in srgb, currentColor 14%, transparent) 0 1.5px, transparent 1.5px 8px);
 }

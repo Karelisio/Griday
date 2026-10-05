@@ -32,9 +32,12 @@ export function formatClock(ms: number, lang: Language): string {
   return h > 0 ? `${one.format(h)}:${two.format(m)}:${two.format(s)}` : `${one.format(m)}:${two.format(s)}`;
 }
 
-/** Durée en toutes lettres (« 3 min 05 s » / « 3 min, 5 sec »), Intl.DurationFormat si disponible. */
+/**
+ * Durée en toutes lettres (« 3 min 5 s » / « 3 min, 5 sec »), Intl.DurationFormat si disponible.
+ * Secondes entières écoulées, comme le chronomètre (jamais arrondies au-dessus).
+ */
 export function formatDuration(ms: number, lang: Language): string {
-  const total = Math.max(0, Math.round(ms / 1000));
+  const total = Math.max(0, Math.floor(ms / 1000));
   const parts = { hours: Math.floor(total / 3600), minutes: Math.floor((total % 3600) / 60), seconds: total % 60 };
   const DF = (Intl as unknown as { DurationFormat?: new (l: string, o: object) => { format(d: object): string } }).DurationFormat;
   if (DF) {
@@ -42,7 +45,7 @@ export function formatDuration(ms: number, lang: Language): string {
     if (parts.hours) d['hours'] = parts.hours;
     if (parts.hours || parts.minutes) d['minutes'] = parts.minutes;
     d['seconds'] = parts.seconds;
-    return new DF(BCP47[lang], { style: 'short' }).format(d);
+    return new DF(BCP47[lang], { style: 'short', secondsDisplay: 'always' }).format(d);
   }
   const unit = (value: number, u: 'hour' | 'minute' | 'second') =>
     new Intl.NumberFormat(BCP47[lang], { style: 'unit', unit: u, unitDisplay: 'short' }).format(value);

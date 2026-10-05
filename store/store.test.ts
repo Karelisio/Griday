@@ -13,4 +13,11 @@ describe('fiche Play Store', () => {
       expect([...text].length, `${lang}/${file}`).toBeLessThanOrEqual(max);
     }
   });
+
+  it('français : espaces insécables avant ; ! ? : et dans les guillemets', () => {
+    for (const file of Object.keys(LIMITS)) {
+      const text = read('fr-FR', file);
+      expect(text, file).not.toMatch(/[ \u00a0][;!?]|[ \u202f]:|« | »/);
+    }
+  });
 });

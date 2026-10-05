@@ -31,4 +31,20 @@ describe('traductions', () => {
   it('mêmes variables d’interpolation dans les deux langues', () => {
     for (const [k, v] of f) expect(vars(v), k).toEqual(vars(e.get(k) ?? ''));
   });
+
+  it('typographie française : espaces insécables (; ! ? : « » N° ×), apostrophe typographique', () => {
+    for (const [k, v] of f) {
+      expect(v, k).not.toMatch(/(^|[^\u202f])[;!?]/); // espace fine insécable (U+202F) avant ; ! ?
+      expect(v, k).not.toMatch(/(^|[^\u00a0]):/); // espace insécable (U+00A0) avant :
+      expect(v, k).not.toMatch(/« | »|N° | × /);
+      expect(v, k).not.toMatch(/'/);
+    }
+  });
+
+  it('anglais : apostrophe typographique, orthographe américaine', () => {
+    for (const [k, v] of e) {
+      expect(v, k).not.toMatch(/'/);
+      expect(v, k).not.toMatch(/colour|favour|behaviour/i);
+    }
+  });
 });

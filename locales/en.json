@@ -11,10 +11,7 @@
   "common": {
     "close": "Close",
     "cancel": "Cancel",
-    "confirm": "Confirm",
-    "retry": "Retry",
-    "loading": "Loading…",
-    "back": "Back"
+    "retry": "Retry"
   },
   "difficulty": {
     "1": "Easy",
@@ -33,10 +30,10 @@
     "title": "Daily puzzle",
     "number": "No. {{n}}",
     "generating": "Preparing today’s grid…",
-    "solved": "Daily puzzle solved",
-    "solvedIn": "Solved in {{time}}",
     "nextIn": "Next puzzle in {{time}}",
-    "updateAvailable": "A Griday update may be available: install it to keep playing the same grids as everyone else."
+    "updateAvailable": "A Griday update may be available: install it to keep playing the same grids as everyone else.",
+    "newPuzzle": "A new daily puzzle is available.",
+    "play": "Play"
   },
   "unlimited": {
     "title": "Unlimited mode",
@@ -54,11 +51,8 @@
     "redo": "Redo",
     "hint": "Hint",
     "reset": "Start over",
-    "resetConfirm": "Clear the whole grid and reset the timer?",
+    "resetConfirm": "Clear every mark from the grid? You can undo this, and the timer keeps running.",
     "timer": "Elapsed time",
-    "pause": "Pause",
-    "resume": "Resume",
-    "paused": "Game paused",
     "conflicts_one": "{{count}} queen in conflict",
     "conflicts_other": "{{count}} queens in conflict",
     "cell": {
@@ -73,7 +67,8 @@
       "attacked": "ruled out by a queen",
       "ruledOut": "ruled out by the hint"
     },
-    "actions": "Game actions"
+    "actions": "Game actions",
+    "resetAction": "Clear"
   },
   "victory": {
     "title": "Well done!",
@@ -82,17 +77,16 @@
     "hints_one": "{{count}} hint used",
     "hints_other": "{{count}} hints used",
     "newGame": "New grid",
-    "viewBoard": "View grid"
+    "viewBoard": "View grid",
+    "show": "Show result"
   },
   "hint": {
     "title": "Hint",
-    "show": "Show the cell",
     "apply": "Play this move",
     "unit": {
       "row": "row {{n}}",
       "column": "column {{n}}",
-      "region": "the highlighted region",
-      "regions": "these {{count}} regions"
+      "region": "the highlighted region"
     },
     "technique": {
       "single": "Last cell",
@@ -120,21 +114,23 @@
         "row": "All possible cells of row {{row}} are in the same region. That region’s queen will therefore be in row {{row}}, so its other cells are ruled out.",
         "column": "All possible cells of column {{col}} are in the same region. That region’s queen will therefore be in column {{col}}, so its other cells are ruled out."
       },
-      "attack": "A queen on the marked cell would remove every possible cell of {{unit}}, which would then have no queen: this cell is ruled out.",
       "locked": {
-        "regions-rows": "These {{count}} regions only have possible cells in rows {{lines}}. Those rows are reserved for them, so their other cells are ruled out.",
-        "regions-columns": "These {{count}} regions only have possible cells in columns {{lines}}. Those columns are reserved for them, so their other cells are ruled out.",
-        "rows-regions": "Rows {{lines}} only have possible cells in {{count}} regions. Those regions’ queens are therefore in these rows, so their other cells are ruled out.",
-        "columns-regions": "Columns {{lines}} only have possible cells in {{count}} regions. Those regions’ queens are therefore in these columns, so their other cells are ruled out.",
-        "rows-columns": "Rows {{lines}} only have possible cells in columns {{targets}}. Those columns are reserved for them, so their other cells are ruled out.",
-        "columns-rows": "Columns {{lines}} only have possible cells in rows {{targets}}. Those rows are reserved for them, so their other cells are ruled out."
+        "regions-rows": "These {{count}} regions only have possible cells in rows {{lines}}: their {{count}} queens will fill those rows. Every other cell in those rows is ruled out.",
+        "regions-columns": "These {{count}} regions only have possible cells in columns {{lines}}: their {{count}} queens will fill those columns. Every other cell in those columns is ruled out.",
+        "rows-regions": "Rows {{lines}} only have possible cells in {{count}} regions: their queens will be those regions’ queens. Every other cell in those regions is ruled out.",
+        "columns-regions": "Columns {{lines}} only have possible cells in {{count}} regions: their queens will be those regions’ queens. Every other cell in those regions is ruled out.",
+        "rows-columns": "Rows {{lines}} only have possible cells in columns {{targets}}: their queens will fill those columns. Every other cell in those columns is ruled out.",
+        "columns-rows": "Columns {{lines}} only have possible cells in rows {{targets}}: their queens will fill those rows. Every other cell in those rows is ruled out."
       },
       "contradiction": "Suppose there is a queen on the marked cell: following the simple deductions, {{unit}} would have no possible cell left. That is impossible, so this cell is ruled out.",
       "reveal": "No simple deduction here: here is one queen of the solution.",
-      "mistake_one": "One cell is wrong: it is shown in red. Fix it before going on.",
-      "mistake_other": "{{count}} cells are wrong: they are shown in red. Fix them before going on.",
-      "solved": "The grid is already solved!"
-    }
+      "mistake_one": "One cell is wrong: it is outlined on the grid. Fix it before going on.",
+      "mistake_other": "{{count}} cells are wrong: they are outlined on the grid. Fix them before going on.",
+      "solved": "The grid is already solved!",
+      "attack_one": "A queen on the marked cell would remove every possible cell of {{unit}}, leaving it without a queen: this cell is ruled out.",
+      "attack_other": "A queen on any of the {{count}} marked cells would remove every possible cell of {{unit}}, leaving it without a queen: these cells are ruled out."
+    },
+    "fix": "Fix"
   },
   "settings": {
     "title": "Settings",
@@ -171,11 +167,13 @@
     },
     "patterns": {
       "title": "Region patterns",
-      "description": "Add a texture to each region to tell them apart (colour blindness)"
+      "description": "Add a texture to each region to tell them apart (color blindness)"
     }
   },
   "errors": {
     "generation": "The grid could not be prepared. Please try again.",
-    "engineCheck": "This device computes grids differently: your daily puzzle might not match other players’."
+    "engineCheck": "This device computes grids differently: your daily puzzle might not match other players’.",
+    "hint": "Couldn’t work out a hint. Try again.",
+    "screen": "Something went wrong on this screen. Retrying reloads it and resets its current puzzle."
   }
 }

@@ -16,14 +16,14 @@ describe('application', () => {
     const grid = await screen.findByRole('grid', {}, { timeout: 15_000 });
     const cells = within(grid).getAllByRole('gridcell');
     expect(cells.length).toBeGreaterThanOrEqual(36);
-    expect(cells[0]!.getAttribute('aria-label')).toMatch(/^Ligne 1, colonne 1 : vide$/);
+    expect(cells[0]!.getAttribute('aria-label')).toMatch(/^Ligne 1, colonne 1, région [A-L]\s: vide$/);
 
     // Toucher (pointer down/up sur la même case) → reine.
     const rect = { left: 0, top: 0, width: 600, height: 600, right: 600, bottom: 600, x: 0, y: 0, toJSON: () => ({}) };
     grid.getBoundingClientRect = () => rect as DOMRect;
     await act(async () => {
-      fireEvent.pointerDown(grid, { clientX: 10, clientY: 10, pointerId: 1, button: 0 });
-      fireEvent.pointerUp(grid, { clientX: 10, clientY: 10, pointerId: 1, button: 0 });
+      fireEvent.pointerDown(grid, { clientX: 10, clientY: 10, pointerId: 1, button: 0, isPrimary: true });
+      fireEvent.pointerUp(grid, { clientX: 10, clientY: 10, pointerId: 1, button: 0, isPrimary: true });
     });
     await waitFor(() => expect(within(grid).getAllByRole('gridcell')[0]!.getAttribute('aria-label')).toMatch(/reine/));
 

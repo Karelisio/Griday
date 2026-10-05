@@ -83,8 +83,12 @@
 
 .md-icon-button:disabled {
   --md-icon-button-content: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
-  --md-icon-button-outline: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
   cursor: default;
+}
+
+/* Contour estompé : seulement pour le style à contour (les autres n'en ont pas). */
+.md-icon-button--outlined:disabled:not(.md-icon-button--selected) {
+  --md-icon-button-outline: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
 }
 
 .md-icon-button--filled:disabled,

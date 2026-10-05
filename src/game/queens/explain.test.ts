@@ -6,7 +6,7 @@ import { getQueensHint } from '../../../engine/queens/hint';
 import { MARK_QUEEN, type QueensMark } from '../../../engine/queens/types';
 import en from '../../../locales/en.json';
 import fr from '../../../locales/fr.json';
-import { explainHint } from './explain';
+import { explainHint, hintKey, hintMoves } from './explain';
 import { MARK_CROSS, emptyMarks } from './marks';
 
 const i18n = i18next.createInstance();
@@ -56,5 +56,42 @@ describe('explications des indices', () => {
     const ex = explainHint(hint, p, 'fr', (key, n) => t(key, { n }));
     expect(ex.highlight.mistakes).toEqual([wrong]);
     expect(t(ex.textKey, ex.params)).toContain('Une case est fausse');
+  });
+
+  it('« Jouer ce coup » applique toute la déduction ; jouer les indices en boucle résout la grille', () => {
+    for (let i = 0; i < 14; i++) {
+      const p = getDailyPuzzle(addDays('2026-10-05', i)).puzzle;
+      let marks: QueensMark[] = emptyMarks(p);
+      const keys = new Set<string>();
+      let solved = false;
+      for (let guard = 0; guard < 4 * p.size * p.size && !solved; guard++) {
+        const hint = getQueensHint(p, marks);
+        if (hint.kind === 'solved') solved = true;
+        else {
+          const key = hintKey(hint);
+          expect(keys.has(key), key).toBe(false); // chaque indice apporte une déduction nouvelle
+          keys.add(key);
+          const moves = hintMoves(hint, marks);
+          expect(moves.length).toBeGreaterThan(0);
+          if (hint.kind === 'step') {
+            const crosses = moves.filter((m) => m.mark === 'cross').map((m) => m.cell);
+            expect(crosses).toEqual(hint.step.eliminate.filter((c) => marks[c] === 0));
+          }
+          marks = [...marks];
+          for (const m of moves) marks[m.cell] = m.mark === 'queen' ? MARK_QUEEN : m.mark === 'cross' ? MARK_CROSS : 0;
+        }
+      }
+      expect(solved).toBe(true);
+    }
+  });
+
+  it('une erreur se corrige en vidant les cases fausses', () => {
+    const p = getDailyPuzzle('2026-10-05').puzzle;
+    const marks: QueensMark[] = emptyMarks(p);
+    const wrong = p.solution[0] === 0 ? 1 : 0;
+    marks[wrong] = MARK_QUEEN;
+    const hint = getQueensHint(p, marks);
+    expect(hint.kind).toBe('mistake');
+    expect(hintMoves(hint, marks)).toEqual([{ cell: wrong, mark: 'empty' }]);
   });
 });

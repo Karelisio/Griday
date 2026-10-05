@@ -41,6 +41,43 @@ describe('partie Queens', () => {
     expect(g.marks.slice(0, 4)).toEqual([MARK_CROSS, MARK_EMPTY, MARK_QUEEN, MARK_CROSS]);
   });
 
+  it('peinture : un trait (même `stroke`) = une seule entrée d’historique, un nouveau trait en crée une autre', () => {
+    let g = newGame(puzzle, 0);
+    g = reduceQueens(g, { type: 'paint', cells: [0, 1], mode: 'cross', stroke: 1, now: 1 });
+    g = reduceQueens(g, { type: 'paint', cells: [2], mode: 'cross', stroke: 1, now: 2 });
+    g = reduceQueens(g, { type: 'paint', cells: [3], mode: 'cross', stroke: 1, now: 3 });
+    expect(g.past).toHaveLength(1);
+    g = reduceQueens(g, { type: 'paint', cells: [6, 7], mode: 'cross', stroke: 2, now: 4 });
+    expect(g.past).toHaveLength(2);
+    g = reduceQueens(g, { type: 'undo', now: 5 });
+    expect(g.marks.slice(0, 8)).toEqual([MARK_CROSS, MARK_CROSS, MARK_CROSS, MARK_CROSS, 0, 0, 0, 0]);
+    g = reduceQueens(g, { type: 'undo', now: 6 });
+    expect(g.marks.every((m) => m === MARK_EMPTY)).toBe(true);
+    // Après annulation, une peinture du même identifiant ne se greffe pas sur l’entrée précédente.
+    g = reduceQueens(g, { type: 'redo', now: 7 });
+    g = reduceQueens(g, { type: 'paint', cells: [4], mode: 'cross', stroke: 1, now: 8 });
+    expect(g.past).toHaveLength(2);
+  });
+
+  it('peinture sans effet : ne réserve pas le trait (l’entrée suivante reste distincte)', () => {
+    let g = newGame(puzzle, 0);
+    g = reduceQueens(g, { type: 'tap', cell: 0, now: 1 });
+    g = reduceQueens(g, { type: 'paint', cells: [0], mode: 'cross', stroke: 3, now: 2 });
+    expect(g.stroke).toBeNull();
+    g = reduceQueens(g, { type: 'paint', cells: [1], mode: 'cross', stroke: 3, now: 3 });
+    expect(g.past).toHaveLength(2);
+    expect(g.marks[0]).toBe(MARK_QUEEN);
+  });
+
+  it('plusieurs cases d’un coup (indice) : une seule entrée d’historique', () => {
+    let g = newGame(puzzle, 0);
+    g = reduceQueens(g, { type: 'setMany', changes: [{ cell: sol[0]!, mark: MARK_QUEEN }, { cell: 1 === sol[0] ? 2 : 1, mark: MARK_CROSS }], now: 1 });
+    expect(g.past).toHaveLength(1);
+    expect(g.marks[sol[0]!]).toBe(MARK_QUEEN);
+    g = reduceQueens(g, { type: 'undo', now: 2 });
+    expect(g.marks.every((m) => m === MARK_EMPTY)).toBe(true);
+  });
+
   it('annuler / rétablir ; une nouvelle action efface le futur', () => {
     let g = newGame(puzzle, 0);
     g = reduceQueens(g, { type: 'tap', cell: 0, now: 1 });
@@ -95,5 +132,15 @@ describe('partie Queens', () => {
     g = reduceQueens(g, { type: 'reset', now: 2 });
     expect(g.hintsUsed).toBe(1);
     expect(g.marks.every((m) => m === MARK_EMPTY)).toBe(true);
+  });
+
+  it('recommencer : grille effacée mais annulable, chronomètre conservé', () => {
+    let g = newGame(puzzle, 0);
+    g = reduceQueens(g, { type: 'tap', cell: sol[0]!, now: 1000 });
+    g = reduceQueens(g, { type: 'reset', now: 5000 });
+    expect(g.marks.every((m) => m === MARK_EMPTY)).toBe(true);
+    expect(elapsedAt(g, 6000)).toBe(6000);
+    g = reduceQueens(g, { type: 'undo', now: 7000 });
+    expect(g.marks[sol[0]!]).toBe(MARK_QUEEN);
   });
 });

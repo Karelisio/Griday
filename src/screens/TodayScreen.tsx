@@ -1,5 +1,5 @@
 /** Puzzle du jour : grille identique pour tous, numérotée depuis l'epoch, progression sauvegardée. */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { DailyInfo } from '../../engine/core/types';
 import { SCHEDULE } from '../../engine/config';
@@ -7,13 +7,15 @@ import { isScheduleStale } from '../../engine/core/schedule';
 import type { AnyDailyPuzzle } from '../../engine/registry';
 import { engine } from '../engine-client/client';
 import { GameView } from '../game/GameView';
+import { isStoredQueensPuzzle } from '../game/queens/validate';
 import { useQueensGame } from '../game/queens/useQueensGame';
 import type { QueensGame } from '../game/queens/state';
 import type { Language } from '../i18n';
-import { formatClock, formatDate } from '../i18n/format';
+import { formatClock, formatDate, formatNumber } from '../i18n/format';
+import { dailyProgressKey, dailyPuzzleKey, dailyResultKey } from '../persistence';
 import { loadJSON, saveJSON } from '../platform/storage';
 import { useSettings } from '../settings/SettingsContext';
-import { Button, Card, Chip, CircularProgress, Icon } from '../ui';
+import { Button, Card, CircularProgress, Icon, InfoChip } from '../ui';
 import { msUntilMidnight, useToday } from '../useToday';
 import './screens.css';
 
@@ -25,33 +27,38 @@ export interface DailyResult {
   readonly solvedAt: string;
 }
 
-export const dailyPuzzleKey = (date: string) => `daily.puzzle.${date}`;
-export const dailyProgressKey = (date: string) => `daily.progress.${date}`;
-export const dailyResultKey = (date: string) => `daily.result.${date}`;
+/** Partie entamée et non terminée : elle n'est pas remplacée sous les yeux du joueur à minuit. */
+const inProgress = (g: QueensGame | null) => g !== null && !g.solved && (g.past.length > 0 || g.marks.some((m) => m !== 0));
 
 export function TodayScreen({ visible }: { visible: boolean }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language as Language;
   const today = useToday();
   const { settings } = useSettings();
+  // Date de la grille affichée : suit le jour, sauf partie en cours au passage de minuit.
+  const [playingDate, setPlayingDate] = useState(today);
   const [info, setInfo] = useState<DailyInfo | null>(null);
   const [daily, setDaily] = useState<AnyDailyPuzzle | null>(null);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
-  // Chargement : cache local, sinon génération dans le worker (puis mise en cache).
+  // Chargement : cache local validé, sinon génération dans le worker (puis mise en cache).
   useEffect(() => {
     let cancelled = false;
     setDaily(null);
+    setInfo(null);
     setError(false);
     void (async () => {
       try {
-        const meta = await engine.dailyInfo(today);
+        const meta = await engine.dailyInfo(playingDate);
         if (cancelled) return;
         setInfo(meta);
-        const cached = await loadJSON<AnyDailyPuzzle>(dailyPuzzleKey(today));
-        const puzzle = cached && cached.date === today && cached.version === meta.version ? cached : await engine.daily(today);
-        if (!cached || cached !== puzzle) await saveJSON(dailyPuzzleKey(today), puzzle);
+        const cached = await loadJSON<unknown>(dailyPuzzleKey(playingDate));
+        const valid =
+          isStoredQueensPuzzle(cached, { version: meta.version, size: meta.target.size }) && (cached as AnyDailyPuzzle).date === playingDate;
+        const puzzle = valid ? (cached as AnyDailyPuzzle) : await engine.daily(playingDate);
+        // Une grille de secours temps réel n'est pas celle des autres joueurs : jamais mise en cache.
+        if (!valid && puzzle.source !== 'emergency') await saveJSON(dailyPuzzleKey(playingDate), puzzle);
         if (!cancelled) setDaily(puzzle);
       } catch {
         if (!cancelled) setError(true);
@@ -60,42 +67,62 @@ export function TodayScreen({ visible }: { visible: boolean }) {
     return () => {
       cancelled = true;
     };
-  }, [today, attempt]);
+  }, [playingDate, attempt]);
 
   const onSolved = useCallback(
     (g: QueensGame) => {
-      const result: DailyResult = { date: today, timeMs: Math.round(g.elapsedMs), hintsUsed: g.hintsUsed, solvedAt: new Date().toISOString() };
-      void saveJSON(dailyResultKey(today), result);
+      const result: DailyResult = { date: playingDate, timeMs: Math.floor(g.elapsedMs), hintsUsed: g.hintsUsed, solvedAt: new Date().toISOString() };
+      void saveJSON(dailyResultKey(playingDate), result);
     },
-    [today],
+    [playingDate],
   );
 
   const api = useQueensGame({
     puzzle: daily?.puzzle ?? null,
-    storageKey: daily ? dailyProgressKey(today) : null,
+    storageKey: daily ? dailyProgressKey(playingDate) : null,
     visible,
     autoCross: settings.autoCross,
     onSolved,
   });
+
+  // Minuit : nouvelle grille tout de suite, sauf si une partie est en cours (le joueur choisit).
+  const busy = useRef(false);
+  busy.current = inProgress(api.game);
+  useEffect(() => {
+    setPlayingDate((current) => (current === today || busy.current ? current : today));
+  }, [today]);
+  const newPuzzleWaiting = playingDate !== today;
 
   const stale = isScheduleStale(SCHEDULE, today);
 
   return (
     <section className="screen" aria-labelledby="today-title" hidden={!visible}>
       <header className="screen__header">
-        <p className="md-typescale-label-large screen__overline">{info ? t('today.number', { n: info.dayNumber }) : ' '}</p>
+        <p className="md-typescale-label-large screen__overline">
+          {info && info.dayNumber > 0 ? t('today.number', { n: formatNumber(info.dayNumber, lang) }) : ' '}
+        </p>
         <h1 id="today-title" className="md-typescale-headline-medium screen__title">
           {t('today.title')}
         </h1>
-        <p className="md-typescale-body-large screen__subtitle">{formatDate(today, lang, 'long')}</p>
+        <p className="md-typescale-body-large screen__subtitle">{formatDate(playingDate, lang, 'long')}</p>
         {info && (
           <div className="screen__chips">
-            <Chip icon="crown">{t('puzzle.queens.name')}</Chip>
-            <Chip icon="grid_view">{t('unlimited.sizeValue', { n: info.target.size })}</Chip>
-            <Chip icon="bolt">{t(`difficulty.${info.target.tier}`)}</Chip>
+            <InfoChip icon="crown">{t('puzzle.queens.name')}</InfoChip>
+            <InfoChip icon="grid_view">{t('unlimited.sizeValue', { n: info.target.size })}</InfoChip>
+            <InfoChip icon="bolt">{t(`difficulty.${info.target.tier}`)}</InfoChip>
           </div>
         )}
       </header>
+
+      {newPuzzleWaiting && (
+        <Card variant="filled" className="screen__notice screen__notice--action">
+          <Icon name="today" />
+          <p className="md-typescale-body-medium">{t('today.newPuzzle')}</p>
+          <Button variant="filled" size="s" icon="play_arrow" onClick={() => setPlayingDate(today)}>
+            {t('today.play')}
+          </Button>
+        </Card>
+      )}
 
       {stale && (
         <Card variant="outlined" className="screen__notice">
@@ -119,10 +146,11 @@ export function TodayScreen({ visible }: { visible: boolean }) {
         </div>
       ) : (
         <GameView
+          key={playingDate}
           puzzle={daily.puzzle}
           api={api}
           visible={visible}
-          victoryExtra={<NextPuzzleCountdown lang={lang} />}
+          victoryExtra={newPuzzleWaiting ? undefined : <NextPuzzleCountdown lang={lang} />}
         />
       )}
     </section>

@@ -30,3 +30,6 @@ if (!Element.prototype.setPointerCapture) {
   Element.prototype.setPointerCapture = () => undefined;
   Element.prototype.releasePointerCapture = () => undefined;
 }
+
+if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = () => undefined;
+if (!Element.prototype.scrollBy) Element.prototype.scrollBy = () => undefined;

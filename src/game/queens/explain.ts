@@ -4,7 +4,7 @@
  */
 import type { QueensHint } from '../../../engine/queens/hint';
 import type { QueensStep, QueensUnitRef } from '../../../engine/queens/v1/solver';
-import type { QueensPuzzle } from '../../../engine/queens/types';
+import { MARK_EMPTY, type QueensMark, type QueensPuzzle } from '../../../engine/queens/types';
 import type { Language } from '../../i18n';
 
 export interface HintHighlight {
@@ -117,7 +117,7 @@ function explainStep(
       // Unité = la ligne ou colonne ; cible = la région qui la contient.
       return { titleKey, textKey: `hint.queens.line-region.${u0?.kind === 'column' ? 'column' : 'row'}`, params: lineParams(u0), highlight };
     case 'attack':
-      return { titleKey, textKey: 'hint.queens.attack', params: { unit: label(u0) }, highlight };
+      return { titleKey, textKey: 'hint.queens.attack', params: { unit: label(u0), count: step.eliminate.length }, highlight };
     case 'contradiction':
       return { titleKey, textKey: 'hint.queens.contradiction', params: { unit: label(u0) }, highlight };
     case 'locked-pair':
@@ -142,4 +142,41 @@ const plural = (k: QueensUnitRef['kind']) => (k === 'region' ? 'regions' : k ===
 function lineParams(u: QueensUnitRef | undefined): Record<string, number> {
   if (!u || u.kind === 'region') return {};
   return u.kind === 'row' ? { row: u.index + 1 } : { col: u.index + 1 };
+}
+
+/** Changement de marque joué par un indice. */
+export interface HintMove {
+  readonly cell: number;
+  readonly mark: 'queen' | 'cross' | 'empty';
+}
+
+/** Identité d'une déduction : un même indice redemandé n'est compté qu'une fois. */
+export function hintKey(h: QueensHint): string {
+  switch (h.kind) {
+    case 'step':
+      return `step:${h.step.technique}:${h.step.place.join(',')}:${h.step.eliminate.join(',')}`;
+    case 'reveal':
+      return `reveal:${h.reveal.cell}`;
+    case 'mistake':
+      return `mistake:${h.cells.join(',')}`;
+    case 'solved':
+      return 'solved';
+  }
+}
+
+/** Coups joués par « Jouer ce coup » : toute la déduction (reine posée et cases exclues encore vides). */
+export function hintMoves(h: QueensHint, marks: readonly QueensMark[]): HintMove[] {
+  switch (h.kind) {
+    case 'step':
+      return [
+        ...h.step.place.map((cell) => ({ cell, mark: 'queen' as const })),
+        ...h.step.eliminate.filter((cell) => marks[cell] === MARK_EMPTY).map((cell) => ({ cell, mark: 'cross' as const })),
+      ];
+    case 'reveal':
+      return [h.reveal];
+    case 'mistake':
+      return h.cells.map((cell) => ({ cell, mark: 'empty' as const }));
+    case 'solved':
+      return [];
+  }
 }

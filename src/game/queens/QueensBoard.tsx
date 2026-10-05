@@ -1,9 +1,11 @@
 /**
  * Grille Queens : régions colorées (tons de la palette), bordures de régions en SVG,
- * reines et croix animées (ressorts), surlignage des indices, gestes tactiles et clavier.
+ * reines et croix animées (ressorts), surlignage des indices, gestes tactiles et clavier,
+ * étiquettes complètes pour les lecteurs d'écran (ligne, colonne, région, état).
  */
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { memo, useCallback, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { memo, useMemo, useRef, useState, type CSSProperties, type FocusEvent, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import type { QueensMark, QueensPuzzle } from '../../../engine/queens/types';
 import type { HintHighlight } from './explain';
@@ -22,7 +24,7 @@ export interface QueensBoardProps {
   readonly marks: readonly QueensMark[];
   readonly regionColors: readonly RegionStyle[];
   readonly conflicts?: readonly number[];
-  /** Cases interdites affichées en pointillé (réglage « croix automatiques »). */
+  /** Cases interdites par une reine, marquées d'une petite croix (réglage « croix automatiques »). */
   readonly attacked?: ReadonlySet<number>;
   readonly highlight?: HintHighlight | null;
   /** Motifs de régions (accessibilité daltonisme). */
@@ -33,12 +35,67 @@ export interface QueensBoardProps {
   readonly onGesture: (e: GestureEvent) => void;
 }
 
+/**
+ * Opacité (sur le fond de la région) des marqueurs tracés avec la couleur `on` de la région.
+ * `on` contraste ≥ 4,5:1 sur tous les fonds de la palette ; à ces opacités, chaque marqueur
+ * garde un contraste ≥ 3:1 (WCAG 1.4.11) en clair comme en sombre (voir QueensBoard.test.tsx).
+ * Appliquées en ligne par la cellule : source unique pour le rendu et les tests.
+ */
+export const MARKER_ALPHA = {
+  /** Croix posée par le joueur. */
+  cross: 0.8,
+  /** Reine et croix « fantômes » de l'indice. */
+  ghost: 0.7,
+  /** Petite croix des cases interdites par une reine. */
+  attacked: 0.7,
+} as const;
+
+/** Grilles à partir de cette taille : anneaux d'état plus fins (cases de ~30 px). */
+const DENSE_FROM = 10;
+
+const GHOST_STYLE: CSSProperties = { opacity: MARKER_ALPHA.ghost };
+const ATTACKED_STYLE: CSSProperties = { opacity: MARKER_ALPHA.attacked };
+
 // Couronne (24×24), dessinée pour rester lisible de 24 à 64 px.
 const CROWN =
   'M4.2 18.2h15.6l1.7-10.1a1 1 0 0 0-1.6-.95l-4.1 3.1-3-5.4a.9.9 0 0 0-1.6 0l-3 5.4-4.1-3.1a1 1 0 0 0-1.6.95zM5 20a1 1 0 0 0 0 2h14a1 1 0 0 0 0-2z';
+const CROSS = 'M6 6l12 12M18 6L6 18';
 
 const SPRING_POP = { type: 'spring', stiffness: 800, damping: 2 * 0.6 * Math.sqrt(800) } as const;
 const SPRING_SOFT = { type: 'spring', stiffness: 380, damping: 2 * 0.8 * Math.sqrt(380) } as const;
+
+/** Lettre de région annoncée (région canonique 0 → « A »), numéro au-delà de Z. */
+export function regionLetter(region: number): string {
+  return region >= 0 && region < 26 ? String.fromCharCode(65 + region) : String(region + 1);
+}
+
+/** Éléments décrivant l'état d'une case pour son étiquette. */
+export interface CellStateInput {
+  readonly mark: QueensMark;
+  readonly conflict: boolean;
+  readonly mistake: boolean;
+  /** Dans une unité ou une cible surlignée par l'indice. */
+  readonly highlighted: boolean;
+  readonly eliminate: boolean;
+  readonly attacked: boolean;
+  /** Case jouée par l'indice. */
+  readonly hinted: boolean;
+}
+
+/**
+ * Clés `game.cell.*` de l'état d'une case, dans l'ordre de lecture : la marque (reine, reine en
+ * conflit, croix, vide), puis erreur, surlignage, exclusions (cases vides seulement) et case de l'indice.
+ */
+export function cellStateKeys(c: CellStateInput): string[] {
+  const empty = c.mark === MARK_EMPTY;
+  const keys = [c.mark === MARK_QUEEN ? (c.conflict ? 'conflict' : 'queen') : c.mark === MARK_CROSS ? 'cross' : 'empty'];
+  if (c.mistake) keys.push('mistake');
+  if (c.highlighted) keys.push('highlighted');
+  if (empty && c.eliminate) keys.push('ruledOut');
+  if (empty && c.attacked) keys.push('attacked');
+  if (c.hinted) keys.push('hinted');
+  return keys;
+}
 
 export const QueensBoard = memo(function QueensBoard(props: QueensBoardProps) {
   const { puzzle, marks, regionColors, conflicts = [], attacked, highlight, patterns = false, disabled = false, celebrate = false, onGesture } = props;
@@ -46,7 +103,9 @@ export const QueensBoard = memo(function QueensBoard(props: QueensBoardProps) {
   const { t } = useTranslation();
   const reduce = useReducedMotion();
   const gridRef = useRef<HTMLDivElement>(null);
-  const tracker = useRef(new GestureTracker());
+  const [tracker] = useState(() => new GestureTracker());
+  /** Seul pointeur suivi pendant un geste (identifiant), null hors geste. */
+  const activePointer = useRef<number | null>(null);
   const [focusCell, setFocusCell] = useState(0);
 
   const conflictSet = useMemo(() => new Set(conflicts), [conflicts]);
@@ -61,72 +120,128 @@ export const QueensBoard = memo(function QueensBoard(props: QueensBoardProps) {
   );
   const borders = useMemo(() => regionBorderPath(puzzle), [puzzle]);
   const thin = useMemo(() => thinGridPath(puzzle), [puzzle]);
+  const rootStyle = useMemo(() => ({ ['--qb-n' as string]: n }), [n]);
 
-  const cellAt = useCallback(
-    (x: number, y: number): number | null => {
-      const el = gridRef.current;
-      if (!el) return null;
-      const r = el.getBoundingClientRect();
-      const col = Math.floor(((x - r.left) / r.width) * n);
-      const row = Math.floor(((y - r.top) / r.height) * n);
-      return row >= 0 && row < n && col >= 0 && col < n ? row * n + col : null;
-    },
-    [n],
-  );
+  /** Case sous le point (x, y) ; null hors grille. */
+  const cellAt = (x: number, y: number): number | null => {
+    const r = gridRef.current?.getBoundingClientRect();
+    if (!r || r.width <= 0 || r.height <= 0) return null;
+    const col = Math.floor(((x - r.left) / r.width) * n);
+    const row = Math.floor(((y - r.top) / r.height) * n);
+    return row >= 0 && row < n && col >= 0 && col < n ? row * n + col : null;
+  };
+
+  /** Case (indice) portant l'élément ciblé par un événement, null s'il n'est pas dans une case. */
+  const cellOf = (target: EventTarget | null): number | null => {
+    if (!(target instanceof Element)) return null;
+    const el = target.closest('[data-cell]');
+    if (!el || !gridRef.current?.contains(el)) return null;
+    const cell = Number(el.getAttribute('data-cell'));
+    return Number.isInteger(cell) && cell >= 0 && cell < n * n ? cell : null;
+  };
 
   const emit = (e: GestureEvent | null) => {
     if (e && !disabled) onGesture(e);
   };
+  const markAt = (cell: number): QueensMark => marks[cell] ?? MARK_EMPTY;
+
+  // --- Pointeur : un seul pointeur primaire suivi (un 2e doigt ne peint jamais) ---
+  const ownsEvent = (e: PointerEvent<HTMLDivElement>) => e.isPrimary && e.pointerId === activePointer.current;
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
-    if (disabled || (e.pointerType === 'mouse' && e.button !== 0)) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
+    if (disabled || !e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    activePointer.current = e.pointerId;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Pointeur déjà levé : le geste s'achèvera avec l'événement suivant.
+    }
+    const size = (gridRef.current?.getBoundingClientRect().width ?? 0) / n;
     const cell = cellAt(e.clientX, e.clientY);
-    tracker.current.down(cell);
+    tracker.down(cell, { x: e.clientX, y: e.clientY }, size);
     if (cell !== null) setFocusCell(cell);
   };
   const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
-    if (disabled) return;
-    emit(tracker.current.move(cellAt(e.clientX, e.clientY), (c) => marks[c] ?? MARK_EMPTY));
+    if (disabled || !ownsEvent(e)) return;
+    emit(tracker.move(cellAt(e.clientX, e.clientY), { x: e.clientX, y: e.clientY }, markAt));
   };
   const onPointerUp = (e: PointerEvent<HTMLDivElement>) => {
-    if (disabled) return;
-    emit(tracker.current.up(cellAt(e.clientX, e.clientY), e.timeStamp));
+    if (!ownsEvent(e)) return;
+    activePointer.current = null;
+    if (disabled) return tracker.cancel();
+    // Dernière position (le relâchement peut précéder tout déplacement), puis toucher ou fin de glisser.
+    emit(tracker.move(cellAt(e.clientX, e.clientY), { x: e.clientX, y: e.clientY }, markAt));
+    emit(tracker.up(e.timeStamp));
+  };
+  const onPointerCancel = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.pointerId !== activePointer.current) return;
+    activePointer.current = null;
+    tracker.cancel();
+  };
+
+  // Activation sans événements pointeur (clavier, lecteur d'écran : clic synthétique de détail 0).
+  const onClick = (e: MouseEvent<HTMLDivElement>) => {
+    if (e.detail !== 0) return;
+    const cell = cellOf(e.target);
+    if (cell !== null) emit({ type: 'tap', cell });
+  };
+
+  // Le focus déplacé par un lecteur d'écran ou par programme met à jour la case « tabulable ».
+  const onFocus = (e: FocusEvent<HTMLDivElement>) => {
+    const cell = cellOf(e.target);
+    if (cell !== null) setFocusCell(cell);
+  };
+
+  const focusTo = (cell: number) => {
+    setFocusCell(cell);
+    gridRef.current?.querySelector<HTMLElement>(`[data-cell="${cell}"]`)?.focus();
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    const r = Math.floor(focusCell / n);
-    const c = focusCell % n;
-    const move = (nr: number, nc: number) => {
-      const next = Math.min(n - 1, Math.max(0, nr)) * n + Math.min(n - 1, Math.max(0, nc));
-      setFocusCell(next);
-      (gridRef.current?.querySelector(`[data-cell="${next}"]`) as HTMLElement | null)?.focus();
-    };
+    if (e.altKey) return;
+    const cell = cellOf(e.target) ?? focusCell;
+    const r = Math.floor(cell / n);
+    const c = cell % n;
+    const clamp = (v: number) => Math.min(n - 1, Math.max(0, v));
+    const go = (nr: number, nc: number) => focusTo(clamp(nr) * n + clamp(nc));
+    const mod = e.ctrlKey || e.metaKey;
     switch (e.key) {
       case 'ArrowUp':
-        move(r - 1, c);
+        go(r - 1, c);
         break;
       case 'ArrowDown':
-        move(r + 1, c);
+        go(r + 1, c);
         break;
       case 'ArrowLeft':
-        move(r, c - 1);
+        go(r, c - 1);
         break;
       case 'ArrowRight':
-        move(r, c + 1);
+        go(r, c + 1);
+        break;
+      case 'Home':
+        if (mod) focusTo(0);
+        else go(r, 0);
+        break;
+      case 'End':
+        if (mod) focusTo(n * n - 1);
+        else go(r, n - 1);
         break;
       case 'Enter':
       case ' ':
-        emit({ type: 'tap', cell: focusCell });
+        if (mod) return;
+        if (!e.repeat) emit({ type: 'tap', cell });
         break;
       case 'x':
       case 'X':
-        emit({ type: 'paint', cells: [focusCell], mode: marks[focusCell] === MARK_CROSS ? 'erase' : 'cross' });
+        if (mod) return;
+        if (!e.repeat) emit({ type: 'paint', cells: [cell], mode: marks[cell] === MARK_CROSS ? 'erase' : 'cross', stroke: tracker.nextStroke() });
         break;
       case 'Backspace':
       case 'Delete':
-        if (marks[focusCell] === MARK_QUEEN) emit({ type: 'tap', cell: focusCell });
-        else if (marks[focusCell] === MARK_CROSS) emit({ type: 'paint', cells: [focusCell], mode: 'erase' });
+        if (mod) return;
+        if (e.repeat) break;
+        if (marks[cell] === MARK_QUEEN) emit({ type: 'tap', cell });
+        else if (marks[cell] === MARK_CROSS) emit({ type: 'paint', cells: [cell], mode: 'erase', stroke: tracker.nextStroke() });
         break;
       default:
         return;
@@ -134,14 +249,12 @@ export const QueensBoard = memo(function QueensBoard(props: QueensBoardProps) {
     e.preventDefault();
   };
 
-  const stateLabel = (cell: number) => {
-    const m = marks[cell];
-    const base = m === MARK_QUEEN ? (conflictSet.has(cell) ? t('game.cell.conflict') : t('game.cell.queen')) : m === MARK_CROSS ? t('game.cell.cross') : t('game.cell.empty');
-    return highlight?.reveal === cell ? `${base}, ${t('game.cell.hinted')}` : base;
-  };
-
   return (
-    <div className={`qb${celebrate ? ' qb--celebrate' : ''}${disabled ? ' qb--disabled' : ''}`} style={{ ['--qb-n' as string]: n }}>
+    <div
+      className={`qb${celebrate ? ' qb--celebrate' : ''}${disabled ? ' qb--disabled' : ''}`}
+      data-dense={n >= DENSE_FROM ? '' : undefined}
+      style={rootStyle}
+    >
       <div
         ref={gridRef}
         className="qb__grid"
@@ -151,19 +264,26 @@ export const QueensBoard = memo(function QueensBoard(props: QueensBoardProps) {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerCancel={() => tracker.current.cancel()}
+        onPointerCancel={onPointerCancel}
+        onLostPointerCapture={onPointerCancel}
+        onClick={onClick}
+        onFocus={onFocus}
         onKeyDown={onKeyDown}
       >
         {Array.from({ length: n }, (_, r) => (
           <div key={r} role="row" className="qb__row">
             {Array.from({ length: n }, (_, c) => {
               const cell = r * n + c;
-              const region = regionColors[puzzle.regions[cell]! % Math.max(1, regionColors.length)];
+              const regionId = puzzle.regions[cell] ?? 0;
+              const region = regionColors[regionId % Math.max(1, regionColors.length)];
+              const isReveal = highlight?.reveal === cell;
               return (
                 <Cell
                   key={cell}
                   cell={cell}
                   row={r}
+                  col={c}
+                  region={regionLetter(regionId)}
                   mark={marks[cell] ?? MARK_EMPTY}
                   fill={region?.fill ?? 'var(--md-sys-color-surface-container-high)'}
                   on={region?.on ?? 'var(--md-sys-color-on-surface)'}
@@ -174,18 +294,19 @@ export const QueensBoard = memo(function QueensBoard(props: QueensBoardProps) {
                   target={sets.targets.has(cell)}
                   eliminate={sets.eliminate.has(cell)}
                   mistake={sets.mistakes.has(cell)}
-                  reveal={highlight?.reveal === cell ? highlight.revealMark : null}
+                  hinted={isReveal}
+                  reveal={isReveal ? (highlight?.revealMark ?? null) : null}
                   tabIndex={cell === focusCell ? 0 : -1}
-                  label={t('game.cell.label', { row: r + 1, col: c + 1, state: stateLabel(cell) })}
                   celebrate={celebrate}
                   reduce={!!reduce}
+                  t={t}
                 />
               );
             })}
           </div>
         ))}
       </div>
-      <svg className="qb__lines" viewBox={`0 0 ${n} ${n}`} preserveAspectRatio="none" aria-hidden="true">
+      <svg className="qb__lines" viewBox={`0 0 ${n} ${n}`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
         <path className="qb__thin" d={thin} vectorEffect="non-scaling-stroke" />
         <path className="qb__thick" d={borders} vectorEffect="non-scaling-stroke" />
       </svg>
@@ -193,9 +314,14 @@ export const QueensBoard = memo(function QueensBoard(props: QueensBoardProps) {
   );
 });
 
+// Props de `Cell` : uniquement des valeurs primitives (et `t`, stable tant que la langue ne change pas),
+// pour que la mémoïsation limite un rendu aux seules cases modifiées.
 interface CellProps {
   readonly cell: number;
   readonly row: number;
+  readonly col: number;
+  /** Lettre de la région (annoncée par les lecteurs d'écran). */
+  readonly region: string;
   readonly mark: QueensMark;
   readonly fill: string;
   readonly on: string;
@@ -206,41 +332,53 @@ interface CellProps {
   readonly target: boolean;
   readonly eliminate: boolean;
   readonly mistake: boolean;
+  /** Case jouée par l'indice. */
+  readonly hinted: boolean;
+  /** Marque que l'indice propose de poser sur cette case. */
   readonly reveal: 'queen' | 'cross' | null;
   readonly tabIndex: number;
-  readonly label: string;
   readonly celebrate: boolean;
   readonly reduce: boolean;
+  readonly t: TFunction;
 }
 
 const Cell = memo(function Cell(p: CellProps) {
+  const { t } = p;
+  const state = cellStateKeys({
+    mark: p.mark,
+    conflict: p.conflict,
+    mistake: p.mistake,
+    highlighted: p.focus || p.target,
+    eliminate: p.eliminate,
+    attacked: p.attacked,
+    hinted: p.hinted,
+  })
+    .map((key) => t(`game.cell.${key}`))
+    .join(', ');
+  const label = t('game.cell.label', { row: p.row + 1, col: p.col + 1, region: p.region, state });
   const cls = [
     'qb__cell',
     p.focus && 'qb__cell--focus',
     p.target && !p.focus && 'qb__cell--target',
     p.mistake && 'qb__cell--mistake',
     p.conflict && 'qb__cell--conflict',
-    p.reveal && 'qb__cell--reveal',
+    p.hinted && 'qb__cell--reveal',
     p.pattern > 0 && `qb__cell--pattern-${p.pattern}`,
   ]
     .filter(Boolean)
     .join(' ');
   const pop = p.reduce ? { duration: 0 } : SPRING_POP;
+  const empty = p.mark === MARK_EMPTY;
   return (
-    <div
-      role="gridcell"
-      data-cell={p.cell}
-      className={cls}
-      tabIndex={p.tabIndex}
-      aria-label={p.label}
-      style={{ backgroundColor: p.fill, color: p.on }}
-    >
+    <div role="gridcell" data-cell={p.cell} className={cls} tabIndex={p.tabIndex} aria-label={label} style={{ backgroundColor: p.fill, color: p.on }}>
       <AnimatePresence initial={false}>
         {p.mark === MARK_QUEEN && (
           <motion.svg
             key="q"
             className="qb__queen"
             viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
             initial={{ scale: 0.3, opacity: 0, rotate: -12 }}
             animate={
               p.celebrate && !p.reduce
@@ -260,23 +398,29 @@ const Cell = memo(function Cell(p: CellProps) {
             key="x"
             className="qb__cross"
             viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
             initial={{ scale: 0.4, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
+            animate={{ scale: 1, opacity: MARKER_ALPHA.cross }}
             exit={{ scale: 0.4, opacity: 0, transition: { duration: 0.1 } }}
             transition={p.reduce ? { duration: 0 } : SPRING_SOFT}
           >
-            <path d="M6 6l12 12M18 6L6 18" />
+            <path d={CROSS} />
           </motion.svg>
         )}
       </AnimatePresence>
-      {p.mark === MARK_EMPTY && p.attacked && <span className="qb__dot" aria-hidden="true" />}
-      {p.mark === MARK_EMPTY && p.eliminate && (
-        <svg className="qb__cross qb__cross--ghost" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M6 6l12 12M18 6L6 18" />
+      {empty && p.attacked && (
+        <svg className="qb__cross qb__cross--attacked" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style={ATTACKED_STYLE}>
+          <path d={CROSS} />
+        </svg>
+      )}
+      {empty && (p.eliminate || p.reveal === 'cross') && (
+        <svg className="qb__cross qb__cross--ghost" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style={GHOST_STYLE}>
+          <path d={CROSS} />
         </svg>
       )}
       {p.reveal === 'queen' && p.mark !== MARK_QUEEN && (
-        <svg className="qb__queen qb__queen--ghost" viewBox="0 0 24 24" aria-hidden="true">
+        <svg className="qb__queen qb__queen--ghost" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style={GHOST_STYLE}>
           <path d={CROWN} />
         </svg>
       )}

@@ -13,6 +13,12 @@
   display: none;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .screen {
+    animation: none;
+  }
+}
+
 @keyframes screen-in {
   from {
     opacity: 0;
@@ -62,6 +68,18 @@
 
 .screen__notice p {
   margin: 0;
+}
+
+/* Bandeau avec action (nouveau puzzle disponible) : texte et bouton sur une ligne, repli si étroit. */
+.screen__notice--action {
+  flex-wrap: wrap;
+  align-items: center;
+  background: var(--md-sys-color-secondary-container) !important;
+  color: var(--md-sys-color-on-secondary-container) !important;
+}
+
+.screen__notice--action p {
+  flex: 1 1 12em;
 }
 
 .screen__center {

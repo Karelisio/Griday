@@ -6,30 +6,30 @@ Griday est un jeu de logique quotidien, élégant et reposant. Une grille par jo
 Placez une reine par ligne, par colonne et par région colorée. Deux reines ne peuvent jamais se toucher, même en diagonale. Simple à comprendre, étonnamment profond.
 
 🧩 100 % LOGIQUE
-Chaque grille a une solution unique et se résout par pure déduction : aucune devinette, aucun coup de chance. Chaque puzzle est vérifié par un solveur avant d’arriver chez vous.
+Chaque grille a une solution unique et se résout par pure déduction : aucune devinette, aucun coup de chance. Chaque puzzle est vérifié par un solveur avant d’arriver chez vous.
 
 📈 UNE SEMAINE QUI MONTE EN PUISSANCE
 Le lundi est doux, le dimanche est corsé. Les grilles grandissent de 6×6 à 10×10 au fil de la semaine, avec une difficulté qui suit le même rythme.
 
 💡 DES INDICES QUI EXPLIQUENT
-Bloqué ? Un indice vous montre la case à jouer et vous explique pourquoi, technique de déduction à l’appui. Vous progressez à chaque partie.
+Bloqué ? Un indice vous montre la case à jouer et vous explique pourquoi, technique de déduction à l’appui. Vous progressez à chaque partie.
 
 ♾️ MODE ILLIMITÉ
-Envie d’une autre grille ? Choisissez la taille et la difficulté, et jouez autant que vous voulez.
+Envie d’une autre grille ? Choisissez la taille et la difficulté, et jouez autant que vous voulez.
 
 🔥 VOTRE ROUTINE QUOTIDIENNE
 • Série de jours consécutifs et record personnel
-• Statistiques : victoires, temps moyen, distribution des temps
+• Statistiques : victoires, temps moyen, distribution des temps
 • Partage de votre résultat en émojis, sans rien dévoiler
 • Rappel quotidien à l’heure de votre choix
-• Archives : rejouez les jours passés grâce au calendrier
+• Archives : rejouez les jours passés grâce au calendrier
 • Gel de série pour protéger votre série un jour d’absence
 
 🎨 MATERIAL YOU
 Un design Android moderne qui reprend les couleurs de votre fond d’écran, en mode clair ou sombre, avec des animations fluides et un retour haptique soigné. Grilles lisibles et pensées pour l’accessibilité.
 
 ✈️ HORS LIGNE
-Aucun compte, aucune connexion nécessaire : les grilles sont générées sur votre téléphone. Vos données restent chez vous.
+Aucun compte, aucune connexion nécessaire : les grilles sont générées sur votre téléphone. Vos données restent chez vous.
 
 🌍 Disponible en français et en anglais.
 

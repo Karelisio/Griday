@@ -1,10 +1,12 @@
 /** Coquille de l'app : thème Material You, navigation, retour Android, auto-vérification du moteur. */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { engine } from './engine-client/client';
 import { resolveLanguage, setLanguage } from './i18n';
 import { applySystemBarsStyle, getAppVersion, onSystemPalettesChanged, pushBackHandler, setHapticsEnabled, type SystemPalettes } from './platform';
-import { loadJSON, saveJSON } from './platform/storage';
+import { dailyProgressKey, dailyPuzzleKey, pruneStorage, selfCheckKey, UNLIMITED_CURRENT_KEY } from './persistence';
+import { loadJSON, removeKey, saveJSON } from './platform/storage';
+import { ScreenBoundary } from './ScreenBoundary';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { TodayScreen } from './screens/TodayScreen';
 import { UnlimitedScreen } from './screens/UnlimitedScreen';
@@ -12,6 +14,7 @@ import { SettingsProvider, useSettings } from './settings/SettingsContext';
 import type { Settings } from './settings/types';
 import { ThemeProvider } from './theme';
 import { NavigationBar, SnackbarHost, useSnackbar } from './ui';
+import { localISODate } from '../engine/core/date';
 import './App.css';
 
 type Tab = 'today' | 'unlimited' | 'settings';
@@ -51,6 +54,16 @@ function Themed({ systemLanguages, initialPalettes }: Omit<AppProps, 'initialSet
   );
 }
 
+/** Réinitialisation après une erreur d'écran : grille du jour (cache et partie) ou partie illimitée. */
+async function resetToday(): Promise<void> {
+  const today = localISODate(new Date());
+  await Promise.all([removeKey(dailyPuzzleKey(today)), removeKey(dailyProgressKey(today))]);
+}
+
+async function resetUnlimited(): Promise<void> {
+  await removeKey(UNLIMITED_CURRENT_KEY);
+}
+
 function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('today');
@@ -59,27 +72,42 @@ function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
   // Retour Android : depuis un autre onglet, revient à « Aujourd'hui » ; sinon le système gère (retour prédictif).
   useEffect(() => (tab !== 'today' ? pushBackHandler(() => setTab('today')) : undefined), [tab]);
 
-  // Auto-vérification du moteur dans ce WebView, une fois par version de l'app.
+  // Au démarrage (une seule fois, pas à chaque changement de langue) : auto-vérification du moteur
+  // dans ce WebView (une fois par version de l'app), puis ménage du stockage.
+  const tRef = useRef(t);
+  tRef.current = t;
   useEffect(() => {
     const timer = setTimeout(() => {
       void (async () => {
-        const version = await getAppVersion();
-        const key = `selfcheck.${version}`;
-        const done = await loadJSON<string[]>(key);
-        const failures = done ?? (await engine.selfCheck());
-        if (!done) await saveJSON(key, failures);
-        if (failures.length > 0) snackbar.show({ message: t('errors.engineCheck'), duration: 10_000 });
+        try {
+          const version = await getAppVersion();
+          const key = selfCheckKey(version);
+          const done = await loadJSON<unknown>(key);
+          const known = Array.isArray(done) && done.every((x) => typeof x === 'string') ? (done as string[]) : null;
+          const failures = known ?? (await engine.selfCheck());
+          if (!known) await saveJSON(key, failures);
+          if (failures.length > 0) snackbar.show({ message: tRef.current('errors.engineCheck'), duration: 10_000 });
+          await pruneStorage(localISODate(new Date()), version);
+        } catch (error) {
+          console.error('Vérifications de démarrage', error);
+        }
       })();
     }, 1500);
     return () => clearTimeout(timer);
-  }, [snackbar, t]);
+  }, [snackbar]);
 
   return (
     <div className="app">
       <main className="app__content">
-        <TodayScreen visible={tab === 'today'} />
-        <UnlimitedScreen visible={tab === 'unlimited'} />
-        <SettingsScreen visible={tab === 'settings'} dynamicSupported={dynamicSupported} />
+        <ScreenBoundary visible={tab === 'today'} onReset={resetToday}>
+          <TodayScreen visible={tab === 'today'} />
+        </ScreenBoundary>
+        <ScreenBoundary visible={tab === 'unlimited'} onReset={resetUnlimited}>
+          <UnlimitedScreen visible={tab === 'unlimited'} />
+        </ScreenBoundary>
+        <ScreenBoundary visible={tab === 'settings'}>
+          <SettingsScreen visible={tab === 'settings'} dynamicSupported={dynamicSupported} />
+        </ScreenBoundary>
       </main>
       <NavigationBar
         aria-label={t('app.name')}

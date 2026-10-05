@@ -5,11 +5,13 @@ import type { DifficultyTier, GenerationTarget } from '../../engine/core/types';
 import type { AnyGeneratedPuzzle } from '../../engine/registry';
 import { engine } from '../engine-client/client';
 import { GameView } from '../game/GameView';
+import { isGenerationTarget, isStoredQueensPuzzle } from '../game/queens/validate';
 import { useQueensGame } from '../game/queens/useQueensGame';
+import { UNLIMITED_CURRENT_KEY, UNLIMITED_PREFS_KEY, unlimitedProgressKey } from '../persistence';
 import { pushBackHandler } from '../platform';
 import { loadJSON, removeKey, saveJSON } from '../platform/storage';
 import { useSettings } from '../settings/SettingsContext';
-import { BottomSheet, Button, Chip, CircularProgress, Icon, SegmentedButton } from '../ui';
+import { BottomSheet, Button, CircularProgress, Icon, InfoChip, SegmentedButton } from '../ui';
 import { useToday } from '../useToday';
 import './screens.css';
 
@@ -19,9 +21,6 @@ interface CurrentUnlimited {
   readonly puzzle: AnyGeneratedPuzzle;
 }
 
-const CURRENT_KEY = 'unlimited.current.v1';
-const PREFS_KEY = 'unlimited.prefs.v1';
-const progressKey = (token: string) => `unlimited.progress.${token}`;
 const TIERS: readonly DifficultyTier[] = [1, 2, 3, 4];
 
 /** Jeton aléatoire (aléa cryptographique : le mode illimité n'a pas besoin d'être reproductible). */
@@ -29,6 +28,18 @@ function newToken(): string {
   const bytes = new Uint8Array(12);
   crypto.getRandomValues(bytes);
   return Array.from(bytes, (b) => b.toString(36).padStart(2, '0')).join('');
+}
+
+/** Partie relue du stockage : cohérente de bout en bout, sinon ignorée. */
+export function isCurrentUnlimited(v: unknown): v is CurrentUnlimited {
+  if (typeof v !== 'object' || v === null) return false;
+  const c = v as Partial<Record<keyof CurrentUnlimited, unknown>>;
+  return (
+    typeof c.token === 'string' &&
+    /^[0-9a-z]{1,64}$/.test(c.token) &&
+    isGenerationTarget(c.target) &&
+    isStoredQueensPuzzle(c.puzzle, { size: c.target.size, allowEmergency: true })
+  );
 }
 
 function TargetPicker({ target, sizes, onChange }: { target: GenerationTarget; sizes: readonly number[]; onChange: (t: GenerationTarget) => void }) {
@@ -67,29 +78,45 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
   const [target, setTarget] = useState<GenerationTarget>({ size: 7, tier: 2 });
   const [current, setCurrent] = useState<CurrentUnlimited | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [sizes, setSizes] = useState<readonly number[]>([]);
   const closePicker = useCallback(() => setPickerOpen(false), []);
   useEffect(() => (visible && pickerOpen ? pushBackHandler(closePicker) : undefined), [visible, pickerOpen, closePicker]);
+  useEffect(() => {
+    if (!visible) setPickerOpen(false);
+  }, [visible]);
 
   useEffect(() => {
-    void Promise.all([
-      loadJSON<CurrentUnlimited>(CURRENT_KEY),
-      loadJSON<GenerationTarget>(PREFS_KEY),
-      engine.unlimitedOptions('queens', today),
-    ]).then(([cur, prefs, options]) => {
-      setSizes(options.sizes);
-      if (prefs && options.sizes.includes(prefs.size) && TIERS.includes(prefs.tier)) setTarget(prefs);
-      if (cur?.puzzle?.type === 'queens') setCurrent(cur);
-      setLoaded(true);
-    });
-  }, [today]);
+    let cancelled = false;
+    setLoadFailed(false);
+    void (async () => {
+      try {
+        const [cur, prefs, options] = await Promise.all([
+          loadJSON<unknown>(UNLIMITED_CURRENT_KEY),
+          loadJSON<unknown>(UNLIMITED_PREFS_KEY),
+          engine.unlimitedOptions('queens', today),
+        ]);
+        if (cancelled) return;
+        setSizes(options.sizes);
+        if (isGenerationTarget(prefs, options.sizes)) setTarget(prefs);
+        if (isCurrentUnlimited(cur)) setCurrent(cur);
+        setLoaded(true);
+      } catch {
+        if (!cancelled) setLoadFailed(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [today, loadAttempt]);
 
   const chooseTarget = (next: GenerationTarget) => {
     setTarget(next);
-    void saveJSON(PREFS_KEY, next);
+    void saveJSON(UNLIMITED_PREFS_KEY, next);
   };
 
   const start = async () => {
@@ -100,8 +127,8 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
       const token = newToken();
       const puzzle = await engine.unlimited('queens', target, token, today);
       const next: CurrentUnlimited = { token, target, puzzle };
-      if (current) void removeKey(progressKey(current.token));
-      await saveJSON(CURRENT_KEY, next);
+      if (current) void removeKey(unlimitedProgressKey(current.token));
+      await saveJSON(UNLIMITED_CURRENT_KEY, next);
       setCurrent(next);
     } catch {
       setError(true);
@@ -112,7 +139,7 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
 
   const api = useQueensGame({
     puzzle: current && current.puzzle.type === 'queens' ? current.puzzle.puzzle : null,
-    storageKey: current ? progressKey(current.token) : null,
+    storageKey: current ? unlimitedProgressKey(current.token) : null,
     visible,
     autoCross: settings.autoCross,
   });
@@ -125,8 +152,8 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
         </h1>
         {current && (
           <div className="screen__chips">
-            <Chip icon="grid_view">{t('unlimited.sizeValue', { n: current.target.size })}</Chip>
-            <Chip icon="bolt">{t(`difficulty.${current.target.tier}`)}</Chip>
+            <InfoChip icon="grid_view">{t('unlimited.sizeValue', { n: current.target.size })}</InfoChip>
+            <InfoChip icon="bolt">{t(`difficulty.${current.target.tier}`)}</InfoChip>
             {!pickerOpen && (
               <Button variant="tonal" size="s" icon="add" layoutId="unlimited-new" onClick={() => setPickerOpen(true)} disabled={loading} className="unlimited__new">
                 {t('unlimited.newGame')}
@@ -141,16 +168,17 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
           <CircularProgress aria-label={t('unlimited.generating')} />
           <p className="md-typescale-body-large">{t('unlimited.generating')}</p>
         </div>
-      ) : error ? (
+      ) : error || loadFailed ? (
         <div className="screen__center">
           <Icon name="error" size={40} />
           <p className="md-typescale-body-large">{t('errors.generation')}</p>
-          <Button variant="tonal" icon="refresh" onClick={() => void start()}>
+          <Button variant="tonal" icon="refresh" onClick={() => (loadFailed ? setLoadAttempt((a) => a + 1) : void start())}>
             {t('common.retry')}
           </Button>
         </div>
       ) : current && current.puzzle.type === 'queens' && api.game ? (
         <GameView
+          key={current.token}
           puzzle={current.puzzle.puzzle}
           api={api}
           visible={visible}
@@ -171,7 +199,7 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
       ) : null}
 
       <BottomSheet
-        open={pickerOpen}
+        open={pickerOpen && visible}
         onClose={closePicker}
         aria-label={t('unlimited.newGame')}
         dismissLabel={t('common.close')}

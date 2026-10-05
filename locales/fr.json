@@ -11,10 +11,7 @@
   "common": {
     "close": "Fermer",
     "cancel": "Annuler",
-    "confirm": "Confirmer",
-    "retry": "Réessayer",
-    "loading": "Chargement…",
-    "back": "Retour"
+    "retry": "Réessayer"
   },
   "difficulty": {
     "1": "Facile",
@@ -31,38 +28,35 @@
   },
   "today": {
     "title": "Puzzle du jour",
-    "number": "N° {{n}}",
+    "number": "N° {{n}}",
     "generating": "Préparation de la grille du jour…",
-    "solved": "Puzzle du jour résolu",
-    "solvedIn": "Résolu en {{time}}",
     "nextIn": "Prochain puzzle dans {{time}}",
-    "updateAvailable": "Une mise à jour de Griday est peut-être disponible : installez-la pour continuer à jouer les mêmes grilles que tout le monde."
+    "updateAvailable": "Une mise à jour de Griday est peut-être disponible : installez-la pour continuer à jouer les mêmes grilles que tout le monde.",
+    "newPuzzle": "Un nouveau puzzle du jour est disponible.",
+    "play": "Jouer"
   },
   "unlimited": {
     "title": "Mode illimité",
     "size": "Taille",
-    "sizeValue": "{{n}} × {{n}}",
+    "sizeValue": "{{n}} × {{n}}",
     "difficulty": "Difficulté",
     "newGame": "Nouvelle grille",
     "generating": "Génération d’une grille…",
     "empty": "Choisissez une taille et une difficulté, puis lancez une nouvelle grille."
   },
   "game": {
-    "board": "Grille {{n}} × {{n}}",
+    "board": "Grille {{n}} × {{n}}",
     "rules": "Règles",
     "undo": "Annuler",
     "redo": "Rétablir",
     "hint": "Indice",
     "reset": "Recommencer",
-    "resetConfirm": "Effacer toute la grille et remettre le chronomètre à zéro ?",
+    "resetConfirm": "Effacer toutes les marques de la grille ? Vous pourrez annuler, et le chronomètre continue de tourner.",
     "timer": "Temps écoulé",
-    "pause": "Pause",
-    "resume": "Reprendre",
-    "paused": "Partie en pause",
     "conflicts_one": "{{count}} reine en conflit",
     "conflicts_other": "{{count}} reines en conflit",
     "cell": {
-      "label": "Ligne {{row}}, colonne {{col}}, région {{region}} : {{state}}",
+      "label": "Ligne {{row}}, colonne {{col}}, région {{region}} : {{state}}",
       "empty": "vide",
       "queen": "reine",
       "cross": "croix",
@@ -73,26 +67,26 @@
       "attacked": "exclue par une reine",
       "ruledOut": "exclue par l’indice"
     },
-    "actions": "Actions de jeu"
+    "actions": "Actions de jeu",
+    "resetAction": "Effacer"
   },
   "victory": {
-    "title": "Bravo !",
+    "title": "Bravo !",
     "time": "Résolu en {{time}}",
     "hints_zero": "Sans indice",
     "hints_one": "{{count}} indice utilisé",
     "hints_other": "{{count}} indices utilisés",
     "newGame": "Nouvelle grille",
-    "viewBoard": "Voir la grille"
+    "viewBoard": "Voir la grille",
+    "show": "Voir le résultat"
   },
   "hint": {
     "title": "Indice",
-    "show": "Montrer la case",
     "apply": "Jouer ce coup",
     "unit": {
       "row": "la ligne {{n}}",
       "column": "la colonne {{n}}",
-      "region": "la région en surbrillance",
-      "regions": "ces {{count}} régions"
+      "region": "la région en surbrillance"
     },
     "technique": {
       "single": "Dernière case",
@@ -108,33 +102,35 @@
     },
     "queens": {
       "single": {
-        "region": "La région en surbrillance n’a plus qu’une case possible : sa reine va forcément là.",
-        "row": "La ligne {{row}} n’a plus qu’une case possible : sa reine va forcément là.",
-        "column": "La colonne {{col}} n’a plus qu’une case possible : sa reine va forcément là."
+        "region": "La région en surbrillance n’a plus qu’une case possible : sa reine va forcément là.",
+        "row": "La ligne {{row}} n’a plus qu’une case possible : sa reine va forcément là.",
+        "column": "La colonne {{col}} n’a plus qu’une case possible : sa reine va forcément là."
       },
       "region-line": {
-        "row": "Toutes les cases possibles de la région en surbrillance sont sur la ligne {{row}}. La reine de cette ligne sera donc dans la région : les autres cases de la ligne {{row}} sont exclues.",
-        "column": "Toutes les cases possibles de la région en surbrillance sont dans la colonne {{col}}. La reine de cette colonne sera donc dans la région : les autres cases de la colonne {{col}} sont exclues."
+        "row": "Toutes les cases possibles de la région en surbrillance sont sur la ligne {{row}}. La reine de cette ligne sera donc dans la région : les autres cases de la ligne {{row}} sont exclues.",
+        "column": "Toutes les cases possibles de la région en surbrillance sont dans la colonne {{col}}. La reine de cette colonne sera donc dans la région : les autres cases de la colonne {{col}} sont exclues."
       },
       "line-region": {
-        "row": "Toutes les cases possibles de la ligne {{row}} sont dans la même région. La reine de cette région sera donc sur la ligne {{row}} : ses autres cases sont exclues.",
-        "column": "Toutes les cases possibles de la colonne {{col}} sont dans la même région. La reine de cette région sera donc dans la colonne {{col}} : ses autres cases sont exclues."
+        "row": "Toutes les cases possibles de la ligne {{row}} sont dans la même région. La reine de cette région sera donc sur la ligne {{row}} : ses autres cases sont exclues.",
+        "column": "Toutes les cases possibles de la colonne {{col}} sont dans la même région. La reine de cette région sera donc dans la colonne {{col}} : ses autres cases sont exclues."
       },
-      "attack": "Une reine sur la case marquée retirerait toutes les cases possibles de {{unit}}, qui n’aurait alors plus de reine : cette case est exclue.",
       "locked": {
-        "regions-rows": "Ces {{count}} régions n’ont de cases possibles que sur les lignes {{lines}}. Ces lignes leur sont donc réservées : leurs autres cases sont exclues.",
-        "regions-columns": "Ces {{count}} régions n’ont de cases possibles que dans les colonnes {{lines}}. Ces colonnes leur sont donc réservées : leurs autres cases sont exclues.",
-        "rows-regions": "Les lignes {{lines}} n’ont de cases possibles que dans {{count}} régions. Les reines de ces régions sont donc sur ces lignes : leurs autres cases sont exclues.",
-        "columns-regions": "Les colonnes {{lines}} n’ont de cases possibles que dans {{count}} régions. Les reines de ces régions sont donc dans ces colonnes : leurs autres cases sont exclues.",
-        "rows-columns": "Les lignes {{lines}} n’ont de cases possibles que dans les colonnes {{targets}}. Ces colonnes leur sont donc réservées : leurs autres cases sont exclues.",
-        "columns-rows": "Les colonnes {{lines}} n’ont de cases possibles que sur les lignes {{targets}}. Ces lignes leur sont donc réservées : leurs autres cases sont exclues."
+        "regions-rows": "Ces {{count}} régions n’ont de cases possibles que sur les lignes {{lines}} : leurs {{count}} reines occuperont ces lignes. Les autres cases de ces lignes sont donc exclues.",
+        "regions-columns": "Ces {{count}} régions n’ont de cases possibles que dans les colonnes {{lines}} : leurs {{count}} reines occuperont ces colonnes. Les autres cases de ces colonnes sont donc exclues.",
+        "rows-regions": "Les lignes {{lines}} n’ont de cases possibles que dans {{count}} régions : leurs reines seront celles de ces régions. Les autres cases de ces régions sont donc exclues.",
+        "columns-regions": "Les colonnes {{lines}} n’ont de cases possibles que dans {{count}} régions : leurs reines seront celles de ces régions. Les autres cases de ces régions sont donc exclues.",
+        "rows-columns": "Les lignes {{lines}} n’ont de cases possibles que dans les colonnes {{targets}} : leurs reines occuperont ces colonnes. Les autres cases de ces colonnes sont donc exclues.",
+        "columns-rows": "Les colonnes {{lines}} n’ont de cases possibles que sur les lignes {{targets}} : leurs reines occuperont ces lignes. Les autres cases de ces lignes sont donc exclues."
       },
-      "contradiction": "Supposons une reine sur la case marquée : en enchaînant les déductions simples, {{unit}} n’aurait plus aucune case possible. C’est impossible, donc cette case est exclue.",
-      "reveal": "Aucune déduction simple ici : voici une reine de la solution.",
-      "mistake_one": "Une case est fausse : elle est signalée en rouge. Corrigez-la avant de continuer.",
-      "mistake_other": "{{count}} cases sont fausses : elles sont signalées en rouge. Corrigez-les avant de continuer.",
-      "solved": "La grille est déjà résolue !"
-    }
+      "contradiction": "Supposons une reine sur la case marquée : en enchaînant les déductions simples, {{unit}} n’aurait plus aucune case possible. C’est impossible, donc cette case est exclue.",
+      "reveal": "Aucune déduction simple ici : voici une reine de la solution.",
+      "mistake_one": "Une case est fausse : elle est encadrée sur la grille. Corrigez-la avant de continuer.",
+      "mistake_other": "{{count}} cases sont fausses : elles sont encadrées sur la grille. Corrigez-les avant de continuer.",
+      "solved": "La grille est déjà résolue !",
+      "attack_one": "Une reine sur la case marquée retirerait toutes les cases possibles de {{unit}}, qui n’aurait alors plus de reine : cette case est exclue.",
+      "attack_other": "Une reine sur n’importe laquelle des {{count}} cases marquées retirerait toutes les cases possibles de {{unit}}, qui n’aurait alors plus de reine : ces cases sont exclues."
+    },
+    "fix": "Corriger"
   },
   "settings": {
     "title": "Réglages",
@@ -176,6 +172,8 @@
   },
   "errors": {
     "generation": "Impossible de préparer la grille. Réessayez.",
-    "engineCheck": "Cet appareil calcule les grilles différemment : votre puzzle du jour pourrait ne pas être celui des autres joueurs."
+    "engineCheck": "Cet appareil calcule les grilles différemment : votre puzzle du jour pourrait ne pas être celui des autres joueurs.",
+    "hint": "Impossible de calculer un indice. Réessayez.",
+    "screen": "Un problème est survenu sur cet écran. Réessayer le recharge et réinitialise sa grille en cours."
   }
 }

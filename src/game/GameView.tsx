@@ -2,19 +2,19 @@
  * Vue de jeu partagée (puzzle du jour, mode illimité) : grille, barre d'actions, chronomètre,
  * indice expliqué (feuille du bas), règles, carte de victoire.
  */
-import { motion, AnimatePresence } from 'motion/react';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { QueensHint } from '../../engine/queens/hint';
-import type { QueensSolvedPuzzle } from '../../engine/queens/types';
+import { MARK_EMPTY, type QueensMark, type QueensSolvedPuzzle } from '../../engine/queens/types';
 import { engine } from '../engine-client/client';
 import type { Language } from '../i18n';
 import { formatDuration } from '../i18n/format';
 import { pushBackHandler } from '../platform';
 import { springs, useTheme } from '../theme';
 import { useSettings } from '../settings/SettingsContext';
-import { BottomSheet, Button, Card, Chip, Dialog, ExtendedFab, IconButton, Icon } from '../ui';
-import { explainHint, type HintExplanation } from './queens/explain';
+import { BottomSheet, Button, Card, Dialog, ExtendedFab, IconButton, Icon, InfoChip, useSnackbar } from '../ui';
+import { explainHint, hintKey, hintMoves, type HintExplanation } from './queens/explain';
 import { QueensBoard } from './queens/QueensBoard';
 import type { useQueensGame } from './queens/useQueensGame';
 import { Timer } from './Timer';
@@ -30,11 +30,61 @@ export interface GameViewProps {
   readonly visible: boolean;
 }
 
-const revealIcon = (h: QueensHint) => (h.kind === 'step' || h.kind === 'reveal' ? (h.reveal.mark === 'queen' ? 'crown' : 'close') : undefined);
-
 /** Ferme un élément ouvert avec le geste retour Android (retour prédictif). */
 function useBackClose(open: boolean, close: () => void) {
   useEffect(() => (open ? pushBackHandler(close) : undefined), [open, close]);
+}
+
+/** Premier ancêtre qui défile verticalement. */
+function scrollParent(el: HTMLElement | null): HTMLElement | null {
+  for (let node = el?.parentElement ?? null; node; node = node.parentElement) {
+    const { overflowY } = getComputedStyle(node);
+    if (overflowY === 'auto' || overflowY === 'scroll') return node;
+  }
+  return null;
+}
+
+/**
+ * Feuille non modale au-dessus de la page : réserve sa hauteur en bas de la zone qui défile
+ * (`--sheet-inset`) et fait défiler pour garder visibles les cases concernées.
+ */
+function useSheetInset(
+  open: boolean,
+  sheetContent: RefObject<HTMLElement | null>,
+  anchor: RefObject<HTMLElement | null>,
+  focus: () => { top: number; bottom: number } | null,
+) {
+  const reduce = useReducedMotion();
+  const focusRef = useRef(focus);
+  focusRef.current = focus;
+  useEffect(() => {
+    if (!open) return;
+    const sheet = sheetContent.current?.closest<HTMLElement>('.md-sheet');
+    const scroller = scrollParent(anchor.current);
+    if (!sheet || !scroller) return;
+    const update = () => {
+      const sheetTop = window.innerHeight - sheet.offsetHeight;
+      const inset = Math.max(0, scroller.getBoundingClientRect().bottom - sheetTop);
+      scroller.style.setProperty('--sheet-inset', `${Math.ceil(inset)}px`);
+      return sheetTop;
+    };
+    const sheetTop = update();
+    const target = focusRef.current();
+    if (target) {
+      const margin = 12;
+      const top = scroller.getBoundingClientRect().top + margin;
+      const bottom = sheetTop - margin;
+      let delta = target.bottom > bottom ? target.bottom - bottom : 0;
+      if (target.top - delta < top) delta = target.top - top;
+      if (delta !== 0) scroller.scrollBy({ top: delta, behavior: reduce ? 'auto' : 'smooth' });
+    }
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => update());
+    observer?.observe(sheet);
+    return () => {
+      observer?.disconnect();
+      scroller.style.removeProperty('--sheet-inset');
+    };
+  }, [open, sheetContent, anchor, reduce]);
 }
 
 export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) {
@@ -42,28 +92,35 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
   const lang = i18n.language as Language;
   const { regionColors } = useTheme();
   const { settings } = useSettings();
+  const snackbar = useSnackbar();
   const { game } = api;
-  const [hint, setHint] = useState<{ hint: QueensHint; ex: HintExplanation } | null>(null);
+  const [hint, setHint] = useState<{ hint: QueensHint; ex: HintExplanation; marks: readonly QueensMark[] } | null>(null);
   const [hintOpen, setHintOpen] = useState(false);
   const [hintLoading, setHintLoading] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [victoryOpen, setVictoryOpen] = useState(true);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const hintContentRef = useRef<HTMLDivElement>(null);
+  const victoryTitleRef = useRef<HTMLHeadingElement>(null);
+  const cancelResetRef = useRef<HTMLButtonElement>(null);
 
   const colors = useMemo(() => regionColors(puzzle.size), [regionColors, puzzle.size]);
   const closeHint = useCallback(() => setHintOpen(false), []);
   const closeRules = useCallback(() => setRulesOpen(false), []);
   const closeReset = useCallback(() => setResetOpen(false), []);
-  useBackClose(visible && hintOpen, closeHint);
+  const sheetOpen = hintOpen && visible && hint !== null;
+  useBackClose(sheetOpen, closeHint);
   useBackClose(visible && rulesOpen, closeRules);
   useBackClose(visible && resetOpen, closeReset);
 
-  // Toute modification de la grille rend l'indice affiché obsolète : on le referme.
-  const hintMarks = useRef<readonly unknown[] | null>(null);
+  // Écran quitté (autre onglet) ou grille modifiée : l'indice affiché n'a plus cours.
   useEffect(() => {
-    if (hintOpen && hintMarks.current && game && game.marks !== hintMarks.current) setHintOpen(false);
-    if (!hintOpen) hintMarks.current = null;
-  }, [game, hintOpen]);
+    if (!visible) setHintOpen(false);
+  }, [visible]);
+  useEffect(() => {
+    if (hintOpen && hint && game && game.marks !== hint.marks) setHintOpen(false);
+  }, [game, hint, hintOpen]);
 
   const askHint = async () => {
     if (!game || hintLoading) return;
@@ -71,27 +128,66 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
     try {
       const h = await engine.queensHint(puzzle, game.marks);
       const ex = explainHint(h, puzzle, lang, (key, n) => t(key, { n }));
-      if (h.kind === 'step' || h.kind === 'reveal') api.noteHint();
-      setHint({ hint: h, ex });
-      hintMarks.current = game.marks;
+      if (h.kind !== 'solved') api.noteHint(hintKey(h));
+      setHint({ hint: h, ex, marks: game.marks });
       setHintOpen(true);
+    } catch {
+      snackbar.show({ message: t('errors.hint') });
     } finally {
       setHintLoading(false);
     }
   };
 
   const applyHint = () => {
-    const h = hint?.hint;
     setHintOpen(false);
-    if (h && (h.kind === 'step' || h.kind === 'reveal')) api.applyHint(h.reveal.cell, h.reveal.mark);
+    if (hint && game) api.applyHint(hintMoves(hint.hint, game.marks));
   };
 
+  // Cases à garder visibles au-dessus de la feuille : celles de l'indice, sinon toute la grille.
+  const hintFocus = useCallback(() => {
+    const board = boardRef.current?.getBoundingClientRect();
+    if (!board || !hint) return null;
+    const h = hint.ex.highlight;
+    const cells = [...h.focus, ...h.targets, ...h.eliminate, ...h.mistakes, ...(h.reveal === null ? [] : [h.reveal])];
+    if (cells.length === 0) return { top: board.top, bottom: board.bottom };
+    const n = puzzle.size;
+    const rows = cells.map((c) => Math.floor(c / n));
+    const cell = board.height / n;
+    return { top: board.top + Math.min(...rows) * cell, bottom: board.top + (Math.max(...rows) + 1) * cell };
+  }, [hint, puzzle.size]);
+  useSheetInset(sheetOpen, hintContentRef, boardRef, hintFocus);
+
+  // Victoire obtenue en jouant (pas au chargement d'une partie déjà finie) : la carte s'affiche,
+  // prend le focus et vient dans le champ de vision.
+  const solved = game?.solved ?? false;
+  const wasSolved = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (!game) return;
+    const liveWin = wasSolved.current === false && game.solved;
+    wasSolved.current = game.solved;
+    if (!liveWin) return;
+    setVictoryOpen(true);
+    setHintOpen(false);
+    const id = requestAnimationFrame(() => {
+      victoryTitleRef.current?.focus({ preventScroll: true });
+      victoryTitleRef.current?.closest('.game__victory')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [game]);
+
   if (!game) return null;
-  const solved = game.solved;
-  const canApply = hint && (hint.hint.kind === 'step' || hint.hint.kind === 'reveal');
+  const hintKind = hint?.hint.kind;
+  const canApply = hintKind === 'step' || hintKind === 'reveal' || hintKind === 'mistake';
+  const time = formatDuration(api.elapsed(), lang);
+  const announcement = solved ? `${t('victory.title')} ${t('victory.time', { time })}` : api.conflicts.length > 0 ? t('game.conflicts', { count: api.conflicts.length }) : '';
 
   return (
     <div className="game">
+      {/* Annonces pour les lecteurs d'écran (région permanente : conflits, victoire). */}
+      <p className="md-sr-only" aria-live="polite">
+        {announcement}
+      </p>
+
       <div className="game__status">
         <span className="game__timer-wrap">
           <Icon name="timer" size={20} />
@@ -104,7 +200,7 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              role="status"
+              aria-hidden="true"
             >
               <Icon name="warning" size={18} />
               {t('game.conflicts', { count: api.conflicts.length })}
@@ -114,14 +210,14 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
         <IconButton icon="help" label={t('game.rules')} onClick={() => setRulesOpen(true)} />
       </div>
 
-      <div className="game__board">
+      <div className="game__board" ref={boardRef}>
         <QueensBoard
           puzzle={puzzle}
           marks={game.marks}
           regionColors={colors}
           conflicts={api.conflicts}
           attacked={api.attacked}
-          highlight={hintOpen ? (hint?.ex.highlight ?? null) : null}
+          highlight={sheetOpen ? hint.ex.highlight : null}
           patterns={settings.regionPatterns}
           disabled={solved}
           celebrate={solved}
@@ -139,13 +235,21 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
               icon="restart_alt"
               label={t('game.reset')}
               size="s"
-              disabled={game.past.length === 0 && game.marks.every((m) => m === 0)}
+              disabled={game.marks.every((m) => m === MARK_EMPTY)}
               onClick={() => setResetOpen(true)}
             />
           </div>
-          <ExtendedFab icon="lightbulb" color="primary" onClick={() => void askHint()} disabled={hintLoading}>
+          <ExtendedFab icon="lightbulb" color="primary" onClick={() => void askHint()} disabled={hintLoading || sheetOpen}>
             {t('game.hint')}
           </ExtendedFab>
+        </div>
+      )}
+
+      {solved && !victoryOpen && (
+        <div className="game__actions">
+          <Button variant="tonal" icon="emoji_events" onClick={() => setVictoryOpen(true)}>
+            {t('victory.show')}
+          </Button>
         </div>
       )}
 
@@ -164,15 +268,17 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
                   <Icon name="celebration" size={28} />
                 </span>
                 <div>
-                  <h2 className="md-typescale-headline-small victory-card__title">{t('victory.title')}</h2>
-                  <p className="md-typescale-body-large">{t('victory.time', { time: formatDuration(api.elapsed(), lang) })}</p>
+                  <h2 className="md-typescale-headline-small victory-card__title" ref={victoryTitleRef} tabIndex={-1}>
+                    {t('victory.title')}
+                  </h2>
+                  <p className="md-typescale-body-large">{t('victory.time', { time })}</p>
                 </div>
               </div>
               <div className="victory-card__chips">
-                <Chip icon="lightbulb">{t('victory.hints', { count: game.hintsUsed })}</Chip>
+                <InfoChip icon="lightbulb">{t('victory.hints', { count: game.hintsUsed })}</InfoChip>
               </div>
               {victoryExtra}
-              <Button variant="text" onClick={() => setVictoryOpen(false)}>
+              <Button variant="text" icon="visibility" onClick={() => setVictoryOpen(false)}>
                 {t('victory.viewBoard')}
               </Button>
             </Card>
@@ -180,9 +286,9 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
         )}
       </AnimatePresence>
 
-      <BottomSheet open={hintOpen} onClose={closeHint} modal={false} aria-label={t('hint.title')} dismissLabel={t('common.close')}>
+      <BottomSheet open={sheetOpen} onClose={closeHint} modal={false} aria-label={t('hint.title')} dismissLabel={t('common.close')}>
         {hint && (
-          <div className="hint-sheet">
+          <div className="hint-sheet" ref={hintContentRef}>
             <div className="hint-sheet__head">
               <span className="hint-sheet__icon" aria-hidden="true">
                 <Icon name="lightbulb" filled size={24} />
@@ -198,8 +304,12 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
                 {t('common.close')}
               </Button>
               {canApply && (
-                <Button variant="filled" icon={revealIcon(hint.hint)} onClick={applyHint}>
-                  {t('hint.apply')}
+                <Button
+                  variant="filled"
+                  icon={hintKind === 'mistake' ? 'backspace' : hint.ex.highlight.revealMark === 'cross' ? 'close' : 'crown'}
+                  onClick={applyHint}
+                >
+                  {t(hintKind === 'mistake' ? 'hint.fix' : 'hint.apply')}
                 </Button>
               )}
             </div>
@@ -225,11 +335,13 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
       <Dialog
         open={resetOpen}
         onClose={closeReset}
+        role="alertdialog"
+        initialFocusRef={cancelResetRef}
         title={t('game.reset')}
         icon="restart_alt"
         actions={
           <>
-            <Button variant="text" onClick={closeReset}>
+            <Button variant="text" onClick={closeReset} ref={cancelResetRef}>
               {t('common.cancel')}
             </Button>
             <Button
@@ -239,7 +351,7 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
                 closeReset();
               }}
             >
-              {t('common.confirm')}
+              {t('game.resetAction')}
             </Button>
           </>
         }

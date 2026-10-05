@@ -17,3 +17,12 @@ export async function saveJSON(key: string, value: unknown): Promise<void> {
 export async function removeKey(key: string): Promise<void> {
   await Preferences.remove({ key });
 }
+
+/** Toutes les clés stockées (sans le préfixe interne de Preferences). */
+export async function listKeys(): Promise<string[]> {
+  try {
+    return (await Preferences.keys()).keys;
+  } catch {
+    return [];
+  }
+}

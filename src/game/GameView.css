@@ -61,6 +61,10 @@
 }
 
 .victory-card {
+  /* Couleurs de contenu ramenées sur « on-primary-container » : contraste garanti sur ce fond. */
+  --md-sys-color-on-surface-variant: var(--md-sys-color-on-primary-container);
+  --md-sys-color-outline-variant: color-mix(in srgb, var(--md-sys-color-on-primary-container) 38%, transparent);
+
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -68,6 +72,24 @@
   background: var(--md-sys-color-primary-container) !important;
   color: var(--md-sys-color-on-primary-container) !important;
   border-radius: var(--md-sys-shape-corner-extra-large, 28px) !important;
+}
+
+.victory-card .md-button--text {
+  --md-button-content: var(--md-sys-color-on-primary-container);
+}
+
+.victory-card .md-chip {
+  --md-chip-icon: var(--md-sys-color-on-primary-container);
+}
+
+.victory-card__title:focus {
+  outline: none;
+}
+
+.victory-card__title:focus-visible {
+  outline: 3px solid var(--md-sys-color-secondary);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .victory-card__head {

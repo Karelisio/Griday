@@ -64,3 +64,9 @@
   --md-chip-shadow: var(--md-sys-elevation-level0);
   cursor: default;
 }
+
+/* Puce d'information : ni état, ni curseur de bouton. */
+.md-chip--static {
+  cursor: default;
+  user-select: none;
+}
