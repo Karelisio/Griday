@@ -22,9 +22,9 @@ beforeEach(() => {
 
 describe('texte partagé', () => {
   it('puzzle du jour en français : numéro, taille, difficulté, temps, indices, série, lien', () => {
-    const text = shareText({ kind: 'daily', n: 12, size: 7, tier: 2, timeMs: 154_900, hintsUsed: 0, streak: 5 }, i18n.getFixedT('fr'), 'fr');
+    const text = shareText({ kind: 'daily', type: 'queens', n: 12, size: 7, tier: 2, timeMs: 154_900, hintsUsed: 0, streak: 5 }, i18n.getFixedT('fr'), 'fr');
     expect(text.split('\n')).toEqual([
-      'Griday n° 12 👑 7 × 7 · Moyen',
+      'Griday n° 12 · 👑 Reines 7 × 7 · Moyen',
       '⏱️ 2:34 · 💡 sans indice',
       '🔥 5 jours de suite',
       `À vous de jouer : ${STORE_URL}`,
@@ -33,12 +33,12 @@ describe('texte partagé', () => {
 
   it('anglais, archive (sans série), illimité ; aucune case de la solution', () => {
     const t = i18n.getFixedT('en');
-    const archive = shareText({ kind: 'archive', n: 3, size: 8, tier: 3, timeMs: 61_000, hintsUsed: 2, streak: 9 }, t, 'en');
-    expect(archive).toContain('Griday #3 (archive)');
+    const archive = shareText({ kind: 'archive', type: 'queens', n: 3, size: 8, tier: 3, timeMs: 61_000, hintsUsed: 2, streak: 9 }, t, 'en');
+    expect(archive).toContain('Griday #3 (archive) · 👑 Queens');
     expect(archive).toContain('💡 2 hints');
     expect(archive).not.toContain('🔥');
-    const unlimited = shareText({ kind: 'unlimited', size: 6, tier: 1, timeMs: 5000, hintsUsed: 1 }, t, 'en');
-    expect(unlimited.split('\n')[0]).toBe('Griday ∞ 👑 6 × 6 · Easy');
+    const unlimited = shareText({ kind: 'unlimited', type: 'queens', size: 6, tier: 1, timeMs: 5000, hintsUsed: 1 }, t, 'en');
+    expect(unlimited.split('\n')[0]).toBe('Griday ∞ · 👑 Queens 6 × 6 · Easy');
     expect(unlimited).toContain('💡 1 hint');
   });
 });

@@ -3,6 +3,7 @@
  * ignorée, jamais fatale). Une clé par historique, une pour la série.
  */
 import { isValidISODate, type ISODate } from '../../engine/core/date';
+import { PUZZLE_TYPE_IDS, type PuzzleTypeId } from '../../engine/core/types';
 import { QUEENS_MAX_SIZE, QUEENS_MIN_SIZE } from '../../engine/queens/types';
 import { isTier } from '../game/queens/validate';
 import { dailyProgressKey } from '../persistence';
@@ -16,10 +17,14 @@ export const STREAK_KEY = 'streak.v1';
 /** Parties illimitées gardées (les plus récentes). */
 export const MAX_UNLIMITED_RESULTS = 1000;
 
-/** [temps ms, indices, taille, palier, 0 = du jour | 1 = archive, résolu le]. */
-type DailyRow = [number, number, number, number, 0 | 1, ISODate];
-/** [taille, palier, temps ms, indices, résolu le]. */
-type UnlimitedRow = [number, number, number, number, ISODate];
+/** [temps ms, indices, taille, palier, 0 = du jour | 1 = archive, résolu le, type (absent : queens)]. */
+type DailyRow = [number, number, number, number, 0 | 1, ISODate, PuzzleTypeId?];
+/** [taille, palier, temps ms, indices, résolu le, type (absent : queens)]. */
+type UnlimitedRow = [number, number, number, number, ISODate, PuzzleTypeId?];
+
+const isType = (v: unknown): v is PuzzleTypeId => typeof v === 'string' && (PUZZLE_TYPE_IDS as readonly string[]).includes(v);
+/** Type relu : absent (anciens résultats) = Queens ; inconnu = entrée ignorée. */
+const typeOf = (v: unknown): PuzzleTypeId | null => (v === undefined ? 'queens' : isType(v) ? v : null);
 
 export interface ProgressData {
   readonly history: ReadonlyMap<ISODate, DailyResult>;
@@ -37,7 +42,7 @@ const isDate = (v: unknown): v is ISODate => typeof v === 'string' && isValidISO
 
 export function encodeDailyHistory(history: ReadonlyMap<ISODate, DailyResult>): { v: 1; results: Record<ISODate, DailyRow> } {
   const results: Record<ISODate, DailyRow> = {};
-  for (const [date, r] of history) results[date] = [r.timeMs, r.hintsUsed, r.size, r.tier, r.mode === 'daily' ? 0 : 1, r.solvedOn];
+  for (const [date, r] of history) results[date] = [r.timeMs, r.hintsUsed, r.size, r.tier, r.mode === 'daily' ? 0 : 1, r.solvedOn, r.type ?? 'queens'];
   return { v: 1, results };
 }
 
@@ -45,16 +50,17 @@ export function decodeDailyHistory(raw: unknown): Map<ISODate, DailyResult> {
   const out = new Map<ISODate, DailyResult>();
   if (!isRecord(raw) || raw['v'] !== 1 || !isRecord(raw['results'])) return out;
   for (const [date, row] of Object.entries(raw['results'])) {
-    if (!isDate(date) || !Array.isArray(row) || row.length !== 6) continue;
-    const [timeMs, hintsUsed, size, tier, mode, solvedOn] = row as unknown[];
-    if (!isCount(timeMs) || !isCount(hintsUsed) || !isSize(size) || !isTier(tier) || (mode !== 0 && mode !== 1) || !isDate(solvedOn)) continue;
-    out.set(date, { date, timeMs, hintsUsed, size, tier, mode: mode === 0 ? 'daily' : 'archive', solvedOn });
+    if (!isDate(date) || !Array.isArray(row) || row.length < 6 || row.length > 7) continue;
+    const [timeMs, hintsUsed, size, tier, mode, solvedOn, rawType] = row as unknown[];
+    const type = typeOf(rawType);
+    if (!isCount(timeMs) || !isCount(hintsUsed) || !isSize(size) || !isTier(tier) || (mode !== 0 && mode !== 1) || !isDate(solvedOn) || !type) continue;
+    out.set(date, { date, type, timeMs, hintsUsed, size, tier, mode: mode === 0 ? 'daily' : 'archive', solvedOn });
   }
   return out;
 }
 
 export function encodeUnlimitedHistory(results: readonly UnlimitedResult[], total = results.length): { v: 1; total: number; results: UnlimitedRow[] } {
-  const rows = results.slice(-MAX_UNLIMITED_RESULTS).map((r): UnlimitedRow => [r.size, r.tier, r.timeMs, r.hintsUsed, r.solvedOn]);
+  const rows = results.slice(-MAX_UNLIMITED_RESULTS).map((r): UnlimitedRow => [r.size, r.tier, r.timeMs, r.hintsUsed, r.solvedOn, r.type ?? 'queens']);
   return { v: 1, total: Math.max(total, rows.length), results: rows };
 }
 
@@ -62,10 +68,11 @@ export function decodeUnlimitedHistory(raw: unknown): { results: UnlimitedResult
   if (!isRecord(raw) || raw['v'] !== 1 || !Array.isArray(raw['results'])) return { results: [], total: 0 };
   const out: UnlimitedResult[] = [];
   for (const row of raw['results'] as unknown[]) {
-    if (!Array.isArray(row) || row.length !== 5) continue;
-    const [size, tier, timeMs, hintsUsed, solvedOn] = row as unknown[];
-    if (!isSize(size) || !isTier(tier) || !isCount(timeMs) || !isCount(hintsUsed) || !isDate(solvedOn)) continue;
-    out.push({ size, tier, timeMs, hintsUsed, solvedOn });
+    if (!Array.isArray(row) || row.length < 5 || row.length > 6) continue;
+    const [size, tier, timeMs, hintsUsed, solvedOn, rawType] = row as unknown[];
+    const type = typeOf(rawType);
+    if (!isSize(size) || !isTier(tier) || !isCount(timeMs) || !isCount(hintsUsed) || !isDate(solvedOn) || !type) continue;
+    out.push({ type, size, tier, timeMs, hintsUsed, solvedOn });
   }
   const results = out.slice(-MAX_UNLIMITED_RESULTS);
   return { results, total: Math.max(isCount(raw['total']) ? raw['total'] : 0, results.length) };

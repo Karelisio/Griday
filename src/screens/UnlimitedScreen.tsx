@@ -55,17 +55,46 @@ export function isCurrentUnlimited(v: unknown): v is CurrentUnlimited {
   );
 }
 
-function TargetPicker({ target, sizes, onChange }: { target: GenerationTarget; sizes: readonly number[]; onChange: (t: GenerationTarget) => void }) {
+/** Choix de la partie : type (dès que plusieurs sont jouables), taille, difficulté. */
+interface Choice extends GenerationTarget {
+  readonly type: PuzzleTypeId;
+}
+
+function TargetPicker({
+  choice,
+  types,
+  sizes,
+  onChange,
+}: {
+  choice: Choice;
+  types: readonly PuzzleTypeId[];
+  sizes: readonly number[];
+  onChange: (c: Choice) => void;
+}) {
   const { t } = useTranslation();
   return (
     <div className="unlimited__controls">
+      {types.length > 1 && (
+        <>
+          <p className="md-typescale-label-large unlimited__label" id="unl-type">
+            {t('unlimited.type')}
+          </p>
+          <SegmentedButton<PuzzleTypeId>
+            aria-labelledby="unl-type"
+            value={choice.type}
+            onChange={(type) => onChange({ ...choice, type })}
+            options={types.map((type) => ({ value: type, icon: gameKind(type)?.icon, label: t(`puzzle.${type}.name`) }))}
+            showCheck={false}
+          />
+        </>
+      )}
       <p className="md-typescale-label-large unlimited__label" id="unl-size">
         {t('unlimited.size')}
       </p>
       <SegmentedButton
         aria-labelledby="unl-size"
-        value={String(target.size)}
-        onChange={(v) => onChange({ ...target, size: Number(v) })}
+        value={String(choice.size)}
+        onChange={(v) => onChange({ ...choice, size: Number(v) })}
         options={sizes.map((n) => ({ value: String(n), label: String(n), ariaLabel: t('unlimited.sizeValue', { n }) }))}
         showCheck={false}
       />
@@ -74,8 +103,8 @@ function TargetPicker({ target, sizes, onChange }: { target: GenerationTarget; s
       </p>
       <SegmentedButton
         aria-labelledby="unl-tier"
-        value={String(target.tier)}
-        onChange={(v) => onChange({ ...target, tier: Number(v) as DifficultyTier })}
+        value={String(choice.tier)}
+        onChange={(v) => onChange({ ...choice, tier: Number(v) as DifficultyTier })}
         options={TIERS.map((tier) => ({ value: String(tier), label: t(`difficulty.${tier}`) }))}
         showCheck={false}
         className="segmented--fit"
@@ -84,10 +113,15 @@ function TargetPicker({ target, sizes, onChange }: { target: GenerationTarget; s
   );
 }
 
+/** Taille gardée si le type la propose, sinon la plus proche. */
+function fitSize(size: number, sizes: readonly number[]): number {
+  return sizes.reduce((best, n) => (Math.abs(n - size) < Math.abs(best - size) ? n : best), sizes[0] ?? size);
+}
+
 export function UnlimitedScreen({ visible }: { visible: boolean }) {
   const { t } = useTranslation();
   const today = useToday();
-  const [target, setTarget] = useState<GenerationTarget>({ size: 7, tier: 2 });
+  const [choice, setChoice] = useState<Choice>({ type: 'queens', size: 7, tier: 2 });
   const [current, setCurrent] = useState<CurrentUnlimited | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -95,7 +129,10 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [sizes, setSizes] = useState<readonly number[]>([]);
+  // Types jouables (moteur + interface) et tailles proposées par chacun.
+  const [sizesByType, setSizesByType] = useState<Partial<Record<PuzzleTypeId, readonly number[]>>>({});
+  const types = PUZZLE_TYPE_IDS.filter((type) => gameKind(type) !== null && sizesByType[type]);
+  const sizes = sizesByType[choice.type] ?? [];
   const closePicker = useCallback(() => setPickerOpen(false), []);
   useEffect(() => (visible && pickerOpen ? pushBackHandler(closePicker) : undefined), [visible, pickerOpen, closePicker]);
   useEffect(() => {
@@ -107,14 +144,18 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
     setLoadFailed(false);
     void (async () => {
       try {
-        const [cur, prefs, options] = await Promise.all([
+        const playable = PUZZLE_TYPE_IDS.filter((type) => gameKind(type) !== null);
+        const [cur, prefs, ...options] = await Promise.all([
           loadJSON<unknown>(UNLIMITED_CURRENT_KEY),
           loadJSON<unknown>(UNLIMITED_PREFS_KEY),
-          engine.unlimitedOptions('queens', today),
+          ...playable.map((type) => engine.unlimitedOptions(type, today)),
         ]);
         if (cancelled) return;
-        setSizes(options.sizes);
-        if (isGenerationTarget(prefs, options.sizes)) setTarget(prefs);
+        const bySize = Object.fromEntries(playable.map((type, i) => [type, options[i]!.sizes])) as Partial<Record<PuzzleTypeId, readonly number[]>>;
+        setSizesByType(bySize);
+        const savedType = (prefs as { type?: unknown } | undefined)?.type;
+        const type = playable.includes(savedType as PuzzleTypeId) ? (savedType as PuzzleTypeId) : 'queens';
+        if (isGenerationTarget(prefs, bySize[type])) setChoice({ type, size: prefs.size, tier: prefs.tier });
         if (isCurrentUnlimited(cur)) setCurrent(cur);
         setLoaded(true);
       } catch {
@@ -126,9 +167,10 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
     };
   }, [today, loadAttempt]);
 
-  const chooseTarget = (next: GenerationTarget) => {
-    setTarget(next);
-    void saveJSON(UNLIMITED_PREFS_KEY, next);
+  const choose = (next: Choice) => {
+    const fitted = { ...next, size: fitSize(next.size, sizesByType[next.type] ?? []) };
+    setChoice(fitted);
+    void saveJSON(UNLIMITED_PREFS_KEY, fitted);
   };
 
   const start = async () => {
@@ -137,7 +179,8 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
     setError(false);
     try {
       const token = newToken();
-      const puzzle = await engine.unlimited('queens', target, token, today);
+      const target: GenerationTarget = { size: choice.size, tier: choice.tier };
+      const puzzle = await engine.unlimited(choice.type, target, token, today);
       const next: CurrentUnlimited = { token, target, puzzle };
       if (current) void removeKey(unlimitedProgressKey(current.token));
       await saveJSON(UNLIMITED_CURRENT_KEY, next);
@@ -151,11 +194,13 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
 
   const { recordUnlimited } = useProgress();
   const played = current?.target;
+  const playedType = current?.puzzle.type;
   const onSolved = useCallback(
     (g: GameState<unknown>) => {
-      if (played) recordUnlimited({ size: played.size, tier: played.tier, timeMs: Math.floor(g.elapsedMs), hintsUsed: g.hintsUsed, solvedOn: localISODate(new Date()) });
+      if (!played) return;
+      recordUnlimited({ type: playedType, size: played.size, tier: played.tier, timeMs: Math.floor(g.elapsedMs), hintsUsed: g.hintsUsed, solvedOn: localISODate(new Date()) });
     },
-    [played, recordUnlimited],
+    [played, playedType, recordUnlimited],
   );
   const kind = current ? gameKind(current.puzzle.type) : null;
   const api = useGameSession(kind?.rules ?? NO_RULES, {
@@ -173,6 +218,7 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
         </h1>
         {current && (
           <div className="screen__chips">
+            {types.length > 1 && <InfoChip icon={kind?.icon ?? 'extension'}>{t(`puzzle.${current.puzzle.type}.name`)}</InfoChip>}
             <InfoChip icon="grid_view">{t('unlimited.sizeValue', { n: current.target.size })}</InfoChip>
             <InfoChip icon="bolt">{t(`difficulty.${current.target.tier}`)}</InfoChip>
             {!pickerOpen && (
@@ -211,7 +257,14 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
               </Button>
               <ShareButton
                 variant="tonal"
-                result={{ kind: 'unlimited', size: current.target.size, tier: current.target.tier, timeMs: api.game.elapsedMs, hintsUsed: api.game.hintsUsed }}
+                result={{
+                  kind: 'unlimited',
+                  type: current.puzzle.type,
+                  size: current.target.size,
+                  tier: current.target.tier,
+                  timeMs: api.game.elapsedMs,
+                  hintsUsed: api.game.hintsUsed,
+                }}
               />
             </div>
           }
@@ -219,7 +272,7 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
       ) : loaded && !current ? (
         <>
           <p className="md-typescale-body-large screen__subtitle">{t('unlimited.empty')}</p>
-          <TargetPicker target={target} sizes={sizes} onChange={chooseTarget} />
+          <TargetPicker choice={choice} types={types} sizes={sizes} onChange={choose} />
           <Button variant="filled" icon="add" size="m" onClick={() => void start()} fullWidth>
             {t('unlimited.newGame')}
           </Button>
@@ -235,7 +288,7 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
       >
         <div className="unlimited__sheet">
           <h2 className="md-typescale-title-large">{t('unlimited.newGame')}</h2>
-          <TargetPicker target={target} sizes={sizes} onChange={chooseTarget} />
+          <TargetPicker choice={choice} types={types} sizes={sizes} onChange={choose} />
           <Button variant="filled" icon="play_arrow" size="m" onClick={() => void start()} fullWidth>
             {t('unlimited.newGame')}
           </Button>

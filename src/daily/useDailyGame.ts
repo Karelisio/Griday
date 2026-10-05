@@ -83,6 +83,7 @@ export function useDailyGame({ date, mode, visible, onRecorded }: UseDailyGameOp
       const onTime = started?.on ? started.on === date : mode === 'daily';
       const { earnedFreeze } = recordDaily({
         date,
+        type: daily.type,
         size: daily.target.size,
         tier: daily.target.tier,
         timeMs: Math.floor(g.elapsedMs),

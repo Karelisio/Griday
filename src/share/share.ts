@@ -2,15 +2,19 @@
 import { Capacitor } from '@capacitor/core';
 import { Share } from '@capacitor/share';
 import type { TFunction } from 'i18next';
-import type { DifficultyTier } from '../../engine/core/types';
+import type { DifficultyTier, PuzzleTypeId } from '../../engine/core/types';
 import type { Language } from '../i18n';
 import { formatClock } from '../i18n/format';
 
 /** Fiche Play Store (identifiant définitif de l'app). */
 export const STORE_URL = 'https://play.google.com/store/apps/details?id=io.github.karelisio.griday';
 
+/** Emoji du type de puzzle dans le texte partagé. */
+const TYPE_EMOJI: Readonly<Record<string, string>> = { queens: '👑', binairo: '🌓' };
+
 export interface SharedResult {
   readonly kind: 'daily' | 'archive' | 'unlimited';
+  readonly type: PuzzleTypeId;
   /** Numéro du puzzle du jour (daily, archive). */
   readonly n?: number;
   readonly size: number;
@@ -23,7 +27,8 @@ export interface SharedResult {
 
 /** Texte partagé : une ligne d'en-tête, temps et indices, série, lien. */
 export function shareText(r: SharedResult, t: TFunction, lang: Language): string {
-  const head = { n: r.n ?? 0, size: t('unlimited.sizeValue', { n: r.size }), difficulty: t(`difficulty.${r.tier}`) };
+  const puzzle = `${TYPE_EMOJI[r.type] ?? '🧩'} ${t(`puzzle.${r.type}.name`)}`;
+  const head = { n: r.n ?? 0, puzzle, size: t('unlimited.sizeValue', { n: r.size }), difficulty: t(`difficulty.${r.tier}`) };
   const lines = [
     t(`share.${r.kind}`, head),
     `${t('share.time', { time: formatClock(r.timeMs, lang) })} · ${t('share.hints', { count: r.hintsUsed })}`,

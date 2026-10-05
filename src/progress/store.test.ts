@@ -15,7 +15,7 @@ import {
 } from './store';
 import type { DailyResult, UnlimitedResult } from './types';
 
-const result: DailyResult = { date: '2026-10-05', size: 7, tier: 2, timeMs: 61_234, hintsUsed: 1, mode: 'archive', solvedOn: '2026-10-09' };
+const result: DailyResult = { date: '2026-10-05', type: 'queens', size: 7, tier: 2, timeMs: 61_234, hintsUsed: 1, mode: 'archive', solvedOn: '2026-10-09' };
 
 beforeEach(() => localStorage.clear());
 
@@ -23,8 +23,13 @@ describe('persistance de la progression', () => {
   it('historique du jour : aller-retour compact', () => {
     const map = new Map([[result.date, result]]);
     const encoded = JSON.parse(JSON.stringify(encodeDailyHistory(map)));
-    expect(encoded.results['2026-10-05']).toEqual([61_234, 1, 7, 2, 1, '2026-10-09']);
+    expect(encoded.results['2026-10-05']).toEqual([61_234, 1, 7, 2, 1, '2026-10-09', 'queens']);
     expect(decodeDailyHistory(encoded)).toEqual(map);
+  });
+
+  it('anciens résultats sans type : lus comme Queens ; type inconnu : ignoré', () => {
+    const decoded = decodeDailyHistory({ v: 1, results: { '2026-10-05': [1, 0, 6, 1, 0, '2026-10-05'], '2026-10-06': [1, 0, 6, 1, 0, '2026-10-06', 'sudoku'] } });
+    expect([...decoded.values()].map((r) => [r.date, r.type])).toEqual([['2026-10-05', 'queens']]);
   });
 
   it('entrées abîmées ignorées une à une', () => {
@@ -46,7 +51,7 @@ describe('persistance de la progression', () => {
   });
 
   it('mode illimité : aller-retour, entrées abîmées ignorées, taille bornée', () => {
-    const u: UnlimitedResult = { size: 8, tier: 3, timeMs: 5000, hintsUsed: 0, solvedOn: '2026-10-05' };
+    const u: UnlimitedResult = { type: 'queens', size: 8, tier: 3, timeMs: 5000, hintsUsed: 0, solvedOn: '2026-10-05' };
     expect(decodeUnlimitedHistory(JSON.parse(JSON.stringify(encodeUnlimitedHistory([u]))))).toEqual({ results: [u], total: 1 });
     expect(decodeUnlimitedHistory({ v: 1, results: [[8, 3, 5000, 0, '2026-10-05'], [8, 3, 'x', 0, '2026-10-05'], null] }).results).toHaveLength(1);
     const many = Array.from({ length: MAX_UNLIMITED_RESULTS + 10 }, (_, i) => ({ ...u, timeMs: i }));

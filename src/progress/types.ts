@@ -1,6 +1,6 @@
 /** Progression du joueur : résultats des puzzles, série de jours, gels de série. */
 import type { ISODate } from '../../engine/core/date';
-import type { DifficultyTier } from '../../engine/core/types';
+import type { DifficultyTier, PuzzleTypeId } from '../../engine/core/types';
 
 /** `daily` : joué comme puzzle du jour (compte pour la série) ; `archive` : rejoué depuis le calendrier. */
 export type DailyMode = 'daily' | 'archive';
@@ -9,6 +9,8 @@ export type DailyMode = 'daily' | 'archive';
 export interface DailyResult {
   /** Date du puzzle. */
   readonly date: ISODate;
+  /** Type du puzzle (absent dans les résultats d'avant Binairo : Queens). */
+  readonly type?: PuzzleTypeId;
   readonly size: number;
   readonly tier: DifficultyTier;
   readonly timeMs: number;
@@ -20,6 +22,8 @@ export interface DailyResult {
 
 /** Partie illimitée résolue. */
 export interface UnlimitedResult {
+  /** Type du puzzle (absent : Queens). */
+  readonly type?: PuzzleTypeId;
   readonly size: number;
   readonly tier: DifficultyTier;
   readonly timeMs: number;

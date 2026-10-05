@@ -151,6 +151,7 @@ export function TodayScreen({ visible, playingDate, onPlayingDateChange }: Today
                 <ShareButton
                   result={{
                     kind: history.get(playingDate)?.mode === 'archive' ? 'archive' : 'daily',
+                    type: daily.type,
                     n: daily.dayNumber,
                     size: daily.target.size,
                     tier: daily.target.tier,

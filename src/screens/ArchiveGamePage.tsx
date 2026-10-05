@@ -67,6 +67,7 @@ export function ArchiveGamePage({ date, visible }: { date: ISODate; visible: boo
                 <ShareButton
                   result={{
                     kind: onTime ? 'daily' : 'archive',
+                    type: daily.type,
                     n: daily.dayNumber,
                     size: daily.target.size,
                     tier: daily.target.tier,

@@ -44,6 +44,7 @@
   },
   "unlimited": {
     "title": "Unlimited mode",
+    "type": "Puzzle",
     "size": "Size",
     "sizeValue": "{{n}} × {{n}}",
     "difficulty": "Difficulty",
@@ -193,9 +194,9 @@
     "freezeEarned": "Streak freeze earned! It will protect your streak on a missed day."
   },
   "share": {
-    "daily": "Griday #{{n}} 👑 {{size}} · {{difficulty}}",
-    "archive": "Griday #{{n}} (archive) 👑 {{size}} · {{difficulty}}",
-    "unlimited": "Griday ∞ 👑 {{size}} · {{difficulty}}",
+    "daily": "Griday #{{n}} · {{puzzle}} {{size}} · {{difficulty}}",
+    "archive": "Griday #{{n}} (archive) · {{puzzle}} {{size}} · {{difficulty}}",
+    "unlimited": "Griday ∞ · {{puzzle}} {{size}} · {{difficulty}}",
     "time": "⏱️ {{time}}",
     "hints_zero": "💡 no hints",
     "hints_one": "💡 {{count}} hint",
