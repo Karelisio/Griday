@@ -465,9 +465,9 @@ class Builder {
 
   /**
    * Cases de la région de y coupées de sa reine si y est retirée (dans cellBuf, renvoie leur
-   * nombre) ; -1 si y ne peut pas être retirée (reine, ou région sous la taille minimale).
+   * nombre) ; -1 si y ne peut pas être retirée (reine, ou partie restante < minKeep cases).
    */
-  private branchOf(y: number): number {
+  private branchOf(y: number, minKeep: number): number {
     const g = this.reg[y]!;
     if (g < 0 || this.isQueen[y]) return -1;
     const n = this.n;
@@ -487,7 +487,7 @@ class Builder {
         this.queue[tail++] = z;
       }
     }
-    if (tail < this.shape.minSize) return -1;
+    if (tail < minKeep) return -1;
     const cut = this.size[g]! - 1 - tail;
     if (cut === 0) return 0;
     let k = 0;
@@ -497,8 +497,9 @@ class Builder {
     return k;
   }
 
+  /** y peut changer de région : ni reine, ni articulation, région au-dessus de minSize. */
   private removable(y: number): boolean {
-    return this.branchOf(y) === 0;
+    return this.branchOf(y, this.shape.minSize) === 0;
   }
 
   /** Poids de forme de la case libre x pour la région g (≥ 1). */
@@ -539,44 +540,71 @@ class Builder {
 
   // ─── Croissance ────────────────────────────────────────────────────────────────────────────────
 
-  /** Chaque région atteint minSize, tour par tour (régions dans un ordre tiré). */
+  /**
+   * Chaque région atteint minSize. À chaque pas grandit la région en retard la plus petite, puis
+   * celle qui a le moins de cases libres voisines (les plus coincées d'abord) ; égalités au sort.
+   */
   private growToMinSize(): boolean {
-    const { n, nb, reg } = this;
-    const order: number[] = [];
-    for (let g = 0; g < n; g++) order.push(g);
-    for (let round = 1; round < this.shape.minSize; round++) {
-      this.rng.shuffle(order);
-      for (const g of order) {
-        if (this.size[g]! > round) continue;
-        let count = 0;
-        for (let x = 0; x < this.cells; x++) {
-          if (reg[x] !== -1) continue;
-          for (let d = 0; d < 4; d++) {
-            const y = nb[x * 4 + d]!;
-            if (y >= 0 && reg[y] === g) {
-              this.pairBuf[count] = x;
-              this.weightBuf[count++] = this.shapeWeight(x, g);
-              break;
-            }
-          }
+    const { n, nb, reg, size } = this;
+    const minSize = this.shape.minSize;
+    const frontier = new Int32Array(n);
+    for (let guard = 0; guard < n * minSize; guard++) {
+      frontier.fill(0);
+      for (let x = 0; x < this.cells; x++) {
+        if (reg[x] !== -1) continue;
+        let seen = 0;
+        for (let d = 0; d < 4; d++) {
+          const y = nb[x * 4 + d]!;
+          if (y < 0 || reg[y]! < 0 || (seen >>> reg[y]!) & 1) continue;
+          seen |= 1 << reg[y]!;
+          frontier[reg[y]!]!++;
         }
-        let placed = false;
-        while (count > 0 && !placed) {
-          const i = this.pickWeighted(count);
-          const x = this.pairBuf[i]!;
-          if (this.tryPlace(x, g)) {
-            placed = true;
-            this.free--;
-          } else {
-            if (this.aborted) return false;
-            count--;
-            this.pairBuf[i] = this.pairBuf[count]!;
-            this.weightBuf[i] = this.weightBuf[count]!;
-          }
-        }
-        if (!placed) return false;
       }
+      let bestSize = minSize;
+      let bestFrontier = Number.MAX_SAFE_INTEGER;
+      let ties = 0;
+      for (let g = 0; g < n; g++) {
+        const s = size[g]!;
+        if (s >= minSize) continue;
+        const f = frontier[g]!;
+        if (s < bestSize || (s === bestSize && f < bestFrontier)) {
+          bestSize = s;
+          bestFrontier = f;
+          ties = 0;
+        }
+        if (s === bestSize && f === bestFrontier) this.cellBuf[ties++] = g;
+      }
+      if (ties === 0) return true;
+      const g = this.cellBuf[this.rng.int(ties)]!;
+      let count = 0;
+      for (let x = 0; x < this.cells; x++) {
+        if (reg[x] !== -1) continue;
+        for (let d = 0; d < 4; d++) {
+          const y = nb[x * 4 + d]!;
+          if (y >= 0 && reg[y] === g) {
+            this.pairBuf[count] = x;
+            this.weightBuf[count++] = this.shapeWeight(x, g);
+            break;
+          }
+        }
+      }
+      let placed = false;
+      while (count > 0 && !placed) {
+        const i = this.pickWeighted(count);
+        const x = this.pairBuf[i]!;
+        if (this.tryPlace(x, g)) {
+          placed = true;
+          this.free--;
+        } else {
+          if (this.aborted) return false;
+          count--;
+          this.pairBuf[i] = this.pairBuf[count]!;
+          this.weightBuf[i] = this.weightBuf[count]!;
+        }
+      }
+      if (!placed) return false;
     }
+    for (let g = 0; g < n; g++) if (size[g]! < minSize) return false;
     return true;
   }
 
@@ -635,6 +663,11 @@ class Builder {
     return placed;
   }
 
+  private sizeClass(g: number): number {
+    const s = this.size[g]!;
+    return s < this.shape.minSize ? 0 : s < this.target[g]! ? 1 : s < this.maxSize ? 2 : 3;
+  }
+
   /**
    * Un pas de croissance : région tirée selon sa classe (sous la cible, sous le maximum, au-delà)
    * et son retard, puis case tirée selon la forme. Faux s'il n'existe aucune paire autorisée.
@@ -659,22 +692,19 @@ class Builder {
       }
     }
     if (pairs === 0) return false;
-    // Classe : 1 = sous la cible (poids = retard), 2 = sous le maximum (poids = marge), 3 = au-delà.
+    // Classe : 0 = sous minSize (après une réparation), 1 = sous la cible (poids = retard),
+    // 2 = sous le maximum (poids = marge), 3 = au-delà (poids 1). On tire dans la meilleure classe.
     let bestClass = 4;
     for (let g = 0; g < n; g++) {
-      if (!((regionsWithPairs >>> g) & 1)) continue;
-      const s = size[g]!;
-      const cls = s < target[g]! ? 1 : s < maxSize ? 2 : 3;
-      if (cls < bestClass) bestClass = cls;
+      if ((regionsWithPairs >>> g) & 1) bestClass = Math.min(bestClass, this.sizeClass(g));
     }
     let regionCount = 0;
     for (let g = 0; g < n; g++) {
-      if (!((regionsWithPairs >>> g) & 1)) continue;
+      if (!((regionsWithPairs >>> g) & 1) || this.sizeClass(g) !== bestClass) continue;
       const s = size[g]!;
-      const cls = s < target[g]! ? 1 : s < maxSize ? 2 : 3;
-      if (cls !== bestClass) continue;
       this.cellBuf[regionCount] = g;
-      this.weightBuf[regionCount++] = cls === 1 ? target[g]! - s : cls === 2 ? maxSize - s : 1;
+      this.weightBuf[regionCount++] =
+        bestClass === 0 ? this.shape.minSize - s : bestClass === 1 ? target[g]! - s : bestClass === 2 ? maxSize - s : 1;
     }
     const g = this.cellBuf[this.pickWeighted(regionCount)]!;
     let count = 0;
@@ -746,9 +776,15 @@ class Builder {
     return true;
   }
 
+  /** Le témoin de (x, g) passe-t-il par la case y ? */
+  private witnessHas(x: number, g: number, y: number): boolean {
+    const n = this.n;
+    return this.wit[(x * n + g) * n + ((y / n) | 0)] === y % n;
+  }
+
   /**
-   * Débloque au moins une case libre, ou modifie la grille sans casser l'invariant.
-   * Faux si rien n'est possible (ou budget épuisé).
+   * Blocage : débloque une case libre, ou modifie la grille sans casser l'invariant.
+   * Faux si rien n'est possible (ou abandon).
    */
   private repair(): boolean {
     const stuck = this.stuckCells();
@@ -760,27 +796,37 @@ class Builder {
     const scan = Math.min(stuck, REPAIR_SCAN);
     const budget = this.checks + REPAIR_CHECKS_PER_LINE * this.n;
 
-    // a. Une voisine y de x change de région (h), puis x → h.
+    // a. Une voisine y de x passe dans une région h voisine, puis x → h ; annulé si x reste bloquée.
     for (let i = 0; i < scan && this.checks < budget; i++) {
       const x = stuckList[i]!;
       for (let d = 0; d < 4; d++) {
         const y = this.nb[x * 4 + d]!;
         if (y < 0 || this.reg[y]! < 0 || !this.removable(y)) continue;
-        const k = this.neighborRegions(y, this.reg[y]!, regs);
+        const g0 = this.reg[y]!;
+        const k = this.neighborRegions(y, g0, regs);
         this.shuffleSmall(regs, k);
         for (let j = 0; j < k; j++) {
           const h = regs[j]!;
+          // Inutile si x touche déjà h et que son témoin ne passe pas par y.
+          if (this.blocked(x, h) && !this.witnessHas(x, h, y)) continue;
           if (!this.moveCell(y, h)) {
             if (this.aborted) return false;
             continue;
           }
-          if (!this.blocked(x, h) && this.tryPlace(x, h)) this.free--;
-          return !this.aborted;
+          if (!this.blocked(x, h) && this.tryPlace(x, h)) {
+            this.free--;
+            return true;
+          }
+          if (this.aborted) return false;
+          // Annulation (grille d'avant : sûre) ; le témoin tout juste trouvé peut passer par y.
+          this.setReg(y, g0);
+          this.invalidate(y);
         }
       }
     }
 
-    // b. Une case y du témoin de (x, g) change de région : le témoin meurt ; puis x → g.
+    // b. Une case y du témoin de (x, g) passe dans une région voisine (le témoin meurt), puis x → g.
+    //    Le déplacement est conservé même si x reste bloquée (autre témoin) : il est sûr.
     for (let i = 0; i < scan && this.checks < budget; i++) {
       const x = stuckList[i]!;
       const k = this.neighborRegions(x, -1, regs);
@@ -812,56 +858,63 @@ class Builder {
       }
     }
 
-    // c. y (du témoin) libérée avec sa branche, x → g, puis y recasée si possible.
-    // d. À défaut : y libérée.
-    const x = stuckList[0]!;
-    const k = this.neighborRegions(x, -1, regs);
-    this.shuffleSmall(regs, k);
+    // c. Une case y du témoin de (x, g) est libérée, x → g, puis y recasée ailleurs si possible.
+    // d. À défaut : la case du témoin qui coupe le moins de cases est libérée (avec sa branche).
+    //    Passe 0 : les régions gardent minSize ; passe 1 : une région peut passer dessous (elle
+    //    sera regrandie en priorité, classe 0).
     let bestY = -1;
     let bestCut = Number.MAX_SAFE_INTEGER;
-    for (let j = 0; j < k; j++) {
-      const g = regs[j]!;
-      // Témoin à jour (la stratégie b a pu être écourtée par son budget).
-      if (!this.blocked(x, g)) {
-        if (this.tryPlace(x, g)) {
-          this.free--;
-          return true;
-        }
-        if (this.aborted) return false;
-      }
-      const m = this.witnessCells(x, g, ys);
-      for (let t = 0; t < m; t++) {
-        const y = ys[t]!;
-        const cut = this.branchOf(y);
-        if (cut < 0) continue;
-        if (cut < bestCut) {
-          bestCut = cut;
-          bestY = y;
-        }
-        if (cut !== 0) continue;
-        const h = this.reg[y]!;
-        this.release(y);
-        if (!this.blocked(x, g) && this.tryPlace(x, g)) {
-          this.free--;
-          const k2 = this.neighborRegions(y, h, regs2);
-          this.shuffleSmall(regs2, k2);
-          for (let u = 0; u < k2; u++) {
-            if (this.tryPlace(y, regs2[u]!)) {
+    for (let pass = 0; pass < 2 && bestY < 0; pass++) {
+      const minKeep = pass === 0 ? this.shape.minSize : 1;
+      for (let i = 0; i < scan; i++) {
+        const x = stuckList[i]!;
+        const k = this.neighborRegions(x, -1, regs);
+        this.shuffleSmall(regs, k);
+        for (let j = 0; j < k; j++) {
+          const g = regs[j]!;
+          // Témoin à jour (les stratégies a et b ont pu être écourtées par leur budget).
+          if (!this.blocked(x, g)) {
+            if (this.tryPlace(x, g)) {
               this.free--;
-              break;
+              return true;
             }
             if (this.aborted) return false;
           }
-          return !this.aborted;
+          const m = this.witnessCells(x, g, ys);
+          for (let t = 0; t < m; t++) {
+            const y = ys[t]!;
+            const cut = this.branchOf(y, minKeep);
+            if (cut < 0) continue;
+            if (cut < bestCut) {
+              bestCut = cut;
+              bestY = y;
+            }
+            if (cut !== 0 || this.checks >= budget) continue;
+            const h = this.reg[y]!;
+            this.release(y);
+            if (!this.blocked(x, g) && this.tryPlace(x, g)) {
+              this.free--;
+              const k2 = this.neighborRegions(y, h, regs2);
+              this.shuffleSmall(regs2, k2);
+              for (let u = 0; u < k2; u++) {
+                if (this.tryPlace(y, regs2[u]!)) {
+                  this.free--;
+                  break;
+                }
+                if (this.aborted) return false;
+              }
+              return !this.aborted;
+            }
+            if (this.aborted) return false;
+            // Échec : y retrouve sa région (grille d'avant, x toujours libre : sûr).
+            this.setReg(y, h);
+            this.free--;
+          }
         }
-        if (this.aborted) return false;
-        // Échec : y retrouve sa région (sûr : la grille est celle d'avant, x toujours libre).
-        this.setReg(y, h);
-        this.free--;
       }
     }
     if (bestY < 0) return false;
-    const cut = this.branchOf(bestY);
+    const cut = this.branchOf(bestY, 1);
     const branch = this.cellBuf.slice(0, Math.max(cut, 0));
     this.release(bestY);
     for (let i = 0; i < branch.length; i++) this.release(branch[i]!);
