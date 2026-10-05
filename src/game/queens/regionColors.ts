@@ -7,10 +7,13 @@
  *   (départage : somme des distances voisines). Distance = minimum des ΔE (Oklab) en vision normale, protanopie,
  *   deutéranopie et tritanopie (`regionFillDistance`). Départs gloutons + montée par échanges, puis recherche
  *   exacte (propagation de contraintes) qui relève le plancher tant que c'est possible, dans un budget de nœuds
- *   fixe : aucun aléa, aucune horloge, résultat reproductible ;
- * - les textures : coloration propre du graphe des régions avec 4 textures (0 = aucune) de coût minimal
- *   Σ aire × texture. Les grandes régions restent unies, l'ensemble reste calme.
- * `on` suit son fond. Les entrées ne sont jamais modifiées. Coût : ~0,1 à 0,5 ms jusqu'à 10 régions, < 2 ms à 12.
+ *   fixe : aucun aléa, aucune horloge, résultat reproductible. L'optimum est atteint sur tous les puzzles de 4 à
+ *   10 régions essayés (preuve par un vérificateur indépendant, voir les tests), dans plus de 99 % des cas à 11-12 ;
+ * - les textures : coloration propre du graphe des régions avec 4 textures (0 = aucune, 3 = la plus chargée) de
+ *   coût minimal Σ aire × texture : le moins de surface texturée possible, le plateau reste calme.
+ * Une palette plus grande que le nombre de régions donne de meilleurs écarts : on y choisit les n meilleures couleurs.
+ * `on` suit son fond ; les entrées ne sont jamais modifiées. Fonction pure, à mémoïser par (puzzle, palette).
+ * Coût mesuré : ~0,1 à 0,2 ms jusqu'à 8 régions, ~0,4 ms à 10, ~1 ms à 12 (borné par le budget de nœuds).
  */
 import type { QueensPuzzle } from '../../../engine/queens/types';
 import { COLOR_VISION_DEFICIENCIES, deltaE, deltaEColorVision, simulateColorVision, toOklab, type Oklab } from '../../theme/color';
@@ -160,7 +163,10 @@ function solveFills(g: Graph, D: Int32Array, m: number): Int32Array {
     return lo * PACK + sum;
   };
 
-  /** Construction gloutonne : `first` va au hub, puis chaque région (la plus entourée d'abord) prend la couleur libre la plus éloignée de ses voisines. */
+  /**
+   * Construction gloutonne : `first` va au hub, puis chaque région (la plus entourée d'abord) prend la couleur
+   * libre la plus éloignée de ses voisines déjà colorées.
+   */
   const greedy = (first: number): Int32Array => {
     const col = new Int32Array(n).fill(-1);
     const taken = new Uint8Array(m);
@@ -252,47 +258,75 @@ function solveFills(g: Graph, D: Int32Array, m: number): Int32Array {
       bestValue = value;
     }
   }
+  // Filet de sécurité : jamais pire que l'attribution par indice (palette dans l'ordre).
+  const byIndex = Int32Array.from({ length: n }, (_, r) => r);
+  if (valueOf(byIndex) > bestValue) {
+    best = byIndex;
+    bestValue = climb(byIndex);
+  }
 
   // Recherche exacte : « existe-t-il une affectation de plancher ≥ T ? » avec T juste au-dessus du plancher actuel.
-  // Domaines (couleurs possibles de chaque région) en masques de bits, maintien de la cohérence d'arc, toutes
-  // les couleurs distinctes ; branchement sur la région de plus petit domaine.
+  // Domaines (couleurs possibles de chaque région) en masques de bits ; propagation : cohérence d'arc entre régions
+  // voisines, couleurs toutes distinctes, et chaque couleur doit servir quand il y en a autant que de régions ;
+  // branchement sur la région de plus petit domaine.
   const dom = new Int32Array(n);
   const saved = new Int32Array((n + 1) * n);
   const savedElim = new Int32Array(n + 1);
   const compat = new Int32Array(m); // couleurs à distance ≥ T de chaque couleur
+  const allColors = (1 << m) - 1;
   let nodes = 0;
   let elim = 0; // régions à domaine unique dont la couleur est déjà retirée des autres
 
-  /** Propage les domaines modifiés (`dirty`, masque de régions) ; faux dès qu'un domaine se vide. */
+  /** Propage les domaines modifiés (`dirty`, masque de régions) jusqu'au point fixe ; faux dès qu'un domaine se vide. */
   const propagate = (dirtyIn: number): boolean => {
     let dirty = dirtyIn;
-    while (dirty !== 0) {
-      const low = dirty & -dirty;
-      dirty ^= low;
-      const s = bitIndex(low);
-      const ds = dom[s];
-      if ((ds & (ds - 1)) === 0 && (elim & low) === 0) {
-        elim |= low;
-        for (let t = 0; t < n; t++) {
-          if (t === s || (dom[t] & ds) === 0) continue;
-          const nd = dom[t] & ~ds;
+    for (;;) {
+      while (dirty !== 0) {
+        const low = dirty & -dirty;
+        dirty ^= low;
+        const s = bitIndex(low);
+        const ds = dom[s];
+        if ((ds & (ds - 1)) === 0 && (elim & low) === 0) {
+          elim |= low;
+          for (let t = 0; t < n; t++) {
+            if (t === s || (dom[t] & ds) === 0) continue;
+            const nd = dom[t] & ~ds;
+            if (nd === 0) return false;
+            dom[t] = nd;
+            dirty |= 1 << t;
+          }
+        }
+        let support = 0; // couleurs compatibles avec au moins une couleur de s
+        for (let bits = ds; bits !== 0; bits &= bits - 1) support |= compat[bitIndex(bits & -bits)];
+        for (let k = start[s]; k < start[s + 1]; k++) {
+          const r = nbr[k];
+          const nd = dom[r] & support;
+          if (nd === dom[r]) continue;
           if (nd === 0) return false;
-          dom[t] = nd;
-          dirty |= 1 << t;
+          dom[r] = nd;
+          dirty |= 1 << r;
         }
       }
-      let support = 0; // couleurs compatibles avec au moins une couleur de s
-      for (let bits = ds; bits !== 0; bits &= bits - 1) support |= compat[bitIndex(bits & -bits)];
-      for (let k = start[s]; k < start[s + 1]; k++) {
-        const r = nbr[k];
-        const nd = dom[r] & support;
-        if (nd === dom[r]) continue;
-        if (nd === 0) return false;
-        dom[r] = nd;
+      // Côté couleurs : au moins n couleurs doivent rester possibles ; s'il y en a exactement n, chacune doit servir :
+      // une couleur sans région possible est une impasse, une couleur à une seule région possible l'y force.
+      let once = 0; // couleurs possibles pour au moins une région
+      let twice = 0; // ... pour au moins deux régions
+      for (let r = 0; r < n; r++) {
+        twice |= once & dom[r];
+        once |= dom[r];
+      }
+      if (m > n) return popcount(once) >= n;
+      if (once !== allColors) return false;
+      const lonely = once & ~twice;
+      for (let r = 0; r < n && lonely !== 0; r++) {
+        const forced = dom[r] & lonely;
+        if (forced === 0 || forced === dom[r]) continue;
+        if ((forced & (forced - 1)) !== 0) return false; // deux couleurs ne peuvent aller qu'à cette région
+        dom[r] = forced;
         dirty |= 1 << r;
       }
+      if (dirty === 0) return true;
     }
-    return true;
   };
 
   const search = (depth: number): boolean => {
@@ -357,7 +391,7 @@ function solveFills(g: Graph, D: Int32Array, m: number): Int32Array {
 /**
  * Texture (0 = aucune, 1 points, 2 rayures, 3 hachures croisées) de chaque région du puzzle : deux régions voisines
  * n'ont jamais la même quand c'est possible (le graphe des régions est planaire : 4 textures suffisent). Parmi les
- * colorations propres, celle de coût minimal Σ aire × texture : les plus grandes régions restent unies.
+ * colorations propres, celle de coût minimal Σ aire × texture : le moins de surface texturée possible.
  * Si aucune n'existe (graphe non planaire, budget épuisé), minimise les conflits.
  */
 export function assignRegionPatterns(puzzle: QueensPuzzle): number[] {

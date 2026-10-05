@@ -6,7 +6,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { QueensHint } from '../../engine/queens/hint';
-import { MARK_EMPTY, type QueensMark, type QueensSolvedPuzzle } from '../../engine/queens/types';
+import { MARK_EMPTY, QUEENS_MAX_SIZE, type QueensMark, type QueensSolvedPuzzle } from '../../engine/queens/types';
 import { engine } from '../engine-client/client';
 import type { Language } from '../i18n';
 import { formatDuration } from '../i18n/format';
@@ -22,6 +22,9 @@ import { Timer } from './Timer';
 import './GameView.css';
 
 export type QueensGameApi = ReturnType<typeof useQueensGame>;
+
+/** Palette de départ des régions (taille maximale d'une grille) : plus de choix, voisines plus distinctes. */
+const PALETTE_SIZE = QUEENS_MAX_SIZE;
 
 export interface GameViewProps {
   readonly puzzle: QueensSolvedPuzzle;
@@ -106,8 +109,9 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
   const victoryTitleRef = useRef<HTMLHeadingElement>(null);
   const cancelResetRef = useRef<HTMLButtonElement>(null);
 
-  // Couleurs et textures réparties selon le voisinage : deux régions voisines restent bien distinctes.
-  const colors = useMemo(() => assignRegionColors(puzzle, regionColors(puzzle.size)), [regionColors, puzzle]);
+  // Couleurs et textures réparties selon le voisinage : deux régions voisines restent bien distinctes
+  // (choisies parmi une palette plus large que le nombre de régions : écarts nettement plus grands).
+  const colors = useMemo(() => assignRegionColors(puzzle, regionColors(PALETTE_SIZE)), [regionColors, puzzle]);
   const closeHint = useCallback(() => setHintOpen(false), []);
   const closeRules = useCallback(() => setRulesOpen(false), []);
   const closeReset = useCallback(() => setResetOpen(false), []);
