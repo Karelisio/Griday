@@ -25,6 +25,7 @@ export type QueensGameApi = ReturnType<typeof useQueensGame>;
 
 /** Palette de départ des régions (taille maximale d'une grille) : plus de choix, voisines plus distinctes. */
 const PALETTE_SIZE = QUEENS_MAX_SIZE;
+const NO_CELLS: readonly number[] = [];
 
 export interface GameViewProps {
   readonly puzzle: QueensSolvedPuzzle;
@@ -183,6 +184,8 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
 
   if (!game) return null;
   const hintKind = hint?.hint.kind;
+  // Indice « erreur » affiché : seules les cases fausses sont encadrées (pas les autres reines en conflit).
+  const mistakesShown = sheetOpen && hintKind === 'mistake';
   const canApply = hintKind === 'step' || hintKind === 'reveal' || hintKind === 'mistake';
   const time = formatDuration(api.elapsed(), lang);
   const announcement = solved ? `${t('victory.title')} ${t('victory.time', { time })}` : api.conflicts.length > 0 ? t('game.conflicts', { count: api.conflicts.length }) : '';
@@ -221,7 +224,7 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
           puzzle={puzzle}
           marks={game.marks}
           regionColors={colors}
-          conflicts={api.conflicts}
+          conflicts={mistakesShown ? NO_CELLS : api.conflicts}
           attacked={api.attacked}
           highlight={sheetOpen ? hint.ex.highlight : null}
           patterns={settings.regionPatterns}
