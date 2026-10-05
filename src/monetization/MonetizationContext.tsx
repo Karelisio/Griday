@@ -81,7 +81,7 @@ const ADS_START_DELAY_MS = 2500;
 /** Un interstitiel retardé de plus que ça (app passée en arrière-plan) n'est plus montré. */
 const INTERSTITIAL_STALE_MS = 3000;
 
-const REWARD_ICON: Record<RewardKind, IconName> = { hint: 'lightbulb', archive: 'lock_open', freeze: 'ac_unit' };
+const REWARD_ICON: Record<RewardKind, IconName> = { hint: 'lightbulb', archive: 'lock', freeze: 'ac_unit' };
 
 export interface MonetizationProviderProps {
   readonly children: ReactNode;
@@ -316,7 +316,7 @@ export function MonetizationProvider({ children, initial }: MonetizationProvider
             <Button variant="text" onClick={cancelReward} disabled={watching}>
               {t('common.cancel')}
             </Button>
-            <Button variant="text" icon={watching ? undefined : 'smart_display'} onClick={() => void watch()} disabled={watching}>
+            <Button variant="text" icon={watching ? undefined : 'play_arrow'} onClick={() => void watch()} disabled={watching}>
               {watching ? <CircularProgress size={18} aria-label={t('ads.loading')} /> : t('ads.watch')}
             </Button>
           </>
