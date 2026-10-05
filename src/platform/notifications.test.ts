@@ -261,3 +261,63 @@ describe('programmation', () => {
     expect(warn).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('appui sur un rappel', () => {
+  const handle = { remove: vi.fn() };
+  beforeEach(() => {
+    handle.remove.mockReset().mockResolvedValue(undefined);
+    plugin.addListener.mockResolvedValue(handle);
+  });
+  /** L'écouteur que le module a enregistré auprès du plugin, et un appui sur la notification `id`. */
+  const listener = () => plugin.addListener.mock.calls[0]![1] as (action: unknown) => void;
+  const tap = (id: number) => listener()({ actionId: 'tap', notification: { id, title: `Titre ${id}`, body: `Texte ${id}` } });
+
+  it('écoute les actions sur les notifications ; l’appui sur un rappel est signalé', () => {
+    const opened = vi.fn();
+    onReminderOpened(opened);
+    expect(plugin.addListener).toHaveBeenCalledExactlyOnceWith('localNotificationActionPerformed', expect.any(Function));
+    expect(opened).not.toHaveBeenCalled();
+    tap(20261005);
+    tap(20261006);
+    expect(opened).toHaveBeenCalledTimes(2);
+  });
+
+  it('seuls nos rappels comptent (plage des dates « AAAAMMJJ ») ; un événement sans notification est ignoré', () => {
+    const opened = vi.fn();
+    onReminderOpened(opened);
+    for (const id of [7, 123456789, 18991231, -5]) tap(id);
+    expect(() => listener()({ actionId: 'tap' })).not.toThrow();
+    expect(opened).not.toHaveBeenCalled();
+  });
+
+  it('désabonnement : l’écouteur est retiré du plugin, une seule fois', async () => {
+    const stop = onReminderOpened(vi.fn());
+    await flush();
+    expect(handle.remove).not.toHaveBeenCalled();
+    stop();
+    stop();
+    await flush();
+    expect(handle.remove).toHaveBeenCalledTimes(1);
+  });
+
+  it('désabonnement avant la fin de l’enregistrement : l’écouteur est retiré dès qu’il existe', async () => {
+    onReminderOpened(vi.fn())();
+    await flush();
+    expect(handle.remove).toHaveBeenCalledTimes(1);
+  });
+
+  it('enregistrement en échec : ne lève pas, le désabonnement est sans effet', async () => {
+    plugin.addListener.mockRejectedValue(new Error('boom'));
+    const stop = onReminderOpened(vi.fn());
+    await flush();
+    expect(() => stop()).not.toThrow();
+    expect(handle.remove).not.toHaveBeenCalled();
+  });
+
+  it('navigateur : le plugin n’est pas appelé, le désabonnement est sans effet', () => {
+    h.native = false;
+    const stop = onReminderOpened(vi.fn());
+    expect(() => stop()).not.toThrow();
+    expect(calls()).toBe(0);
+  });
+});

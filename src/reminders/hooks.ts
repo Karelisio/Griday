@@ -128,7 +128,8 @@ function useLatest<T>(value: T): { readonly current: T } {
 /**
  * Appelle `callback` quand `useReminderSync` désactive le rappel parce qu'Android a retiré l'autorisation
  * d'afficher des notifications (le réglage est alors déjà repassé à « désactivé ») : de quoi en informer
- * l'utilisateur. À monter où l'on peut afficher un message, sans ordre à respecter avec `useReminderSync`.
+ * l'utilisateur. À monter en même temps que `useReminderSync`, là où l'on peut afficher un message : seuls
+ * les abonnés présents au moment de la coupure sont prévenus.
  */
 export function useReminderRevoked(callback: () => void): void {
   const latest = useLatest(callback);

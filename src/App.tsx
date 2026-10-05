@@ -17,7 +17,7 @@ import { UnlimitedScreen } from './screens/UnlimitedScreen';
 import { SettingsProvider, useSettings } from './settings/SettingsContext';
 import type { Settings } from './settings/types';
 import { ProgressProvider, useProgress } from './progress/ProgressContext';
-import { useReminderSync } from './reminders';
+import { useReminderOpened, useReminderRevoked, useReminderSync } from './reminders';
 import type { ProgressData } from './progress/store';
 import { springs, ThemeProvider } from './theme';
 import { IconButton, NavigationBar, SnackbarHost, useSnackbar } from './ui';
@@ -84,6 +84,7 @@ function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
   const [page, setPage] = useState<Page | null>(null);
   const snackbar = useSnackbar();
   useReminderSync();
+  useReminderRevoked(() => snackbar.show({ message: t('reminder.revoked'), duration: 8000 }));
 
   // Page secondaire : le retour (geste, bouton, flèche) la referme et rend le focus à son déclencheur.
   const opener = useRef<HTMLElement | null>(null);
@@ -106,6 +107,11 @@ function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
     setTab('today');
     requestAnimationFrame(() => document.getElementById('today-title')?.focus());
   }, []);
+  // Toucher un rappel : retour au puzzle du jour, par-dessus toute page ouverte.
+  useReminderOpened(() => {
+    setPage(null);
+    goToday();
+  });
   const openDay = useCallback(
     (date: ISODate) => (date === today || date === playingDate ? goToday() : openPage({ kind: 'archive', date })),
     [today, playingDate, goToday, openPage],
