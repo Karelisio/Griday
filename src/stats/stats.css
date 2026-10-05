@@ -12,10 +12,11 @@
 
 /*
  * Graphiques. La surface de la carte sert de référence aux teintes mélangées ci-dessous.
- * Difficulté = rampe ordinale d'une seule teinte (la couleur primaire), du pâle (facile) à l'intense (expert).
- * Chaque marche s'éloigne du fond : plus claire au départ en mode clair, plus lumineuse en mode sombre, sans
- * réglage par mode. Validée au schéma de marque (clair et sombre) : écart de clarté ≥ 0,06 entre marches voisines
- * et marche la plus pâle à plus de 2:1 du fond ; les valeurs sont aussi lues en toutes lettres (libellés, liste).
+ * Difficulté = rampe ordinale à une seule teinte (la couleur primaire du thème), de la plus pâle (facile) à la plus
+ * intense (expert). Chaque marche s'éloigne du fond (plus sombre en clair, plus lumineuse en sombre) sans réglage
+ * par mode. Contrôlée avec le validateur de rampes ordinales sur la couleur de la marque et huit autres couleurs
+ * sources, en clair et en sombre : clarté monotone, écart ≥ 0,06 entre marches voisines, marche la plus pâle à
+ * plus de 2:1 du fond. La couleur n'est jamais seule : libellés, détail du puzzle choisi et liste masquée la doublent.
  */
 .md-card.stats-card {
   --stats-surface: var(--md-card-container);
@@ -158,11 +159,13 @@
   margin: 0;
 }
 
-/* Pastille de flamme et chiffre héros sur une même ligne de 64 px (interligne du chiffre). */
+/* Pastille de flamme et chiffre héros sur une même ligne de 64 px (interligne du chiffre) ; repli si le texte est très agrandi. */
 .streak-card__row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
+  gap: 8px 16px;
+  max-width: 100%;
 }
 
 .streak-card__flame {
@@ -179,8 +182,10 @@
 /* Chiffre héros : chasse proportionnelle (pas de chiffres tabulaires), même police que le reste. */
 .streak-card__count {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 8px;
+  gap: 0 8px;
+  min-width: 0;
   margin: 0;
 }
 
@@ -323,13 +328,8 @@
   flex: none;
   width: 10px;
   height: 10px;
-  margin-inline-end: 6px;
   border-radius: 2px;
   background: var(--bar, var(--md-sys-color-on-surface-variant));
-}
-
-.recent-chart__legend li .recent-chart__swatch {
-  margin-inline-end: 0;
 }
 
 /* Puzzle d'archive : hachures à 45° dans la couleur de la difficulté, cernées d'un filet de 1 px. */
@@ -356,10 +356,6 @@
   align-items: center;
   gap: 8px;
   color: var(--md-sys-color-on-surface);
-}
-
-.recent-chart__readout .recent-chart__swatch {
-  margin: 0;
 }
 
 .recent-chart__readout > :last-child {
@@ -412,7 +408,7 @@
 }
 
 .recent-chart__slot[data-selected] {
-  background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 10%, transparent);
 }
 
 /* Colonne fine (24 px au plus), 2 px d'air entre voisines, arrondie en haut, posée sur l'axe. */
@@ -494,7 +490,7 @@
 
 .size-table th,
 .size-table td {
-  padding: 10px 0 10px 12px;
+  padding: 10px 0 10px 8px;
   font-variant-numeric: tabular-nums;
   text-align: end;
 }

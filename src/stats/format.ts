@@ -1,8 +1,8 @@
 /** Formats propres aux statistiques (pourcentages, dates courtes) ; nombres et durées : `i18n/format.ts`. */
 import type { ISODate } from '../../engine/core/date';
 import type { Language } from '../i18n';
+import { BCP47 } from '../i18n/format';
 
-const BCP47: Record<Language, string> = { fr: 'fr-FR', en: 'en-US' };
 
 /** Valeur absente (palier sans résultat) : tiret demi-cadratin, sans texte à traduire. */
 export const DASH = '–';

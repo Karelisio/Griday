@@ -11,6 +11,7 @@ import { ScreenBoundary } from './ScreenBoundary';
 import { ArchiveGamePage } from './screens/ArchiveGamePage';
 import { ArchiveScreen } from './screens/ArchiveScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { StatsScreen } from './screens/StatsScreen';
 import { TodayScreen } from './screens/TodayScreen';
 import { UnlimitedScreen } from './screens/UnlimitedScreen';
 import { SettingsProvider, useSettings } from './settings/SettingsContext';
@@ -179,19 +180,6 @@ function Shell({ dynamicSupported }: { dynamicSupported: boolean }) {
     </div>
   );
 }
-
-// Provisoire : remplacé par l'écran Statistiques en cours de réalisation.
-function PendingScreen({ visible, titleKey }: { visible: boolean; titleKey: string }) {
-  const { t } = useTranslation();
-  return (
-    <section className="screen" hidden={!visible}>
-      <header className="screen__header">
-        <h1 className="md-typescale-headline-medium screen__title">{t(titleKey)}</h1>
-      </header>
-    </section>
-  );
-}
-const StatsScreen = ({ visible }: { visible: boolean }) => <PendingScreen visible={visible} titleKey="stats.title" />;
 
 /** Page secondaire plein écran (axe partagé horizontal M3) avec flèche de retour. */
 function SecondaryPage({ onBack, children }: { onBack: () => void; children: ReactNode }) {

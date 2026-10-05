@@ -22,13 +22,14 @@ export function RecentChart({ results }: { results: readonly DailyResult[] }) {
   const [picked, setPicked] = useState<number | null>(null);
   const n = results.length;
   const index = Math.min(picked ?? n - 1, n - 1);
-  const shown = results[index]!;
+  const times = useMemo(() => results.map((r) => r.timeMs), [results]);
   // L'axe suit le plus grand temps « normal » : une valeur aberrante est tronquée (rupture dessinée) plutôt que d'aplatir le reste.
   const scale = useMemo(() => {
-    const times = results.map((r) => r.timeMs);
     const limit = outlierLimit(times);
     return timeScale(Math.max(...times.filter((x) => x <= limit)));
-  }, [results]);
+  }, [times]);
+  if (n === 0) return null;
+  const [first, last, shown] = [results[0]!, results[n - 1]!, results[index]!];
 
   const details = (r: DailyResult) => [
     t(`difficulty.${r.tier}`),
@@ -37,14 +38,13 @@ export function RecentChart({ results }: { results: readonly DailyResult[] }) {
     t(r.mode === 'daily' ? 'stats.daily.onTime' : 'stats.recent.archive').toLocaleLowerCase(lang),
   ];
   const spoken = (r: DailyResult) => [formatShortDate(r.date, lang, true), formatDuration(r.timeMs, lang), ...details(r)].join(', ');
-  const times = results.map((r) => r.timeMs);
   const summary = t('stats.recent.label', {
     n,
-    from: formatShortDate(results[0]!.date, lang),
-    to: formatShortDate(results[n - 1]!.date, lang),
+    from: formatShortDate(first.date, lang),
+    to: formatShortDate(last.date, lang),
     min: formatDuration(Math.min(...times), lang),
     max: formatDuration(Math.max(...times), lang),
-    last: formatDuration(results[n - 1]!.timeMs, lang),
+    last: formatDuration(last.timeMs, lang),
   });
 
   return (
@@ -107,8 +107,8 @@ export function RecentChart({ results }: { results: readonly DailyResult[] }) {
           />
         </div>
         <div className="recent-chart__axis md-typescale-label-small" aria-hidden="true">
-          <span>{formatShortDate(results[0]!.date, lang)}</span>
-          <span>{formatShortDate(results[n - 1]!.date, lang)}</span>
+          <span>{formatShortDate(first.date, lang)}</span>
+          <span>{formatShortDate(last.date, lang)}</span>
         </div>
       </div>
 

@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 // Garde-fou : aucun texte destiné à l'utilisateur écrit en dur dans le JSX de l'app (tout passe par i18next).
 // Analyse syntaxique réelle (parseur TSX de Vite/rolldown) : nœuds JSXText et attributs textuels sensibles.
 const SRC = fileURLToPath(new URL('../src/', import.meta.url));
-const DIRS = ['screens', 'game', 'ui'];
+const DIRS = ['screens', 'game', 'ui', 'archive', 'stats', 'share', 'daily', 'reminders'];
 const files = [
   join(SRC, 'App.tsx'),
   ...DIRS.flatMap((d) =>
