@@ -1,0 +1,18 @@
+{
+  "name": "griday",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Griday — puzzle logique quotidien (Android, hors ligne)",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p engine/tsconfig.json && tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}
