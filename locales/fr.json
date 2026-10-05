@@ -26,7 +26,9 @@
     "queens": {
       "name": "Reines",
       "rules": "Placez une reine par ligne, par colonne et par région colorée. Deux reines ne peuvent jamais se toucher, même en diagonale.",
-      "howTo": "Touchez une case pour poser une reine, touchez-la deux fois pour une croix. Glissez le doigt pour barrer plusieurs cases."
+      "howTo": "Touchez une case pour poser une reine, touchez-la deux fois pour une croix. Glissez le doigt pour barrer plusieurs cases.",
+      "conflicts_one": "{{count}} reine en conflit",
+      "conflicts_other": "{{count}} reines en conflit"
     }
   },
   "today": {
@@ -58,8 +60,6 @@
     "reset": "Recommencer",
     "resetConfirm": "Effacer toutes les marques de la grille ? Vous pourrez annuler, et le chronomètre continue de tourner.",
     "timer": "Temps écoulé",
-    "conflicts_one": "{{count}} reine en conflit",
-    "conflicts_other": "{{count}} reines en conflit",
     "cell": {
       "label": "Ligne {{row}}, colonne {{col}}, région {{region}} : {{state}}",
       "empty": "vide",

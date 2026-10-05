@@ -26,7 +26,9 @@
     "queens": {
       "name": "Queens",
       "rules": "Place one queen in each row, each column and each colored region. Two queens can never touch, not even diagonally.",
-      "howTo": "Tap a cell to place a queen, tap it twice for a cross. Drag your finger to cross out several cells."
+      "howTo": "Tap a cell to place a queen, tap it twice for a cross. Drag your finger to cross out several cells.",
+      "conflicts_one": "{{count}} queen in conflict",
+      "conflicts_other": "{{count}} queens in conflict"
     }
   },
   "today": {
@@ -58,8 +60,6 @@
     "reset": "Start over",
     "resetConfirm": "Clear every mark from the grid? You can undo this, and the timer keeps running.",
     "timer": "Elapsed time",
-    "conflicts_one": "{{count}} queen in conflict",
-    "conflicts_other": "{{count}} queens in conflict",
     "cell": {
       "label": "Row {{row}}, column {{col}}, region {{region}}: {{state}}",
       "empty": "empty",

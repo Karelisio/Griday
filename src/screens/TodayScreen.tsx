@@ -6,7 +6,9 @@ import { diffDays, type ISODate } from '../../engine/core/date';
 import { isScheduleStale } from '../../engine/core/schedule';
 import { useDailyGame } from '../daily/useDailyGame';
 import { GameView } from '../game/GameView';
-import type { QueensGame } from '../game/queens/state';
+import { gameKind } from '../game/kinds';
+import type { GameKindUI } from '../game/core/kind';
+import { isStarted, type GameState } from '../game/core/state';
 import type { Language } from '../i18n';
 import { formatClock, formatDate, formatNumber, formatTimeOfDay } from '../i18n/format';
 import { notificationsAvailable } from '../platform/notifications';
@@ -20,7 +22,7 @@ import { msUntilMidnight, useToday } from '../useToday';
 import './screens.css';
 
 /** Partie entamée et non terminée : elle n'est pas remplacée sous les yeux du joueur à minuit. */
-const inProgress = (g: QueensGame | null) => g !== null && !g.solved && (g.past.length > 0 || g.marks.some((m) => m !== 0));
+const inProgress = (kind: GameKindUI<unknown> | null, g: GameState<unknown> | null) => kind !== null && g !== null && !g.solved && isStarted(kind.rules, g);
 
 /** Série de jours : flamme + nombre (texte complet pour les lecteurs d'écran). */
 export function StreakChip({ count }: { count: number }) {
@@ -56,10 +58,10 @@ export function TodayScreen({ visible, playingDate, onPlayingDateChange }: Today
     },
     [snackbar, t],
   );
-  const { info, daily, error, retry, api } = useDailyGame({ date: playingDate, mode: 'daily', visible, onRecorded });
+  const { info, daily, error, retry, session, kind } = useDailyGame({ date: playingDate, mode: 'daily', visible, onRecorded });
 
   // Minuit : nouvelle grille tout de suite, sauf si une partie est en cours (le joueur choisit).
-  const busy = inProgress(api.game);
+  const busy = inProgress(kind, session.game);
   const busyRef = useRef(busy);
   busyRef.current = busy;
   const playingRef = useRef(playingDate);
@@ -96,7 +98,7 @@ export function TodayScreen({ visible, playingDate, onPlayingDateChange }: Today
         <p className="md-typescale-body-large screen__subtitle">{formatDate(playingDate, lang, 'long')}</p>
         {info && (
           <div className="screen__chips">
-            <InfoChip icon="crown">{t('puzzle.queens.name')}</InfoChip>
+            <InfoChip icon={gameKind(info.type)?.icon ?? 'extension'}>{t(`puzzle.${info.type}.name`)}</InfoChip>
             <InfoChip icon="grid_view">{t('unlimited.sizeValue', { n: info.target.size })}</InfoChip>
             <InfoChip icon="bolt">{t(`difficulty.${info.target.tier}`)}</InfoChip>
           </div>
@@ -128,7 +130,7 @@ export function TodayScreen({ visible, playingDate, onPlayingDateChange }: Today
             {t('common.retry')}
           </Button>
         </div>
-      ) : !daily || !api.game ? (
+      ) : !daily || !kind || !session.game ? (
         <div className="screen__center" role="status">
           <CircularProgress aria-label={t('today.generating')} />
           <p className="md-typescale-body-large">{t('today.generating')}</p>
@@ -137,7 +139,8 @@ export function TodayScreen({ visible, playingDate, onPlayingDateChange }: Today
         <GameView
           key={playingDate}
           puzzle={daily.puzzle}
-          api={api}
+          kind={kind}
+          session={session}
           visible={visible}
           victoryChips={summary.current > 0 ? <StreakChip count={summary.current} /> : null}
           victoryExtra={
@@ -151,8 +154,8 @@ export function TodayScreen({ visible, playingDate, onPlayingDateChange }: Today
                     n: daily.dayNumber,
                     size: daily.target.size,
                     tier: daily.target.tier,
-                    timeMs: api.game.elapsedMs,
-                    hintsUsed: api.game.hintsUsed,
+                    timeMs: session.game.elapsedMs,
+                    hintsUsed: session.game.hintsUsed,
                     streak: summary.current,
                   }}
                 />

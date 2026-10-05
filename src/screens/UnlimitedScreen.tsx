@@ -2,18 +2,20 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { localISODate } from '../../engine/core/date';
-import type { DifficultyTier, GenerationTarget } from '../../engine/core/types';
+import { PUZZLE_TYPE_IDS, type DifficultyTier, type GenerationTarget, type PuzzleTypeId } from '../../engine/core/types';
 import type { AnyGeneratedPuzzle } from '../../engine/registry';
 import { engine } from '../engine-client/client';
 import { GameView } from '../game/GameView';
-import { isGenerationTarget, isStoredQueensPuzzle } from '../game/queens/validate';
-import { useQueensGame } from '../game/queens/useQueensGame';
-import type { QueensGame } from '../game/queens/state';
+import { NO_RULES } from '../game/core/rules';
+import type { GameState } from '../game/core/state';
+import { useGameSession } from '../game/core/useGameSession';
+import { isStoredGenerated } from '../game/core/validate';
+import { gameKind } from '../game/kinds';
+import { isGenerationTarget } from '../game/queens/validate';
 import { UNLIMITED_CURRENT_KEY, UNLIMITED_PREFS_KEY, unlimitedProgressKey } from '../persistence';
 import { pushBackHandler } from '../platform';
 import { loadJSON, removeKey, saveJSON } from '../platform/storage';
 import { useProgress } from '../progress/ProgressContext';
-import { useSettings } from '../settings/SettingsContext';
 import { ShareButton } from '../share/ShareButton';
 import { BottomSheet, Button, CircularProgress, Icon, InfoChip, SegmentedButton } from '../ui';
 import { useToday } from '../useToday';
@@ -34,6 +36,9 @@ function newToken(): string {
   return Array.from(bytes, (b) => b.toString(36).padStart(2, '0')).join('');
 }
 
+const isRecordWithType = (v: unknown): v is { type: PuzzleTypeId } =>
+  typeof v === 'object' && v !== null && typeof (v as { type?: unknown }).type === 'string' && PUZZLE_TYPE_IDS.includes((v as { type: PuzzleTypeId }).type);
+
 /** Partie relue du stockage : cohérente de bout en bout, sinon ignorée. */
 export function isCurrentUnlimited(v: unknown): v is CurrentUnlimited {
   if (typeof v !== 'object' || v === null) return false;
@@ -42,7 +47,11 @@ export function isCurrentUnlimited(v: unknown): v is CurrentUnlimited {
     typeof c.token === 'string' &&
     /^[0-9a-z]{1,64}$/.test(c.token) &&
     isGenerationTarget(c.target) &&
-    isStoredQueensPuzzle(c.puzzle, { size: c.target.size, allowEmergency: true })
+    isRecordWithType(c.puzzle) &&
+    (() => {
+      const kind = gameKind(c.puzzle.type);
+      return kind !== null && isStoredGenerated(c.puzzle, kind, { size: c.target.size, allowEmergency: true });
+    })()
   );
 }
 
@@ -78,7 +87,6 @@ function TargetPicker({ target, sizes, onChange }: { target: GenerationTarget; s
 export function UnlimitedScreen({ visible }: { visible: boolean }) {
   const { t } = useTranslation();
   const today = useToday();
-  const { settings } = useSettings();
   const [target, setTarget] = useState<GenerationTarget>({ size: 7, tier: 2 });
   const [current, setCurrent] = useState<CurrentUnlimited | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -144,16 +152,16 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
   const { recordUnlimited } = useProgress();
   const played = current?.target;
   const onSolved = useCallback(
-    (g: QueensGame) => {
+    (g: GameState<unknown>) => {
       if (played) recordUnlimited({ size: played.size, tier: played.tier, timeMs: Math.floor(g.elapsedMs), hintsUsed: g.hintsUsed, solvedOn: localISODate(new Date()) });
     },
     [played, recordUnlimited],
   );
-  const api = useQueensGame({
-    puzzle: current && current.puzzle.type === 'queens' ? current.puzzle.puzzle : null,
+  const kind = current ? gameKind(current.puzzle.type) : null;
+  const api = useGameSession(kind?.rules ?? NO_RULES, {
+    puzzle: kind && current ? current.puzzle.puzzle : null,
     storageKey: current ? unlimitedProgressKey(current.token) : null,
     visible,
-    autoCross: settings.autoCross,
     onSolved,
   });
 
@@ -189,11 +197,12 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
             {t('common.retry')}
           </Button>
         </div>
-      ) : current && current.puzzle.type === 'queens' && api.game ? (
+      ) : current && kind && api.game ? (
         <GameView
           key={current.token}
           puzzle={current.puzzle.puzzle}
-          api={api}
+          kind={kind}
+          session={api}
           visible={visible}
           victoryExtra={
             <div className="victory-card__actions">

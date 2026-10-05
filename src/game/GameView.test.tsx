@@ -7,16 +7,17 @@ import { SettingsProvider } from '../settings/SettingsContext';
 import { DEFAULT_SETTINGS } from '../settings/types';
 import { ThemeProvider } from '../theme';
 import { SnackbarHost } from '../ui';
+import { useGameSession } from './core/useGameSession';
 import { GameView } from './GameView';
-import { useQueensGame } from './queens/useQueensGame';
+import { QUEENS_KIND } from './queens/kind';
 
 const puzzle = getDailyPuzzle('2026-10-05').puzzle;
 let hintsUsed = -1;
 
 function Harness({ p }: { p: QueensSolvedPuzzle }) {
-  const api = useQueensGame({ puzzle: p, storageKey: 'test.game', visible: true, autoCross: false });
-  hintsUsed = api.game?.hintsUsed ?? -1;
-  return api.game ? <GameView puzzle={p} api={api} visible /> : null;
+  const session = useGameSession(QUEENS_KIND.rules, { puzzle: p, storageKey: 'test.game', visible: true });
+  hintsUsed = session.game?.hintsUsed ?? -1;
+  return session.game ? <GameView kind={QUEENS_KIND} puzzle={p} session={session} visible /> : null;
 }
 
 function renderGame() {

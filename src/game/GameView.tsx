@@ -1,35 +1,28 @@
 /**
- * Vue de jeu partagée (puzzle du jour, mode illimité) : grille, barre d'actions, chronomètre,
- * indice expliqué (feuille du bas), règles, carte de victoire.
+ * Vue de jeu commune à tous les types (puzzle du jour, archives, mode illimité) : plateau du type,
+ * barre d'actions, chronomètre, indice expliqué (feuille du bas), règles, carte de victoire.
  */
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { QueensHint } from '../../engine/queens/hint';
-import { MARK_EMPTY, QUEENS_MAX_SIZE, type QueensMark, type QueensSolvedPuzzle } from '../../engine/queens/types';
-import { engine } from '../engine-client/client';
 import type { Language } from '../i18n';
 import { formatDuration } from '../i18n/format';
 import { pushBackHandler } from '../platform';
-import { springs, useTheme } from '../theme';
-import { useSettings } from '../settings/SettingsContext';
+import { springs } from '../theme';
 import { BottomSheet, Button, Card, Dialog, ExtendedFab, IconButton, Icon, InfoChip, useSnackbar } from '../ui';
-import { explainHint, hintKey, hintMoves, type HintExplanation } from './queens/explain';
-import { QueensBoard } from './queens/QueensBoard';
-import { assignRegionColors } from './queens/regionColors';
-import type { useQueensGame } from './queens/useQueensGame';
+import type { GameKindUI, HintInfo } from './core/kind';
+import type { Mark } from './core/rules';
+import type { GameSession } from './core/useGameSession';
 import { Timer } from './Timer';
 import './GameView.css';
 
-export type QueensGameApi = ReturnType<typeof useQueensGame>;
-
-/** Palette de départ des régions (taille maximale d'une grille) : plus de choix, voisines plus distinctes. */
-const PALETTE_SIZE = QUEENS_MAX_SIZE;
 const NO_CELLS: readonly number[] = [];
 
-export interface GameViewProps {
-  readonly puzzle: QueensSolvedPuzzle;
-  readonly api: QueensGameApi;
+export interface GameViewProps<P> {
+  /** Type du puzzle : règles, plateau, indices. */
+  readonly kind: GameKindUI<P>;
+  readonly puzzle: P;
+  readonly session: GameSession<P>;
   /** Contenu de la carte de victoire sous le titre (compte à rebours, nouvelle grille…). */
   readonly victoryExtra?: ReactNode;
   /** Puces ajoutées à côté de celle des indices (série…). */
@@ -94,14 +87,14 @@ function useSheetInset(
   }, [open, sheetContent, anchor, reduce]);
 }
 
-export function GameView({ puzzle, api, victoryExtra, victoryChips, visible }: GameViewProps) {
+export function GameView<P>({ kind, puzzle, session: api, victoryExtra, victoryChips, visible }: GameViewProps<P>) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language as Language;
-  const { regionColors } = useTheme();
-  const { settings } = useSettings();
   const snackbar = useSnackbar();
   const { game } = api;
-  const [hint, setHint] = useState<{ hint: QueensHint; ex: HintExplanation; marks: readonly QueensMark[] } | null>(null);
+  const Board = kind.Board;
+  const initial = useMemo(() => kind.rules.initial(puzzle), [kind, puzzle]);
+  const [hint, setHint] = useState<{ info: HintInfo; marks: readonly Mark[] } | null>(null);
   const [hintOpen, setHintOpen] = useState(false);
   const [hintLoading, setHintLoading] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -112,9 +105,6 @@ export function GameView({ puzzle, api, victoryExtra, victoryChips, visible }: G
   const victoryTitleRef = useRef<HTMLHeadingElement>(null);
   const cancelResetRef = useRef<HTMLButtonElement>(null);
 
-  // Couleurs et textures réparties selon le voisinage : deux régions voisines restent bien distinctes
-  // (choisies parmi une palette plus large que le nombre de régions : écarts nettement plus grands).
-  const colors = useMemo(() => assignRegionColors(puzzle, regionColors(PALETTE_SIZE)), [regionColors, puzzle]);
   const closeHint = useCallback(() => setHintOpen(false), []);
   const closeRules = useCallback(() => setRulesOpen(false), []);
   const closeReset = useCallback(() => setResetOpen(false), []);
@@ -135,10 +125,9 @@ export function GameView({ puzzle, api, victoryExtra, victoryChips, visible }: G
     if (!game || hintLoading) return;
     setHintLoading(true);
     try {
-      const h = await engine.queensHint(puzzle, game.marks);
-      const ex = explainHint(h, puzzle, lang, (key, n) => t(key, { n }));
-      if (h.kind !== 'solved') api.noteHint(hintKey(h));
-      setHint({ hint: h, ex, marks: game.marks });
+      const info = await kind.hint(puzzle, game.marks, t, lang);
+      if (info.kind !== 'solved') api.noteHint(info.key);
+      setHint({ info, marks: game.marks });
       setHintOpen(true);
     } catch {
       snackbar.show({ message: t('errors.hint') });
@@ -149,21 +138,20 @@ export function GameView({ puzzle, api, victoryExtra, victoryChips, visible }: G
 
   const applyHint = () => {
     setHintOpen(false);
-    if (hint && game) api.applyHint(hintMoves(hint.hint, game.marks));
+    if (hint && game) api.applyHint(hint.info.moves);
   };
 
   // Cases à garder visibles au-dessus de la feuille : celles de l'indice, sinon toute la grille.
+  const size = Math.round(Math.sqrt(kind.rules.cells(puzzle)));
   const hintFocus = useCallback(() => {
     const board = boardRef.current?.getBoundingClientRect();
     if (!board || !hint) return null;
-    const h = hint.ex.highlight;
-    const cells = [...h.focus, ...h.targets, ...h.eliminate, ...h.mistakes, ...(h.reveal === null ? [] : [h.reveal])];
+    const cells = hint.info.focus;
     if (cells.length === 0) return { top: board.top, bottom: board.bottom };
-    const n = puzzle.size;
-    const rows = cells.map((c) => Math.floor(c / n));
-    const cell = board.height / n;
+    const rows = cells.map((c) => Math.floor(c / size));
+    const cell = board.height / size;
     return { top: board.top + Math.min(...rows) * cell, bottom: board.top + (Math.max(...rows) + 1) * cell };
-  }, [hint, puzzle.size]);
+  }, [hint, size]);
   useSheetInset(sheetOpen, hintContentRef, boardRef, hintFocus);
 
   // Victoire obtenue en jouant (pas au chargement d'une partie déjà finie) : la carte s'affiche,
@@ -185,12 +173,13 @@ export function GameView({ puzzle, api, victoryExtra, victoryChips, visible }: G
   }, [game]);
 
   if (!game) return null;
-  const hintKind = hint?.hint.kind;
-  // Indice « erreur » affiché : seules les cases fausses sont encadrées (pas les autres reines en conflit).
+  const hintKind = hint?.info.kind;
+  // Indice « erreur » affiché : seules les cases fausses sont encadrées (pas les autres conflits).
   const mistakesShown = sheetOpen && hintKind === 'mistake';
   const canApply = hintKind === 'step' || hintKind === 'reveal' || hintKind === 'mistake';
   const time = formatDuration(api.elapsed(), lang);
-  const announcement = solved ? `${t('victory.title')} ${t('victory.time', { time })}` : api.conflicts.length > 0 ? t('game.conflicts', { count: api.conflicts.length }) : '';
+  const conflictsText = t(`puzzle.${kind.id}.conflicts`, { count: api.conflicts.length });
+  const announcement = solved ? `${t('victory.title')} ${t('victory.time', { time })}` : api.conflicts.length > 0 ? conflictsText : '';
 
   return (
     <div className="game">
@@ -214,7 +203,7 @@ export function GameView({ puzzle, api, victoryExtra, victoryChips, visible }: G
               aria-hidden="true"
             >
               <Icon name="warning" size={18} />
-              {t('game.conflicts', { count: api.conflicts.length })}
+              {conflictsText}
             </motion.span>
           )}
         </AnimatePresence>
@@ -222,14 +211,11 @@ export function GameView({ puzzle, api, victoryExtra, victoryChips, visible }: G
       </div>
 
       <div className="game__board" ref={boardRef}>
-        <QueensBoard
+        <Board
           puzzle={puzzle}
           marks={game.marks}
-          regionColors={colors}
           conflicts={mistakesShown ? NO_CELLS : api.conflicts}
-          attacked={api.attacked}
-          highlight={sheetOpen ? hint.ex.highlight : null}
-          patterns={settings.regionPatterns}
+          highlight={sheetOpen ? hint.info.highlight : null}
           disabled={solved}
           celebrate={solved}
           onGesture={api.gesture}
@@ -246,7 +232,7 @@ export function GameView({ puzzle, api, victoryExtra, victoryChips, visible }: G
               icon="restart_alt"
               label={t('game.reset')}
               size="s"
-              disabled={game.marks.every((m) => m === MARK_EMPTY)}
+              disabled={game.marks.every((m, i) => m === initial[i])}
               onClick={() => setResetOpen(true)}
             />
           </div>
@@ -307,10 +293,10 @@ export function GameView({ puzzle, api, victoryExtra, victoryChips, visible }: G
               </span>
               <div>
                 <p className="md-typescale-label-large hint-sheet__overline">{t('hint.title')}</p>
-                <h2 className="md-typescale-title-large">{t(hint.ex.titleKey)}</h2>
+                <h2 className="md-typescale-title-large">{t(hint.info.titleKey)}</h2>
               </div>
             </div>
-            <p className="md-typescale-body-large hint-sheet__text">{t(hint.ex.textKey, hint.ex.params)}</p>
+            <p className="md-typescale-body-large hint-sheet__text">{t(hint.info.textKey, hint.info.params)}</p>
             <div className="hint-sheet__actions">
               <Button variant="text" onClick={closeHint}>
                 {t('common.close')}
@@ -318,7 +304,7 @@ export function GameView({ puzzle, api, victoryExtra, victoryChips, visible }: G
               {canApply && (
                 <Button
                   variant="filled"
-                  icon={hintKind === 'mistake' ? 'backspace' : hint.ex.highlight.revealMark === 'cross' ? 'close' : 'crown'}
+                  icon={hint.info.applyIcon}
                   onClick={applyHint}
                 >
                   {t(hintKind === 'mistake' ? 'hint.fix' : 'hint.apply')}
@@ -332,16 +318,16 @@ export function GameView({ puzzle, api, victoryExtra, victoryChips, visible }: G
       <Dialog
         open={rulesOpen}
         onClose={closeRules}
-        title={t('puzzle.queens.name')}
-        icon="crown"
+        title={t(`puzzle.${kind.id}.name`)}
+        icon={kind.icon}
         actions={
           <Button variant="text" onClick={closeRules}>
             {t('common.close')}
           </Button>
         }
       >
-        <p className="md-typescale-body-medium">{t('puzzle.queens.rules')}</p>
-        <p className="md-typescale-body-medium rules__howto">{t('puzzle.queens.howTo')}</p>
+        <p className="md-typescale-body-medium">{t(`puzzle.${kind.id}.rules`)}</p>
+        <p className="md-typescale-body-medium rules__howto">{t(`puzzle.${kind.id}.howTo`)}</p>
       </Dialog>
 
       <Dialog

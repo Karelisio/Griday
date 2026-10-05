@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { ISODate } from '../../engine/core/date';
 import { useDailyGame } from '../daily/useDailyGame';
 import { GameView } from '../game/GameView';
+import { gameKind } from '../game/kinds';
 import type { Language } from '../i18n';
 import { formatDate, formatNumber } from '../i18n/format';
 import { useProgress } from '../progress/ProgressContext';
@@ -14,7 +15,7 @@ export function ArchiveGamePage({ date, visible }: { date: ISODate; visible: boo
   const { t, i18n } = useTranslation();
   const lang = i18n.language as Language;
   const { history } = useProgress();
-  const { info, daily, error, retry, api } = useDailyGame({ date, mode: 'archive', visible });
+  const { info, daily, error, retry, session, kind } = useDailyGame({ date, mode: 'archive', visible });
   const onTime = history.get(date)?.mode === 'daily';
 
   return (
@@ -27,7 +28,7 @@ export function ArchiveGamePage({ date, visible }: { date: ISODate; visible: boo
         <p className="md-typescale-body-large screen__subtitle">{formatDate(date, lang, 'full')}</p>
         {info && (
           <div className="screen__chips">
-            <InfoChip icon="crown">{t('puzzle.queens.name')}</InfoChip>
+            <InfoChip icon={gameKind(info.type)?.icon ?? 'extension'}>{t(`puzzle.${info.type}.name`)}</InfoChip>
             <InfoChip icon="grid_view">{t('unlimited.sizeValue', { n: info.target.size })}</InfoChip>
             <InfoChip icon="bolt">{t(`difficulty.${info.target.tier}`)}</InfoChip>
           </div>
@@ -42,7 +43,7 @@ export function ArchiveGamePage({ date, visible }: { date: ISODate; visible: boo
             {t('common.retry')}
           </Button>
         </div>
-      ) : !daily || !api.game ? (
+      ) : !daily || !kind || !session.game ? (
         <div className="screen__center" role="status">
           <CircularProgress aria-label={t('today.generating')} />
           <p className="md-typescale-body-large">{t('today.generating')}</p>
@@ -51,7 +52,8 @@ export function ArchiveGamePage({ date, visible }: { date: ISODate; visible: boo
         <GameView
           key={date}
           puzzle={daily.puzzle}
-          api={api}
+          kind={kind}
+          session={session}
           visible={visible}
           victoryExtra={
             <>
@@ -68,8 +70,8 @@ export function ArchiveGamePage({ date, visible }: { date: ISODate; visible: boo
                     n: daily.dayNumber,
                     size: daily.target.size,
                     tier: daily.target.tier,
-                    timeMs: api.game.elapsedMs,
-                    hintsUsed: api.game.hintsUsed,
+                    timeMs: session.game.elapsedMs,
+                    hintsUsed: session.game.hintsUsed,
                   }}
                 />
               </div>
