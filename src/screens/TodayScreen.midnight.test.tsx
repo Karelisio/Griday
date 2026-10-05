@@ -12,7 +12,7 @@ import { SnackbarHost } from '../ui';
 import { TodayScreen } from './TodayScreen';
 
 // Date du jour pilotée par le test (minuit simulé).
-const clock = vi.hoisted(() => ({ today: '2026-10-06' }));
+const clock = vi.hoisted(() => ({ today: '2026-10-07' }));
 vi.mock('../useToday', async (orig) => ({ ...(await orig<typeof import('../useToday')>()), useToday: () => clock.today }));
 
 beforeAll(async () => {
@@ -20,7 +20,8 @@ beforeAll(async () => {
 });
 afterEach(() => vi.useRealTimers());
 
-const solved: DailyResult = { date: '2026-10-05', size: 6, tier: 1, timeMs: 60_000, hintsUsed: 0, mode: 'daily', solvedOn: '2026-10-05' };
+// Le 7 octobre est un Queens (rotation quotidienne des types) : le premier toucher y pose une reine.
+const solved: DailyResult = { date: '2026-10-06', size: 6, tier: 1, timeMs: 60_000, hintsUsed: 0, mode: 'daily', solvedOn: '2026-10-06' };
 
 function Shell() {
   const [playingDate, setPlayingDate] = useState(clock.today);
@@ -44,8 +45,8 @@ function app() {
 describe('minuit pendant une partie', () => {
   it('la partie de la veille reste affichée, la série l’attend ; le nouveau puzzle est proposé', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date(2026, 9, 6, 23, 50));
-    clock.today = '2026-10-06';
+    vi.setSystemTime(new Date(2026, 9, 7, 23, 50));
+    clock.today = '2026-10-07';
     const { rerender } = render(app());
     const grid = await screen.findByRole('grid', {}, { timeout: 15_000 });
     const rect = { left: 0, top: 0, width: 600, height: 600, right: 600, bottom: 600, x: 0, y: 0, toJSON: () => ({}) };
@@ -57,16 +58,16 @@ describe('minuit pendant une partie', () => {
     await waitFor(() => expect(within(grid).getAllByRole('gridcell')[0]!.getAttribute('aria-label')).toMatch(/reine/));
 
     // Minuit passe.
-    vi.setSystemTime(new Date(2026, 9, 7, 0, 5));
-    clock.today = '2026-10-07';
+    vi.setSystemTime(new Date(2026, 9, 8, 0, 5));
+    clock.today = '2026-10-08';
     rerender(app());
     expect(await screen.findByText(/Finissez celui d’hier/)).toBeTruthy();
-    expect(screen.getByText('mardi 6 octobre')).toBeTruthy();
-    // La série (1 jour, le 5) n'est pas affichée comme perdue tant que la partie du 6 peut être finie.
+    expect(screen.getByText('mercredi 7 octobre')).toBeTruthy();
+    // La série (1 jour, le 6) n'est pas affichée comme perdue tant que la partie du 7 peut être finie.
     expect(await screen.findByText('Série : 1 jour')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Jouer le nouveau' }));
-    expect(await screen.findByText('mercredi 7 octobre')).toBeTruthy();
+    expect(await screen.findByText('jeudi 8 octobre')).toBeTruthy();
     await waitFor(() => expect(screen.queryByText(/Finissez celui d’hier/)).toBeNull());
     expect(screen.queryByText('Série : 1 jour')).toBeNull();
   }, 60_000);
