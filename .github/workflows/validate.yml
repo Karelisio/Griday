@@ -4,6 +4,7 @@ on:
   push:
   pull_request:
   # Chaque lundi : la fenêtre de 10 ans avance même sans nouveau commit.
+  # (GitHub suspend les tâches planifiées d'un dépôt public inactif depuis 60 jours.)
   schedule:
     - cron: '17 4 * * 1'
   workflow_dispatch:
@@ -12,12 +13,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: validate-${{ github.ref }}
-  cancel-in-progress: true
+  group: validate-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  # Seules les PR annulent l'exécution précédente ; push, planification et lancements manuels vont au bout.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   engine:
-    name: Tests + validation 10 ans
+    name: Tests + validation long terme
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -36,13 +38,15 @@ jobs:
       - name: Tests unitaires
         run: npm test
 
-      - name: Validation des 10 prochaines années
+      # Lancée même si un test unitaire échoue, pour un diagnostic complet.
+      - name: Validation des 10 prochaines années (+ références figées)
+        if: success() || failure()
         run: npm run validate:future -- --report=validate-report.json
 
       - name: Rapport de validation
-        if: always()
-        uses: actions/upload-artifact@v4
+        if: success() || failure()
+        uses: actions/upload-artifact@v6
         with:
           name: validate-report
           path: validate-report.json
-          if-no-files-found: ignore
+          if-no-files-found: warn

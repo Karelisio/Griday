@@ -18,8 +18,10 @@ import {
   GOLDEN_DATES,
   GOLDEN_DIGEST_DAYS,
   GOLDEN_DIGEST_START,
+  goldenFileDigest,
   sourceHash,
   V1_FROZEN_FILES,
+  V1_GOLDEN_LAST_MONTH,
 } from './freeze-data';
 
 const SOURCES: Readonly<Record<(typeof V1_FROZEN_FILES)[number], string>> = {
@@ -83,6 +85,9 @@ const ATTEMPTS: Readonly<Record<string, string>> = {
   'expert:9': 'd9123a0bc9e5412c9349421616ed5af3',
   'expert:10': 'f1696d17b9776d014b3415a1ac4d4be3',
 };
+/** Références mensuelles 2026-10 → 2056-09 (scripts/golden/queens-v1.json, vérifiées par validate-future). */
+const GOLDEN_FILE = '95824c96e7f716e3a8bb5f9882fdb75e';
+
 const FALLBACKS = 'aa141250060eb3a1a5f87f0c9128cf5a';
 
 const engineDir = fileURLToPath(new URL('../../', import.meta.url));
@@ -107,6 +112,13 @@ describe('Queens V1 figée', () => {
 
   it('chaque candidat du générateur (préréglage × taille), notation V1 comprise', () => {
     expect(attemptDigests()).toEqual(ATTEMPTS);
+  });
+
+  it('références mensuelles figées (30 ans) inchangées', () => {
+    const path = fileURLToPath(new URL('../../../scripts/golden/queens-v1.json', import.meta.url));
+    const data = JSON.parse(readFileSync(path, 'utf8')) as Record<string, string>;
+    expect(Object.keys(data).filter((k) => k <= V1_GOLDEN_LAST_MONTH)).toHaveLength(360);
+    expect(goldenFileDigest(data, V1_GOLDEN_LAST_MONTH), 'queens-v1.json est FIGÉ (ajout seul après 2056-09)').toBe(GOLDEN_FILE);
   });
 
   it('puzzles de secours servis', () => {

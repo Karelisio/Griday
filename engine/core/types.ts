@@ -70,6 +70,8 @@ export interface PuzzleTypeDefinition<P> {
    * Renvoie la liste des erreurs (vide = valide). Utilisée par la validation long terme.
    */
   verify(p: P): string[];
+  /** Taille de la grille (comparée à la cible par la validation, indépendamment du générateur). */
+  sizeOf(p: P): number;
 }
 
 export interface GeneratedPuzzle<P> {

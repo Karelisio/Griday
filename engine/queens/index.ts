@@ -10,15 +10,16 @@ export const QUEENS_DEFINITION: PuzzleTypeDefinition<QueensSolvedPuzzle> = Objec
   versions: Object.freeze({ 1: QUEENS_V1 }),
   // Régions encodées + colonnes de la solution — FORMAT FIGÉ.
   encode: (p: QueensSolvedPuzzle) => `${encodeQueens(p)}/${p.solution.join(',')}`,
-  verify: verifyQueens,
+  verify: (p: QueensSolvedPuzzle) => verifyQueens(p),
+  sizeOf: (p: QueensSolvedPuzzle) => p.size,
 });
 
 /** Vérification indépendante : structure, règles, solution unique (recherche exhaustive) = solution fournie. */
-export function verifyQueens(p: QueensSolvedPuzzle): string[] {
+export function verifyQueens(p: QueensSolvedPuzzle, maxNodes = 1_000_000): string[] {
   const errors = validateQueensStructure(p);
   if (errors.length > 0) return errors;
   if (!isQueensSolution(p, p.solution)) return ['solution fournie invalide'];
-  const exact = solveQueensExact(p, 2);
+  const exact = solveQueensExact(p, 2, maxNodes);
   if (!exact.complete) return ['unicité non établie (budget de recherche épuisé)'];
   if (exact.count !== 1) return [`${exact.count} solutions`];
   if (exact.solutions[0]!.some((c, r) => c !== p.solution[r])) return ['solution unique différente de la solution fournie'];

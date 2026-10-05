@@ -92,3 +92,14 @@ export function dailyDigestV1(start: ISODate, days: number): string {
   for (let i = 0; i < days; i++) all.push(dailyFingerprintV1(addDays(start, i)));
   return hashHex(all.join(','));
 }
+
+/** Dernier mois des références mensuelles V1 figées (scripts/golden/queens-v1.json). */
+export const V1_GOLDEN_LAST_MONTH = '2056-09';
+
+/** Condensé des références mensuelles jusqu'à `lastMonth` (ordre des clés trié). */
+export function goldenFileDigest(data: Readonly<Record<string, string>>, lastMonth: string): string {
+  const keys = Object.keys(data)
+    .filter((k) => k.slice(0, 7) <= lastMonth)
+    .sort();
+  return hashHex(keys.map((k) => `${k}=${data[k]}`).join(','));
+}

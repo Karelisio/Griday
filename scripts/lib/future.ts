@@ -9,18 +9,50 @@ export interface DateWindow {
   readonly days: number;
 }
 
-/** Fenêtre de mois entiers : du 1er du mois de `start` au 1er du même mois `years` ans plus tard (exclu). */
+/**
+ * Fenêtre de mois entiers couvrant [start, start + years] : du 1er du mois de `start`
+ * au 1er du mois qui suit `start + years` (exclu).
+ */
 export function monthWindow(start: ISODate, years: number): DateWindow {
   if (!Number.isInteger(years) || years < 1) throw new RangeError(`Nombre d'années invalide : ${years}`);
   const { y, m } = parseISODate(start);
   const from = formatISODate(y, m, 1);
-  const to = formatISODate(y + years, m, 1);
+  const to = m === 12 ? formatISODate(y + years + 1, 1, 1) : formatISODate(y + years, m + 1, 1);
   return { from, to, days: diffDays(from, to) };
 }
 
-/** Jours de la fenêtre, dans l'ordre. */
-export function* windowDays(w: DateWindow): Generator<ISODate> {
-  for (let i = 0; i < w.days; i++) yield addDays(w.from, i);
+/** Premier jour du mois. */
+export function monthStart(date: ISODate): ISODate {
+  const { y, m } = parseISODate(date);
+  return formatISODate(y, m, 1);
+}
+
+/** Premier jour du mois suivant. */
+export function nextMonthStart(date: ISODate): ISODate {
+  const { y, m } = parseISODate(date);
+  return m === 12 ? formatISODate(y + 1, 1, 1) : formatISODate(y, m + 1, 1);
+}
+
+/**
+ * Jours couverts par une clé de référence : « YYYY-MM » (mois entier) ou « YYYY-MM-DD..DD »
+ * (plage d'un mois, ex. dernier mois partiel avant validThrough).
+ */
+export function keyDays(key: string): ISODate[] {
+  const full = /^(\d{4})-(\d{2})$/.exec(key);
+  const range = /^(\d{4})-(\d{2})-(\d{2})\.\.(\d{2})$/.exec(key);
+  if (!full && !range) throw new RangeError(`Clé de référence invalide : ${key}`);
+  const first = full ? `${key}-01` : key.slice(0, 10);
+  const last = full ? addDays(nextMonthStart(first), -1) : `${key.slice(0, 8)}${range![4]}`;
+  parseISODate(first);
+  parseISODate(last);
+  const n = diffDays(first, last);
+  if (n < 0 || monthKey(first) !== monthKey(last)) throw new RangeError(`Plage invalide : ${key}`);
+  return Array.from({ length: n + 1 }, (_, i) => addDays(first, i));
+}
+
+/** Clé « YYYY-MM-DD..DD » d'une plage d'un même mois. */
+export function rangeKey(first: ISODate, last: ISODate): string {
+  return `${first}..${last.slice(8, 10)}`;
 }
 
 /** Clé de mois « YYYY-MM ». */
@@ -30,29 +62,6 @@ export function monthKey(date: ISODate): string {
 
 /** Empreintes mensuelles « YYYY-MM » → condensé. */
 export type GoldenMonths = Readonly<Record<string, string>>;
-
-export interface GoldenComparison {
-  readonly checked: number;
-  /** Mois dont l'empreinte diffère de la référence (puzzles publiés modifiés !). */
-  readonly mismatches: readonly string[];
-  /** Mois calculés absents de la référence. */
-  readonly missing: readonly string[];
-}
-
-export function compareGolden(golden: GoldenMonths, computed: GoldenMonths): GoldenComparison {
-  const mismatches: string[] = [];
-  const missing: string[] = [];
-  let checked = 0;
-  for (const [month, digest] of Object.entries(computed)) {
-    const ref = golden[month];
-    if (ref === undefined) missing.push(month);
-    else {
-      checked++;
-      if (ref !== digest) mismatches.push(month);
-    }
-  }
-  return { checked, mismatches: mismatches.sort(), missing: missing.sort() };
-}
 
 /** Fusion en ajout seul : une empreinte existante n'est JAMAIS remplacée (conflit signalé). */
 export function mergeGolden(

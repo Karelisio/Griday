@@ -87,6 +87,7 @@ const mockDef = (id: string, versions: GeneratorVersion<MockPuzzle>[]): PuzzleTy
   versions: Object.fromEntries(versions.map((v) => [v.version, v])),
   encode: (p) => p.label,
   verify: () => [],
+  sizeOf: () => 0,
 });
 
 const SEED = '2026-10-05:queens:v1';

@@ -29,6 +29,8 @@ TypeScript pur, sans dépendance UI. Tout puzzle publié doit rester **identique
   `{ from, version: 2 }` dans `config.ts` avec `from` > `validThrough` de **tous** les builds déjà publiés.
 - Nouveau type : nouveau dossier + `PUZZLE_TYPE_IDS` + entrée de rotation datée (même règle sur `from`).
 - `validThrough` : repoussé à chaque publication ; au-delà, l'app invite à mettre à jour (`isScheduleStale`).
-- `scripts/validate-future.ts` (CI à chaque push) revalide 10 ans et compare les empreintes mensuelles figées
-  (`scripts/golden/<type>-v<N>.json`, ajout seul via `--write-golden`).
+- `scripts/validate-future.ts` (CI à chaque push) revalide au moins 10 ans et compare les références figées
+  (`scripts/golden/` : sortie de chaque version et puzzle du jour servi ; ajout seul via `--write-golden`).
+  À chaque publication : repousser `validThrough`, puis `npm run validate:future -- --write-golden`.
+- Ajouter un membre d'interface après publication : envelopper la V1 dans `queens/index.ts`, ne pas éditer `v1/`.
 - `epoch` (numéro du puzzle, visible) : à fixer au jour du lancement, puis figé.
