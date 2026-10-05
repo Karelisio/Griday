@@ -16,6 +16,7 @@ import { useSettings } from '../settings/SettingsContext';
 import { BottomSheet, Button, Card, Dialog, ExtendedFab, IconButton, Icon, InfoChip, useSnackbar } from '../ui';
 import { explainHint, hintKey, hintMoves, type HintExplanation } from './queens/explain';
 import { QueensBoard } from './queens/QueensBoard';
+import { assignRegionColors } from './queens/regionColors';
 import type { useQueensGame } from './queens/useQueensGame';
 import { Timer } from './Timer';
 import './GameView.css';
@@ -105,7 +106,8 @@ export function GameView({ puzzle, api, victoryExtra, visible }: GameViewProps) 
   const victoryTitleRef = useRef<HTMLHeadingElement>(null);
   const cancelResetRef = useRef<HTMLButtonElement>(null);
 
-  const colors = useMemo(() => regionColors(puzzle.size), [regionColors, puzzle.size]);
+  // Couleurs et textures réparties selon le voisinage : deux régions voisines restent bien distinctes.
+  const colors = useMemo(() => assignRegionColors(puzzle, regionColors(puzzle.size)), [regionColors, puzzle]);
   const closeHint = useCallback(() => setHintOpen(false), []);
   const closeRules = useCallback(() => setRulesOpen(false), []);
   const closeReset = useCallback(() => setResetOpen(false), []);
