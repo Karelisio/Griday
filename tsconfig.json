@@ -14,5 +14,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["engine/**/*.ts", "scripts/**/*.ts", "vite.config.ts", "capacitor.config.ts"]
+  "include": ["engine/**/*.ts", "scripts/**/*.ts", "store/**/*.ts", "vite.config.ts", "capacitor.config.ts"]
 }
