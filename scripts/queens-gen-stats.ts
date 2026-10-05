@@ -11,6 +11,11 @@
  * formes, et — si engine/queens/solver.ts est présent (import dynamique) — paliers de difficulté
  * et part des grilles non résolubles par logique. Puis, pour chaque cible (taille, palier) du plan
  * hebdomadaire : meilleur préréglage, taux d'acceptation par tentative, temps attendu.
+ *
+ * Colonnes de forme : ≤2 / ≤3 = part des régions de 2 / 3 cases au plus (reines données comprises) ;
+ * « max moy » = taille moyenne de la plus grande région ; « barres » = régions tenant dans une ligne
+ * ou une colonne ; « bord/case » = périmètre / aire moyen ; « serpent » = plus long couloir d'une
+ * case de large par grille (moyenne).
  */
 import { performance } from 'node:perf_hooks';
 import { rngFromString } from '../engine/core/prng';
@@ -65,6 +70,8 @@ interface CellStats {
   bars: number;
   regions: number;
   perimeter: number;
+  /** Somme, par grille, du plus long couloir d'une case de large (cases à 2 voisines hors bloc 2×2). */
+  snake: number;
 }
 
 function regionStats(p: QueensSolvedPuzzle, st: CellStats): void {
@@ -94,6 +101,49 @@ function regionStats(p: QueensSolvedPuzzle, st: CellStats): void {
   }
   st.regions += n;
   st.maxSizes.push(Math.max(...size));
+  st.snake += longestCorridor(p);
+}
+
+/** Plus long couloir (cases de la même région à exactement 2 voisines, hors tout bloc 2×2). */
+function longestCorridor(p: QueensSolvedPuzzle): number {
+  const n = p.size;
+  const reg = p.regions;
+  const same = (r: number, c: number, g: number): boolean => r >= 0 && r < n && c >= 0 && c < n && reg[r * n + c] === g;
+  const corridor = new Array<boolean>(n * n).fill(false);
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      const g = reg[r * n + c]!;
+      const k = Number(same(r - 1, c, g)) + Number(same(r + 1, c, g)) + Number(same(r, c - 1, g)) + Number(same(r, c + 1, g));
+      let block = false;
+      for (const [dr, dc] of [[-1, -1], [-1, 1], [1, -1], [1, 1]] as const) {
+        if (same(r + dr, c, g) && same(r, c + dc, g) && same(r + dr, c + dc, g)) block = true;
+      }
+      corridor[r * n + c] = k === 2 && !block;
+    }
+  }
+  let best = 0;
+  const seen = new Array<boolean>(n * n).fill(false);
+  for (let s = 0; s < n * n; s++) {
+    if (!corridor[s] || seen[s]) continue;
+    let len = 0;
+    const stack = [s];
+    seen[s] = true;
+    while (stack.length > 0) {
+      const x = stack.pop()!;
+      len++;
+      const r = Math.floor(x / n);
+      const c = x % n;
+      for (const [rr, cc] of [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]] as const) {
+        const y = rr * n + cc;
+        if (same(rr, cc, reg[x]!) && corridor[y] && !seen[y]) {
+          seen[y] = true;
+          stack.push(y);
+        }
+      }
+    }
+    best = Math.max(best, len);
+  }
+  return best;
 }
 
 function popcount(x: number): number {
@@ -123,14 +173,14 @@ const pct = (a: number, b: number): string => (b === 0 ? '  -' : ((100 * a) / b)
 const results = new Map<string, CellStats>();
 console.log(`Queens — générateur : ${samples} tentatives par case ; solveur logique ${rate ? 'présent' : 'ABSENT (paliers non mesurés)'}\n`);
 console.log(
-  'taille préréglage  succès  ms moy   p95   max | tailles min/méd/max  ≤2   ≤3  max moy | barres bord/case' +
+  'taille préréglage  succès  ms moy   p95   max | tailles min/méd/max  ≤2   ≤3  max moy | barres bord/case serpent' +
     (rate ? ' | p1   p2   p3   p4  non-log  note ms' : ''),
 );
 for (const n of sizes) {
   for (const name of presets) {
     const shape = QUEENS_SHAPE_PRESETS[name];
     if (!shape) throw new Error(`Préréglage inconnu : ${name}`);
-    const st: CellStats = { ok: 0, times: [], rateMs: 0, tiers: [0, 0, 0, 0, 0], unsolvable: 0, sizes: [], maxSizes: [], bars: 0, regions: 0, perimeter: 0 };
+    const st: CellStats = { ok: 0, times: [], rateMs: 0, tiers: [0, 0, 0, 0, 0], unsolvable: 0, sizes: [], maxSizes: [], bars: 0, regions: 0, perimeter: 0, snake: 0 };
     let shown = 0;
     for (let i = 0; i < samples; i++) {
       const rng = rngFromString(`${seedPrefix}:${name}:${n}:${i}`);
@@ -163,7 +213,7 @@ for (const n of sizes) {
     let line =
       `${String(n).padStart(6)} ${name.padEnd(10)} ${pct(st.ok, samples)}  ${mean.toFixed(2).padStart(6)} ${quantile(times, 0.95).toFixed(2).padStart(5)} ${times[times.length - 1]!.toFixed(1).padStart(5)} |` +
       `   ${String(sz[0] ?? '-').padStart(3)}/${String(quantile(sz, 0.5)).padStart(3)}/${String(sz[sz.length - 1] ?? '-').padStart(3)}   ${le(2)} ${le(3)} ${maxMean.toFixed(1).padStart(6)} |` +
-      ` ${pct(st.bars, st.regions)}  ${(st.perimeter / Math.max(1, st.regions)).toFixed(2).padStart(8)}`;
+      ` ${pct(st.bars, st.regions)}  ${(st.perimeter / Math.max(1, st.regions)).toFixed(2).padStart(8)} ${(st.snake / Math.max(1, st.ok)).toFixed(1).padStart(7)}`;
     if (rate) {
       const t = st.tiers;
       line += ` | ${pct(t[1]!, st.ok)} ${pct(t[2]!, st.ok)} ${pct(t[3]!, st.ok)} ${pct(t[4]!, st.ok)}  ${pct(st.unsolvable, st.ok)}  ${(st.rateMs / Math.max(1, st.ok)).toFixed(2).padStart(6)}`;

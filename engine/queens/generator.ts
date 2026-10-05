@@ -10,22 +10,26 @@
  * ci-dessous est figée avec le générateur ; les tests vérifient l'unicité avec exact.ts.
  *
  * Une tentative :
- * 1. Solution S aléatoire (une reine par ligne et par colonne, jamais deux reines voisines).
+ * 1. Solution S aléatoire (une reine par ligne et par colonne, jamais deux reines voisines), puis
+ *    tailles cibles des régions (reines données, petites régions, dispersion).
  * 2. Croissance des n régions depuis les reines SOUS INVARIANT D'UNICITÉ : dans la grille partielle
  *    (cases libres = interdites aux reines), S reste la seule solution. Ajouter la case x à la
  *    région g n'est permis que si aucune solution ne place la reine de g en x (recherche forcée).
  *    Une paire refusée garde son témoin (la solution parasite) et reste refusée tant que les cases
  *    du témoin gardent leur région : ajouter des cases ne fait qu'ajouter des solutions.
- * 3. Ordre de croissance : poches d'abord (cases libres enclavées dans une seule région : les
- *    remplir tôt, tant que c'est encore sûr), puis région tirée selon son retard sur sa taille cible,
- *    puis case tirée selon la forme (voisines dans la région, segments droits, diagonales).
+ * 3. Ordre : taille minimale d'abord ; puis poches (cases libres enclavées dans une seule région :
+ *    les remplir tôt, tant que c'est encore sûr) ; puis région tirée selon son retard sur sa cible,
+ *    case tirée selon la forme (voisines dans la région, segments droits, diagonales).
  * 4. Blocage (toutes les paires restantes refusées) : réparation locale qui préserve l'invariant
- *    (retirer une case n'ôte que des solutions ; chaque ajout est vérifié) :
- *    a. déplacer une voisine y de la case bloquée x vers une autre région h, puis x → h ;
- *    b. déplacer une case du témoin vers une région voisine (le témoin meurt), puis réessayer ;
- *    c. libérer une case du témoin (avec la branche qu'elle déconnecte), poser x, recaser y ;
- *    d. libérer une case du témoin au hasard.
- * 5. Contrôles finaux (taille minimale, unicité complète) puis étiquettes canoniques.
+ *    (retirer une case n'ôte que des solutions ; chaque ajout ou déplacement est vérifié) :
+ *    a. une voisine y de la case bloquée x passe dans une autre région h, puis x → h ;
+ *    b. une case du témoin passe dans une région voisine (le témoin meurt), puis nouvel essai ;
+ *    c. une case du témoin est libérée, x posée, la case recasée ailleurs ;
+ *    d. sinon la case du témoin la moins coûteuse est libérée (avec la branche qu'elle coupe).
+ *    Sans progrès pendant quelques réparations : secousse (voisinage libéré puis regrandi).
+ * 5. Grille pleine : régions restées sous minSize complétées ; équilibrage des régions trop grandes
+ *    (cases de bord cédées à des voisines, déplacements vérifiés) ; contrôle final d'unicité
+ *    (recherche complète) ; étiquettes canoniques.
  * Tout est borné (pas, vérifications, réparations, nœuds de recherche) : budget épuisé → null.
  * Arithmétique entière, ordres de parcours fixes, aucun hasard hors `rng`.
  */
@@ -44,7 +48,10 @@ export interface QueensShapeParams {
   readonly singleRegions: readonly [number, number];
   /** Taille minimale des autres régions (1 = croissance libre ; ≥ 2 conseillé). */
   readonly minSize: number;
-  /** Taille maximale souple, en % de n : dépassée seulement si rien d'autre n'est possible. */
+  /**
+   * Taille maximale souple, en % de n : dépassée seulement si rien d'autre n'est possible ; l'équilibrage
+   * final ramène ensuite les régions trop grandes sous ce seuil quand c'est sûr.
+   */
   readonly maxSizePct: number;
   /** Nombre de petites régions [min, max] ; leur taille cible est tirée dans [minSize, smallMaxSize]. */
   readonly smallRegions: readonly [number, number];
@@ -181,6 +188,8 @@ const STALL_REPAIRS = 4;
 const SHAKE_RADIUS = 2;
 /** Taille max d'une branche libérée par la secousse. */
 const SHAKE_MAX_BRANCH = 6;
+/** Réparations max d'une région restée sous minSize (grille pleine), par tentative. */
+const MAX_SMALL_FIXES = 3;
 /** Déplacements max de l'équilibrage final, par ligne de grille. */
 const BALANCE_MOVES_PER_LINE = 3;
 /** Essais max par déplacement d'équilibrage. */
@@ -323,7 +332,6 @@ class Builder {
   private readonly weightBuf: Int32Array;
   private readonly cellBuf: Int16Array;
   private readonly cellBuf2: Int16Array;
-  private readonly regWeight: Int32Array;
 
   constructor(
     private readonly rng: Rng,
@@ -363,9 +371,8 @@ class Builder {
     this.weightBuf = new Int32Array(N * 4);
     this.cellBuf = new Int16Array(N);
     this.cellBuf2 = new Int16Array(N);
-    this.regWeight = new Int32Array(n);
 
-    this.maxSize = Math.max(shape.minSize + 1, Math.ceil((shape.maxSizePct * n) / 100));
+    this.maxSize = Math.max(shape.minSize + 1, Math.floor((shape.maxSizePct * n + 99) / 100));
     this.frozen = new Uint8Array(n);
     this.target = this.drawTargets();
     for (let r = 0; r < n; r++) {
@@ -384,10 +391,20 @@ class Builder {
     const maxRepairs = MAX_REPAIRS_PER_LINE * n;
     if (!this.growToMinSize()) return null;
     let repairs = 0;
+    let smallFixes = 0;
     let bestFree = this.cells;
     let stall = 0;
-    for (let step = 0; this.free > 0; step++) {
+    for (let step = 0; ; step++) {
       if (this.aborted || step >= maxSteps || this.checks >= maxChecks) return null;
+      if (this.free === 0) {
+        // Grille pleine : une région restée sous minSize (réparation, passe 1) reçoit une case
+        // voisine, sinon secousse autour de sa reine (elle regrandira en priorité, classe 0).
+        const g = this.smallRegion();
+        if (g < 0) break;
+        if (++repairs > maxRepairs || ++smallFixes > MAX_SMALL_FIXES) return null;
+        if (!this.growSmall(g, maxChecks) && !this.shake(g * n + this.sol[g]!)) return null;
+        continue;
+      }
       if (this.fillPockets()) continue;
       if (this.growStep()) continue;
       if (++repairs > maxRepairs) return null;
@@ -397,11 +414,10 @@ class Builder {
         stall = 0;
       } else if (++stall >= STALL_REPAIRS) {
         stall = 0;
-        if (this.shake()) continue;
+        if (this.stuckCells() > 0 && this.shake(this.cellBuf2[0]!)) continue;
       }
       if (!this.repair()) return null;
     }
-    if (this.aborted || !this.fillSmall(maxChecks)) return null;
     this.balance(maxChecks);
     if (this.aborted) return null;
     for (let g = 0; g < n; g++) {
@@ -532,7 +548,7 @@ class Builder {
 
   // ─── Géométrie ─────────────────────────────────────────────────────────────────────────────────
 
-  /** Régions distinctes voisines de x (hors `except`), dans cellBuf2 ; renvoie leur nombre. */
+  /** Régions distinctes (non figées) voisines de x, hors `except`, dans `out` ; renvoie leur nombre. */
   private neighborRegions(x: number, except: number, out: Int16Array): number {
     let k = 0;
     let seen = 0;
@@ -806,41 +822,61 @@ class Builder {
 
   // ─── Équilibrage ───────────────────────────────────────────────────────────────────────────────
 
+  /** Première région (non figée) sous minSize, ou -1. */
+  private smallRegion(): number {
+    for (let g = 0; g < this.n; g++) if (!this.frozen[g] && this.size[g]! < this.shape.minSize) return g;
+    return -1;
+  }
+
   /**
-   * Régions passées sous minSize (réparation, passe 1) : une case voisine retirable les rejoint, si
-   * c'est sûr. Faux si une région reste trop petite.
+   * Région g sous minSize, grille pleine : une case voisine y la rejoint, avec la branche qu'elle
+   * couperait de sa région, si c'est sûr. Faux si aucun transfert n'est possible.
    */
-  private fillSmall(maxChecks: number): boolean {
-    const { n, nb, reg, size } = this;
-    for (let g = 0; g < n; g++) {
-      if (this.frozen[g]) continue;
-      while (size[g]! < this.shape.minSize) {
-        if (this.checks >= maxChecks) return false;
-        let count = 0;
-        for (let y = 0; y < this.cells; y++) {
-          const h = reg[y]!;
-          if (h < 0 || h === g) continue;
-          let adj = false;
-          for (let d = 0; d < 4 && !adj; d++) {
-            const z = nb[y * 4 + d]!;
-            adj = z >= 0 && reg[z] === g;
-          }
-          if (!adj || !this.removable(y)) continue;
-          this.pairBuf[count] = y;
-          this.weightBuf[count++] = this.shapeWeight(y, g);
-        }
-        let moved = false;
-        for (let t = 0; t < BALANCE_TRIES && count > 0 && !moved; t++) {
-          const i = this.pickWeighted(count);
-          moved = this.moveCell(this.pairBuf[i]!, g);
-          if (this.aborted) return false;
-          count--;
-          this.pairBuf[i] = this.pairBuf[count]!;
-          this.weightBuf[i] = this.weightBuf[count]!;
-        }
-        if (!moved) return false;
+  private growSmall(g: number, maxChecks: number): boolean {
+    const { nb, reg } = this;
+    let count = 0;
+    for (let y = 0; y < this.cells; y++) {
+      const h = reg[y]!;
+      if (h < 0 || h === g) continue;
+      let adj = false;
+      for (let d = 0; d < 4 && !adj; d++) {
+        const z = nb[y * 4 + d]!;
+        adj = z >= 0 && reg[z] === g;
       }
+      if (!adj || this.branchOf(y, this.shape.minSize) < 0) continue;
+      this.pairBuf[count] = y;
+      this.weightBuf[count++] = this.shapeWeight(y, g);
     }
+    while (count > 0 && this.checks < maxChecks) {
+      const i = this.pickWeighted(count);
+      if (this.transfer(this.pairBuf[i]!, g)) return true;
+      if (this.aborted) return false;
+      count--;
+      this.pairBuf[i] = this.pairBuf[count]!;
+      this.weightBuf[i] = this.weightBuf[count]!;
+    }
+    return false;
+  }
+
+  /** y et la branche qu'elle couperait passent dans g si c'est sûr ; sinon rien ne change. */
+  private transfer(y: number, g: number): boolean {
+    const cut = this.branchOf(y, this.shape.minSize);
+    if (cut < 0) return false;
+    const h = this.reg[y]!;
+    const moved = new Int16Array(cut + 1);
+    moved.set(this.cellBuf.subarray(0, cut));
+    moved[cut] = y;
+    for (let i = 0; i <= cut; i++) this.setReg(moved[i]!, g);
+    let safe = true;
+    for (let i = 0; i <= cut && safe; i++) {
+      this.checks++;
+      safe = !this.through(moved[i]!, g);
+    }
+    if (!safe) {
+      for (let i = 0; i <= cut; i++) this.setReg(moved[i]!, h);
+      return false;
+    }
+    for (let i = 0; i <= cut; i++) this.invalidate(moved[i]!);
     return true;
   }
 
@@ -948,13 +984,12 @@ class Builder {
   }
 
   /**
-   * Secousse : libère les cases (hors reines) autour d'une case bloquée, avec leurs branches
-   * courtes ; la zone sera regrandie autrement. Toujours sûr (retirer n'ôte que des solutions).
+   * Secousse : libère les cases (hors reines) autour de la case x, avec leurs branches courtes,
+   * sans faire passer une région sous minSize ; la zone sera regrandie autrement. Toujours sûr
+   * (retirer n'ôte que des solutions). Faux si rien n'a été libéré.
    */
-  private shake(): boolean {
-    if (this.stuckCells() === 0) return false;
+  private shake(x: number): boolean {
     const n = this.n;
-    const x = this.cellBuf2[0]!;
     const r0 = (x / n) | 0;
     const c0 = x % n;
     let released = 0;
@@ -962,7 +997,7 @@ class Builder {
       for (let c = Math.max(0, c0 - SHAKE_RADIUS); c <= Math.min(n - 1, c0 + SHAKE_RADIUS); c++) {
         const z = r * n + c;
         if (this.reg[z]! < 0) continue;
-        const cut = this.branchOf(z, 1);
+        const cut = this.branchOf(z, this.shape.minSize);
         if (cut < 0 || cut > SHAKE_MAX_BRANCH) continue;
         const branch = this.cellBuf.slice(0, cut);
         this.release(z);
@@ -1197,21 +1232,38 @@ class Builder {
         idx = r;
       }
     }
-    for (let c = 0; c < n; c++) {
-      if ((colDone >>> c) & 1) continue;
-      let cnt = 0;
-      for (let r = 0; r < n; r++) cnt += (st[base + r]! >>> c) & 1;
-      if (cnt === 0) return false;
-      if (cnt < best) {
-        best = cnt;
+    // Colonnes : compteur vertical exact sur 4 bits (n ≤ 12 < 16), puis première colonne du plus
+    // petit compte k < best (même choix qu'un parcours colonne par colonne).
+    let b0 = 0;
+    let b1 = 0;
+    let b2 = 0;
+    let b3 = 0;
+    for (let r = 0; r < n; r++) {
+      const m = st[base + r]!;
+      const c0 = b0 & m;
+      b0 ^= m;
+      const c1 = b1 & c0;
+      b1 ^= c0;
+      const c2 = b2 & c1;
+      b2 ^= c1;
+      b3 ^= c2;
+    }
+    const open = ~colDone & this.full;
+    if ((open & ~(b0 | b1 | b2 | b3)) !== 0) return false;
+    for (let k = 1; k < best; k++) {
+      const eq = open & (k & 1 ? b0 : ~b0) & (k & 2 ? b1 : ~b1) & (k & 4 ? b2 : ~b2) & (k & 8 ? b3 : ~b3);
+      if (eq !== 0) {
+        best = k;
         kind = 1;
-        idx = c;
+        idx = 31 - Math.clz32(eq & -eq);
+        break;
       }
     }
     for (let g = 0; g < n; g++) {
       if ((regDone >>> g) & 1) continue;
+      // Arrêt dès cnt ≥ best : la région ne peut plus être choisie et n'est pas vide.
       let cnt = 0;
-      for (let m = this.regRows[g]!; m !== 0; m &= m - 1) {
+      for (let m = this.regRows[g]!; m !== 0 && cnt < best; m &= m - 1) {
         const r = 31 - Math.clz32(m & -m);
         cnt += popcount32(st[base + r]! & rm[g * n + r]!);
       }
@@ -1222,10 +1274,13 @@ class Builder {
         idx = g;
       }
     }
+    // Enfants : lignes croissantes, colonnes croissantes dans la ligne.
     const next = base + n;
-    for (let r = 0; r < n; r++) {
+    const rows = kind === 0 ? 1 << idx : kind === 1 ? ~rowDone & this.full : this.regRows[idx]!;
+    for (let rm2 = rows; rm2 !== 0; rm2 &= rm2 - 1) {
+      const r = 31 - Math.clz32(rm2 & -rm2);
       let mask: number;
-      if (kind === 0) mask = r === idx ? st[base + r]! : 0;
+      if (kind === 0) mask = st[base + r]!;
       else if (kind === 1) mask = st[base + r]! & (1 << idx);
       else mask = st[base + r]! & rm[idx * n + r]!;
       while (mask !== 0) {

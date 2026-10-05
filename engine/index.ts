@@ -16,6 +16,8 @@ export { validateRegistry } from './core/registry-check';
 export { SCHEDULE } from './config';
 export { REGISTRY, type AnyDailyPuzzle, type AnyGeneratedPuzzle, type PuzzleDataMap } from './registry';
 export * as queens from './queens';
+export { engineSelfCheck } from './selfcheck';
+export { fingerprintPuzzle } from './core/pipeline';
 
 /** Puzzle du jour (identique pour tous à date égale). */
 export function getDailyPuzzle(date: ISODate, opts?: GenerateOptions): AnyDailyPuzzle {
