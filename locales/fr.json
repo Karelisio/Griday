@@ -62,12 +62,16 @@
     "conflicts_one": "{{count}} reine en conflit",
     "conflicts_other": "{{count}} reines en conflit",
     "cell": {
-      "label": "Ligne {{row}}, colonne {{col}} : {{state}}",
+      "label": "Ligne {{row}}, colonne {{col}}, région {{region}} : {{state}}",
       "empty": "vide",
       "queen": "reine",
       "cross": "croix",
       "conflict": "reine en conflit",
-      "hinted": "case de l’indice"
+      "hinted": "case de l’indice",
+      "mistake": "erreur",
+      "highlighted": "concernée par l’indice",
+      "attacked": "exclue par une reine",
+      "ruledOut": "exclue par l’indice"
     },
     "actions": "Actions de jeu"
   },

@@ -62,12 +62,16 @@
     "conflicts_one": "{{count}} queen in conflict",
     "conflicts_other": "{{count}} queens in conflict",
     "cell": {
-      "label": "Row {{row}}, column {{col}}: {{state}}",
+      "label": "Row {{row}}, column {{col}}, region {{region}}: {{state}}",
       "empty": "empty",
       "queen": "queen",
       "cross": "cross",
       "conflict": "queen in conflict",
-      "hinted": "hint cell"
+      "hinted": "hint cell",
+      "mistake": "mistake",
+      "highlighted": "part of the hint",
+      "attacked": "ruled out by a queen",
+      "ruledOut": "ruled out by the hint"
     },
     "actions": "Game actions"
   },
