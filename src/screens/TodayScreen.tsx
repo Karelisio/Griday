@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { DailyInfo } from '../../engine/core/types';
-import { isScheduleStale } from '../../engine/index';
+import { SCHEDULE } from '../../engine/config';
+import { isScheduleStale } from '../../engine/core/schedule';
 import type { AnyDailyPuzzle } from '../../engine/registry';
 import { engine } from '../engine-client/client';
 import { GameView } from '../game/GameView';
@@ -77,7 +78,7 @@ export function TodayScreen({ visible }: { visible: boolean }) {
     onSolved,
   });
 
-  const stale = isScheduleStale(today);
+  const stale = isScheduleStale(SCHEDULE, today);
 
   return (
     <section className="screen" aria-labelledby="today-title" hidden={!visible}>

@@ -40,6 +40,9 @@ jobs:
       - name: Tests unitaires
         run: npm test
 
+      - name: Build de l'application web
+        run: npm run build
+
       # Références figées en ajout seul (contournement avant lancement : « [golden-reset] »).
       - name: Références en ajout seul
         if: (success() || failure()) && (github.event_name == 'push' || github.event_name == 'pull_request')

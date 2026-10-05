@@ -2,7 +2,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { DifficultyTier, GenerationTarget } from '../../engine/core/types';
-import { QUEENS_V1 } from '../../engine/queens/v1/version';
 import type { AnyGeneratedPuzzle } from '../../engine/registry';
 import { engine } from '../engine-client/client';
 import { GameView } from '../game/GameView';
@@ -23,7 +22,6 @@ interface CurrentUnlimited {
 const CURRENT_KEY = 'unlimited.current.v1';
 const PREFS_KEY = 'unlimited.prefs.v1';
 const progressKey = (token: string) => `unlimited.progress.${token}`;
-const SIZES = QUEENS_V1.sizes;
 const TIERS: readonly DifficultyTier[] = [1, 2, 3, 4];
 
 /** Jeton aléatoire (aléa cryptographique : le mode illimité n'a pas besoin d'être reproductible). */
@@ -33,7 +31,7 @@ function newToken(): string {
   return Array.from(bytes, (b) => b.toString(36).padStart(2, '0')).join('');
 }
 
-function TargetPicker({ target, onChange }: { target: GenerationTarget; onChange: (t: GenerationTarget) => void }) {
+function TargetPicker({ target, sizes, onChange }: { target: GenerationTarget; sizes: readonly number[]; onChange: (t: GenerationTarget) => void }) {
   const { t } = useTranslation();
   return (
     <div className="unlimited__controls">
@@ -44,7 +42,7 @@ function TargetPicker({ target, onChange }: { target: GenerationTarget; onChange
         aria-labelledby="unl-size"
         value={String(target.size)}
         onChange={(v) => onChange({ ...target, size: Number(v) })}
-        options={SIZES.map((n) => ({ value: String(n), label: String(n), ariaLabel: t('unlimited.sizeValue', { n }) }))}
+        options={sizes.map((n) => ({ value: String(n), label: String(n), ariaLabel: t('unlimited.sizeValue', { n }) }))}
         showCheck={false}
       />
       <p className="md-typescale-label-large unlimited__label" id="unl-tier">
@@ -71,16 +69,22 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [sizes, setSizes] = useState<readonly number[]>([]);
   const closePicker = useCallback(() => setPickerOpen(false), []);
   useEffect(() => (visible && pickerOpen ? pushBackHandler(closePicker) : undefined), [visible, pickerOpen, closePicker]);
 
   useEffect(() => {
-    void Promise.all([loadJSON<CurrentUnlimited>(CURRENT_KEY), loadJSON<GenerationTarget>(PREFS_KEY)]).then(([cur, prefs]) => {
-      if (prefs && SIZES.includes(prefs.size) && TIERS.includes(prefs.tier)) setTarget(prefs);
+    void Promise.all([
+      loadJSON<CurrentUnlimited>(CURRENT_KEY),
+      loadJSON<GenerationTarget>(PREFS_KEY),
+      engine.unlimitedOptions('queens', today),
+    ]).then(([cur, prefs, options]) => {
+      setSizes(options.sizes);
+      if (prefs && options.sizes.includes(prefs.size) && TIERS.includes(prefs.tier)) setTarget(prefs);
       if (cur?.puzzle?.type === 'queens') setCurrent(cur);
       setLoaded(true);
     });
-  }, []);
+  }, [today]);
 
   const chooseTarget = (next: GenerationTarget) => {
     setTarget(next);
@@ -156,7 +160,7 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
       ) : loaded && !current ? (
         <>
           <p className="md-typescale-body-large screen__subtitle">{t('unlimited.empty')}</p>
-          <TargetPicker target={target} onChange={chooseTarget} />
+          <TargetPicker target={target} sizes={sizes} onChange={chooseTarget} />
           <Button variant="filled" icon="add" size="m" onClick={() => void start()} fullWidth>
             {t('unlimited.newGame')}
           </Button>
@@ -166,7 +170,7 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
       <BottomSheet open={pickerOpen} onClose={closePicker} aria-label={t('unlimited.newGame')} dismissLabel={t('common.close')}>
         <div className="unlimited__sheet">
           <h2 className="md-typescale-title-large">{t('unlimited.newGame')}</h2>
-          <TargetPicker target={target} onChange={chooseTarget} />
+          <TargetPicker target={target} sizes={sizes} onChange={chooseTarget} />
           <Button variant="filled" icon="play_arrow" size="m" onClick={() => void start()} fullWidth>
             {t('unlimited.newGame')}
           </Button>

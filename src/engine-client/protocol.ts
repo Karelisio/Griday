@@ -7,6 +7,7 @@ export type EngineCall =
   | { kind: 'daily'; date: ISODate }
   | { kind: 'dailyInfo'; date: ISODate }
   | { kind: 'unlimited'; type: PuzzleTypeId; target: GenerationTarget; token: string; today: ISODate; version?: number }
+  | { kind: 'unlimitedOptions'; type: PuzzleTypeId; today: ISODate }
   | { kind: 'queensHint'; puzzle: QueensSolvedPuzzle; marks: readonly QueensMark[] }
   | { kind: 'selfCheck' };
 

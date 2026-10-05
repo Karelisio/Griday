@@ -10,6 +10,8 @@ export default defineConfig({
     // WebView Android récents (mis à jour par le Play Store) ; ES2020 reste prudent.
     target: 'es2020',
     sourcemap: false,
+    // Fichiers servis depuis l'APK (pas de réseau) : ~190 Ko gzip acceptables pour le bundle principal.
+    chunkSizeWarningLimit: 800,
   },
   worker: { format: 'es' },
   test: {

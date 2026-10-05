@@ -74,6 +74,11 @@ class EngineClient {
     return this.call({ kind: 'unlimited', type, target, token, today, version });
   }
 
+  /** Version et tailles proposées en mode illimité (sans charger le moteur sur le fil principal). */
+  unlimitedOptions(type: PuzzleTypeId, today: ISODate): Promise<{ version: number; sizes: number[] }> {
+    return this.call({ kind: 'unlimitedOptions', type, today });
+  }
+
   queensHint(puzzle: QueensSolvedPuzzle, marks: readonly QueensMark[]): Promise<QueensHint> {
     return this.call({ kind: 'queensHint', puzzle, marks });
   }
