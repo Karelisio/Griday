@@ -135,10 +135,9 @@ describe('étiquettes des cases', () => {
       const n = Number(i);
       expect(cell(n).getAttribute('aria-label'), `case ${n}`).toBe(label(Math.floor(n / N) + 1, (n % N) + 1, regionLetter(n % N), keys));
     }
-    // Le texte annoncé contient bien chaque état traduit, séparé par « , ».
-    expect(cell(11).getAttribute('aria-label')).toContain(
-      ['vide', 'erreur', 'concernée par l’indice', 'exclue par l’indice', 'exclue par une reine', 'case de l’indice'].join(', '),
-    );
+    // Six états sur la dernière case, séparés par des virgules après la description de la case.
+    const state = ['empty', 'mistake', 'highlighted', 'ruledOut', 'attacked', 'hinted'].map((k) => i18n.t(`game.cell.${k}`)).join(', ');
+    expect(cell(11).getAttribute('aria-label')?.endsWith(state)).toBe(true);
   });
 
   it('cellStateKeys : ordre et conditions des états', () => {
@@ -158,7 +157,9 @@ describe('étiquettes des cases', () => {
         <QueensBoard puzzle={PUZZLE} marks={EMPTY_MARKS} regionColors={COLORS} onGesture={() => undefined} />
       </I18nextProvider>,
     );
-    expect(within(view.getByRole('grid')).getAllByRole('gridcell')[2]!.getAttribute('aria-label')).toBe('Row 1, column 3, region C: empty');
+    const expected = en.t('game.cell.label', { row: 1, col: 3, region: 'C', state: en.t('game.cell.empty') });
+    expect(expected).not.toBe(label(1, 3, 'C', ['empty'])); // bien une autre langue que le français
+    expect(within(view.getByRole('grid')).getAllByRole('gridcell')[2]!.getAttribute('aria-label')).toBe(expected);
   });
 });
 
@@ -200,6 +201,31 @@ describe('SVG décoratifs', () => {
     }
     // Aucun sélecteur ne dépend de l'état de la case pour recolorer la reine.
     expect(queenRules.some(([, selector]) => /--(conflict|mistake|reveal|focus)\s+\.qb__queen/.test(selector!))).toBe(false);
+  });
+
+  it('chaque anneau (conflit, erreur, case de l’indice, focus clavier) a un liseré intérieur couleur `on` et un liseré coloré', () => {
+    const rules = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+    const bodyOf = (selector: string) => rules.filter(([, sel]) => sel!.split(',').some((part) => part.trim() === selector)).map(([, , body]) => body!).join('\n');
+    for (const [selector, color] of [
+      ['.qb__cell--conflict::before', '--qb-ring-color'],
+      ['.qb__cell--mistake::before', '--qb-ring-color'],
+      ['.qb__cell--reveal::before', '--qb-ring-color'],
+      ['.qb__cell:focus-visible::after', '--md-sys-color-secondary'],
+    ] as const) {
+      const body = bodyOf(selector);
+      expect(body, selector).toMatch(/border:\s*var\(--qb-ring-inner\)\s+solid\s+currentColor/);
+      expect(body, selector).toContain(color);
+    }
+    // Les couleurs de rôle des anneaux d'état.
+    expect(bodyOf('.qb__cell--reveal')).toContain('--md-sys-color-primary');
+    expect(bodyOf('.qb__cell--conflict')).toContain('--md-sys-color-error');
+    expect(bodyOf('.qb__cell--mistake')).toContain('--md-sys-color-error');
+  });
+
+  it('le contour natif de la case est supprimé même face à la règle globale :focus-visible', () => {
+    const rules = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+    const none = rules.find(([, sel, body]) => sel!.includes('.qb__cell:focus-visible') && !sel!.includes('::') && /outline:\s*none/.test(body!));
+    expect(none).toBeDefined();
   });
 });
 
@@ -336,6 +362,18 @@ describe('multi-touch', () => {
     expect(onGesture).not.toHaveBeenCalled();
   });
 
+  it('un événement non primaire est ignoré même avec l’identifiant du pointeur suivi', () => {
+    const { grid, onGesture } = setup();
+    fireEvent.pointerDown(grid, { ...finger, ...at(0) });
+    fireEvent.pointerMove(grid, { ...finger, isPrimary: false, ...at(1) });
+    fireEvent.pointerMove(grid, { ...finger, isPrimary: false, ...at(2) });
+    fireEvent.pointerUp(grid, { ...finger, isPrimary: false, ...at(2) });
+    fireEvent.pointerCancel(grid, { ...finger, isPrimary: false, ...at(2) });
+    expect(onGesture).not.toHaveBeenCalled();
+    fireEvent.pointerUp(grid, { ...finger, ...at(0, 3) }); // le geste du doigt primaire est resté intact
+    expect(onGesture).toHaveBeenCalledExactlyOnceWith({ type: 'tap', cell: 0 });
+  });
+
   it('un 2e doigt posé pendant un toucher ne peint jamais et ne perturbe pas le toucher du 1er', () => {
     const { grid, onGesture } = setup();
     fireEvent.pointerDown(grid, { ...finger, ...at(0) });
@@ -418,6 +456,28 @@ describe('clavier', () => {
     const { grid, cells } = setup();
     fireEvent.pointerDown(grid, { ...finger, ...at(14) });
     expect(tabbable(cells())).toEqual([14]);
+  });
+
+  it('la case tabulable reste dans la grille quand la taille change (nouvelle grille)', () => {
+    const big: QueensPuzzle = { size: 10, regions: Array.from({ length: 100 }, (_, i) => i % 10) };
+    const bigProps: Props = { puzzle: big, marks: new Array<QueensMark>(100).fill(MARK_EMPTY), regionColors: regionPalette({ dark: false, count: 10 }) };
+    const { container, update } = setup(bigProps);
+    const cellsOf = () => within(within(container).getByRole('grid')).getAllByRole('gridcell');
+    focus(cellsOf()[99]!);
+    expect(tabbable(cellsOf())).toEqual([99]);
+    update({ puzzle: PUZZLE, marks: EMPTY_MARKS, regionColors: COLORS });
+    expect(cellsOf()).toHaveLength(N * N);
+    expect(tabbable(cellsOf())).toEqual([0]);
+  });
+
+  it('les touches de navigation et d’action empêchent le comportement par défaut (défilement de la page)', () => {
+    const { cell } = setup();
+    focus(cell(8));
+    for (const key of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter', ' ', 'x', 'X', 'Delete', 'Backspace']) {
+      expect(fireEvent.keyDown(document.activeElement!, { key }), key).toBe(false);
+    }
+    expect(fireEvent.keyDown(document.activeElement!, { key: 'Tab' })).toBe(true); // Tab quitte la grille normalement
+    expect(fireEvent.keyDown(document.activeElement!, { key: 'a' })).toBe(true);
   });
 
   it('Début / Fin : début et fin de ligne ; Ctrl ou Cmd + Début / Fin : première et dernière case', () => {
@@ -512,6 +572,42 @@ describe('rendu', () => {
     expect(cell(8).className).toBe('qb__cell');
   });
 
+  it('unité surlignée : le filet ne longe que le contour de l’unité, pas les limites entre ses cases', () => {
+    const hint = (focus: number[]): HintHighlight => ({ focus, targets: [], eliminate: [], reveal: null, revealMark: null, mistakes: [] });
+    const TOP = 'inset 0 2px 0 0';
+    const RIGHT = 'inset -2px 0 0 0';
+    const BOTTOM = 'inset 0 -2px 0 0';
+    const LEFT = 'inset 2px 0 0 0';
+    const sides = (el: HTMLElement) => [TOP, RIGHT, BOTTOM, LEFT].filter((side) => el.style.getPropertyValue('--qb-fe').includes(side));
+
+    // Ligne 2 entière : haut et bas partout, gauche au début, droite à la fin.
+    const row = setup({ highlight: hint([6, 7, 8, 9, 10, 11]) });
+    expect(sides(row.cell(6))).toEqual([TOP, BOTTOM, LEFT]);
+    for (const i of [7, 8, 9, 10]) expect(sides(row.cell(i)), `case ${i}`).toEqual([TOP, BOTTOM]);
+    expect(sides(row.cell(11))).toEqual([TOP, RIGHT, BOTTOM]);
+    expect(sides(row.cell(0))).toEqual([]); // hors unité
+    expect(row.cell(0).classList.contains('qb__cell--focus')).toBe(false);
+    row.unmount();
+
+    // Bloc 2 × 2 (cases 7, 8, 13, 14) : chaque case ne borde l'extérieur que par deux côtés.
+    const block = setup({ highlight: hint([7, 8, 13, 14]) });
+    expect(sides(block.cell(7))).toEqual([TOP, LEFT]);
+    expect(sides(block.cell(8))).toEqual([TOP, RIGHT]);
+    expect(sides(block.cell(13))).toEqual([BOTTOM, LEFT]);
+    expect(sides(block.cell(14))).toEqual([RIGHT, BOTTOM]);
+    block.unmount();
+
+    // Case isolée, ou colonne au bord de la grille : tout le tour (valeur par défaut du CSS) ou les côtés restants.
+    const alone = setup({ highlight: hint([14]) });
+    expect(alone.cell(14).classList.contains('qb__cell--focus')).toBe(true);
+    expect(alone.cell(14).style.getPropertyValue('--qb-fe')).toBe('');
+    alone.unmount();
+    const column = setup({ highlight: hint([0, 6, 12, 18, 24, 30]) });
+    expect(sides(column.cell(0))).toEqual([TOP, RIGHT, LEFT]);
+    expect(sides(column.cell(18))).toEqual([RIGHT, LEFT]);
+    expect(sides(column.cell(30))).toEqual([RIGHT, BOTTOM, LEFT]);
+  });
+
   it('motifs de régions seulement si demandés', () => {
     const plain = setup();
     expect(plain.container.querySelector('[class*="qb__cell--pattern"]')).toBeNull();
@@ -598,7 +694,8 @@ describe('contraste des marqueurs (WCAG 1.4.11, ≥ 3:1 ; reine ≥ 4,5:1)', () 
   };
 
   const SEEDS = [GRIDAY_SEED, 0xff0061a4, 0xff386a20, 0xffb3261e, 0xffe3b800, 0xff808000, 0xff777777];
-  const COUNTS = [4, 5, 6, 7, 8, 9, 10, 11, 12];
+  // 4 à 12 régions en jeu ; 16 et 24 couvrent une palette plus grande dans laquelle on choisirait les couleurs.
+  const COUNTS = [4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 24];
   interface Sample {
     readonly where: string;
     readonly fill: string;

@@ -56,10 +56,38 @@ const DENSE_FROM = 10;
 const GHOST_STYLE: CSSProperties = { opacity: MARKER_ALPHA.ghost };
 const ATTACKED_STYLE: CSSProperties = { opacity: MARKER_ALPHA.attacked };
 
-// Couronne (24×24), dessinée pour rester lisible de 24 à 64 px.
-const CROWN =
-  'M4.2 18.2h15.6l1.7-10.1a1 1 0 0 0-1.6-.95l-4.1 3.1-3-5.4a.9.9 0 0 0-1.6 0l-3 5.4-4.1-3.1a1 1 0 0 0-1.6.95zM5 20a1 1 0 0 0 0 2h14a1 1 0 0 0 0-2z';
+// Couronne (24×24), dessinée pour rester lisible de 24 à 64 px : corps (longueur ≈ 65) et socle (≈ 34).
+const CROWN_BODY = 'M4.2 18.2h15.6l1.7-10.1a1 1 0 0 0-1.6-.95l-4.1 3.1-3-5.4a.9.9 0 0 0-1.6 0l-3 5.4-4.1-3.1a1 1 0 0 0-1.6.95z';
+const CROWN_BAR = 'M5 20a1 1 0 0 0 0 2h14a1 1 0 0 0 0-2z';
+const CROWN = CROWN_BODY + CROWN_BAR;
 const CROSS = 'M6 6l12 12M18 6L6 18';
+
+/** Côtés d'une case (masque de bits) dont la voisine n'appartient pas à l'unité surlignée. */
+const EDGE_TOP = 1;
+const EDGE_RIGHT = 2;
+const EDGE_BOTTOM = 4;
+const EDGE_LEFT = 8;
+const EDGE_ALL = EDGE_TOP | EDGE_RIGHT | EDGE_BOTTOM | EDGE_LEFT;
+
+/** Côtés de `cell` (appartenant à l'unité `focus`) dont la voisine est hors de l'unité ou de la grille ; 0 hors unité. */
+function outerEdges(focus: ReadonlySet<number>, cell: number, n: number): number {
+  if (!focus.has(cell)) return 0;
+  const r = Math.floor(cell / n);
+  const c = cell % n;
+  const outside = (rr: number, cc: number) => rr < 0 || cc < 0 || rr >= n || cc >= n || !focus.has(rr * n + cc);
+  return (outside(r - 1, c) ? EDGE_TOP : 0) | (outside(r, c + 1) ? EDGE_RIGHT : 0) | (outside(r + 1, c) ? EDGE_BOTTOM : 0) | (outside(r, c - 1) ? EDGE_LEFT : 0);
+}
+
+/** Ombres intérieures de 2 px (couleur `--qb-fe-c`) pour chacun des côtés d'un masque. */
+function edgeShadow(edges: number): string | undefined {
+  if (edges === 0 || edges === EDGE_ALL) return undefined; // anneau complet : valeur par défaut du CSS
+  const parts: string[] = [];
+  if (edges & EDGE_TOP) parts.push('inset 0 2px 0 0 var(--qb-fe-c)');
+  if (edges & EDGE_RIGHT) parts.push('inset -2px 0 0 0 var(--qb-fe-c)');
+  if (edges & EDGE_BOTTOM) parts.push('inset 0 -2px 0 0 var(--qb-fe-c)');
+  if (edges & EDGE_LEFT) parts.push('inset 2px 0 0 0 var(--qb-fe-c)');
+  return parts.join(', ');
+}
 
 const SPRING_POP = { type: 'spring', stiffness: 800, damping: 2 * 0.6 * Math.sqrt(800) } as const;
 const SPRING_SOFT = { type: 'spring', stiffness: 380, damping: 2 * 0.8 * Math.sqrt(380) } as const;
@@ -107,6 +135,8 @@ export const QueensBoard = memo(function QueensBoard(props: QueensBoardProps) {
   /** Seul pointeur suivi pendant un geste (identifiant), null hors geste. */
   const activePointer = useRef<number | null>(null);
   const [focusCell, setFocusCell] = useState(0);
+  // Case tabulable (index « roving ») ; ramenée dans la grille si la taille change (nouvelle grille).
+  const roving = focusCell < n * n ? focusCell : 0;
 
   const conflictSet = useMemo(() => new Set(conflicts), [conflicts]);
   const sets = useMemo(
@@ -173,8 +203,9 @@ export const QueensBoard = memo(function QueensBoard(props: QueensBoardProps) {
     emit(tracker.move(cellAt(e.clientX, e.clientY), { x: e.clientX, y: e.clientY }, markAt));
     emit(tracker.up(e.timeStamp));
   };
+  // Annulation système ou capture perdue : le geste en cours est abandonné.
   const onPointerCancel = (e: PointerEvent<HTMLDivElement>) => {
-    if (e.pointerId !== activePointer.current) return;
+    if (!ownsEvent(e)) return;
     activePointer.current = null;
     tracker.cancel();
   };
@@ -199,7 +230,7 @@ export const QueensBoard = memo(function QueensBoard(props: QueensBoardProps) {
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.altKey) return;
-    const cell = cellOf(e.target) ?? focusCell;
+    const cell = cellOf(e.target) ?? roving;
     const r = Math.floor(cell / n);
     const c = cell % n;
     const clamp = (v: number) => Math.min(n - 1, Math.max(0, v));
@@ -291,12 +322,13 @@ export const QueensBoard = memo(function QueensBoard(props: QueensBoardProps) {
                   conflict={conflictSet.has(cell)}
                   attacked={attacked?.has(cell) ?? false}
                   focus={sets.focus.has(cell)}
+                  focusEdges={outerEdges(sets.focus, cell, n)}
                   target={sets.targets.has(cell)}
                   eliminate={sets.eliminate.has(cell)}
                   mistake={sets.mistakes.has(cell)}
                   hinted={isReveal}
                   reveal={isReveal ? (highlight?.revealMark ?? null) : null}
-                  tabIndex={cell === focusCell ? 0 : -1}
+                  tabIndex={cell === roving ? 0 : -1}
                   celebrate={celebrate}
                   reduce={!!reduce}
                   t={t}
@@ -329,6 +361,8 @@ interface CellProps {
   readonly conflict: boolean;
   readonly attacked: boolean;
   readonly focus: boolean;
+  /** Côtés de la case qui bordent l'extérieur de l'unité surlignée (masque EDGE_*), 0 hors unité. */
+  readonly focusEdges: number;
   readonly target: boolean;
   readonly eliminate: boolean;
   readonly mistake: boolean;
@@ -370,7 +404,14 @@ const Cell = memo(function Cell(p: CellProps) {
   const pop = p.reduce ? { duration: 0 } : SPRING_POP;
   const empty = p.mark === MARK_EMPTY;
   return (
-    <div role="gridcell" data-cell={p.cell} className={cls} tabIndex={p.tabIndex} aria-label={label} style={{ backgroundColor: p.fill, color: p.on }}>
+    <div
+      role="gridcell"
+      data-cell={p.cell}
+      className={cls}
+      tabIndex={p.tabIndex}
+      aria-label={label}
+      style={{ backgroundColor: p.fill, color: p.on, ['--qb-fe' as string]: edgeShadow(p.focusEdges) }}
+    >
       <AnimatePresence initial={false}>
         {p.mark === MARK_QUEEN && (
           <motion.svg
@@ -421,7 +462,9 @@ const Cell = memo(function Cell(p: CellProps) {
       )}
       {p.reveal === 'queen' && p.mark !== MARK_QUEEN && (
         <svg className="qb__queen qb__queen--ghost" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style={GHOST_STYLE}>
-          <path d={CROWN} />
+          {/* pathLength multiple de la période des tirets (5) : le pointillé se referme proprement. */}
+          <path d={CROWN_BODY} pathLength={65} />
+          <path d={CROWN_BAR} className="qb__ghost-bar" />
         </svg>
       )}
     </div>
