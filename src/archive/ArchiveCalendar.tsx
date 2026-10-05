@@ -45,6 +45,8 @@ export interface ArchiveCalendarProps {
    * de légende (si le mois affiché en compte). Un jour verrouillé reste sélectionnable : à l'appelant de réagir.
    */
   readonly locked?: (date: ISODate) => boolean;
+  /** Nom (traduit) du puzzle servi ce jour-là, ajouté au nom accessible du jour (les types alternent). */
+  readonly puzzleName?: (date: ISODate) => string;
   readonly onSelect: (date: ISODate) => void;
 }
 
@@ -75,7 +77,7 @@ function createFormats(lang: Language) {
   };
 }
 
-export function ArchiveCalendar({ month, onMonthChange, today, first, status, locked, onSelect }: ArchiveCalendarProps) {
+export function ArchiveCalendar({ month, onMonthChange, today, first, status, locked, puzzleName, onSelect }: ArchiveCalendarProps) {
   const { t, i18n } = useTranslation();
   const { spatial, effects } = useMotionTokens();
   const titleId = useId();
@@ -144,6 +146,8 @@ export function ArchiveCalendar({ month, onMonthChange, today, first, status, lo
     const text = formats.day(date);
     if (!playable) return text;
     const state = t(`archive.status.${stateOf(date)}`);
+    const puzzle = puzzleName?.(date);
+    if (puzzle) return t(date === today ? 'archive.dayTodayPuzzle' : 'archive.dayPuzzle', { date: text, puzzle, status: state });
     return t(date === today ? 'archive.dayToday' : 'archive.day', { date: text, status: state });
   };
   // « Verrouillé » n'apparaît dans la légende que si le mois affiché compte au moins un jour verrouillé.

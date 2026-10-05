@@ -102,7 +102,10 @@ export function useDailyGame({ date, mode, visible, onRecorded }: UseDailyGameOp
   );
 
   const { ready, history } = useProgress();
-  const known = history.get(date);
+  // Résultat enregistré pour ce jour, s'il porte sur le même type de puzzle (un résultat d'un autre type
+  // viendrait d'un calendrier antérieur : il ne doit pas passer pour la victoire de cette grille).
+  const recorded = history.get(date);
+  const known = recorded && daily && (recorded.type ?? 'queens') === daily.type ? recorded : undefined;
   const kind: GameKindUI<unknown> | null = daily ? gameKind(daily.type) : null;
   const session = useGameSession(kind?.rules ?? NO_RULES, {
     puzzle: kind && daily ? daily.puzzle : null,

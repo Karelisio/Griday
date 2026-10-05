@@ -64,7 +64,7 @@ describe('Premium dans l’application', () => {
     setAdsServiceForTesting(fakeAds());
     renderApp();
     nav('Archives');
-    fireEvent.click(await screen.findByRole('button', { name: /^mardi 10 novembre 2026\s: verrouillé$/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /^mardi 10 novembre 2026, Reines\s: verrouillé$/ }));
     const dialog = await screen.findByRole('dialog', { name: 'Débloquer ce puzzle' });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Premium' }));
 
@@ -82,13 +82,13 @@ describe('Premium dans l’application', () => {
     setAdsServiceForTesting(ads);
     renderApp();
     nav('Archives');
-    fireEvent.click(await screen.findByRole('button', { name: /^mardi 10 novembre 2026\s: verrouillé$/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /^mardi 10 novembre 2026, Reines\s: verrouillé$/ }));
     fireEvent.click(within(await screen.findByRole('dialog', { name: 'Débloquer ce puzzle' })).getByRole('button', { name: 'Regarder' }));
 
     expect(await screen.findByRole('heading', { name: /^Puzzle n°\s37$/ }, { timeout: 15_000 })).toBeTruthy();
     expect(ads.showRewarded).toHaveBeenCalledTimes(1);
     act(() => void dispatchBack());
     await waitFor(() => expect(screen.queryByRole('heading', { name: /^Puzzle n°/ })).toBeNull());
-    expect(await screen.findByRole('button', { name: /^mardi 10 novembre 2026\s: non joué$/ })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: /^mardi 10 novembre 2026, Reines\s: non joué$/ })).toBeTruthy();
   }, 60_000);
 });

@@ -106,13 +106,13 @@ describe('écran des archives', () => {
     expect(month()).toBe('novembre 2026');
 
     // Parties entamées relues du stockage (asynchrone).
-    expect(await screen.findByRole('button', { name: /^jeudi 5 novembre 2026\s: en cours$/ })).toBeTruthy();
-    expect(label('2026-11-02')).toBe(`lundi 2 novembre 2026${NBSP}: résolu à temps`);
-    expect(label('2026-11-03')).toBe(`mardi 3 novembre 2026${NBSP}: résolu plus tard`);
-    expect(label('2026-11-04')).toBe(`mercredi 4 novembre 2026${NBSP}: gel de série utilisé`);
-    expect(label('2026-11-06')).toBe(`vendredi 6 novembre 2026${NBSP}: non joué`);
-    expect(label('2026-11-07')).toBe(`samedi 7 novembre 2026${NBSP}: non joué`);
-    expect(label('2026-11-18')).toBe(`mercredi 18 novembre 2026 (aujourd’hui)${NBSP}: non joué`);
+    expect(await screen.findByRole('button', { name: /^jeudi 5 novembre 2026, Binairo\s: en cours$/ })).toBeTruthy();
+    expect(label('2026-11-02')).toBe(`lundi 2 novembre 2026, Reines${NBSP}: résolu à temps`);
+    expect(label('2026-11-03')).toBe(`mardi 3 novembre 2026, Binairo${NBSP}: résolu plus tard`);
+    expect(label('2026-11-04')).toBe(`mercredi 4 novembre 2026, Reines${NBSP}: gel de série utilisé`);
+    expect(label('2026-11-06')).toBe(`vendredi 6 novembre 2026, Reines${NBSP}: non joué`);
+    expect(label('2026-11-07')).toBe(`samedi 7 novembre 2026, Binairo${NBSP}: non joué`);
+    expect(label('2026-11-18')).toBe(`mercredi 18 novembre 2026 (aujourd’hui), Reines${NBSP}: non joué`);
     expect(label('2026-11-19')).toBe('jeudi 19 novembre 2026');
     expect(day('2026-11-19').disabled).toBe(true);
     expect(day('2026-11-18').getAttribute('aria-current')).toBe('date');
@@ -142,10 +142,10 @@ describe('écran des archives', () => {
     fireEvent.click(button('Mois précédent'));
     expect(month()).toBe('octobre 2026');
     expect(screen.getByText('1 jour résolu sur 27')).toBeTruthy(); // du 5 au 31 octobre
-    expect(await screen.findByRole('button', { name: /^mardi 20 octobre 2026\s: en cours$/ })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: /^mardi 20 octobre 2026, Binairo\s: en cours$/ })).toBeTruthy();
     expect(day('2026-10-04').disabled).toBe(true); // avant le jour n° 1
     expect(day('2026-10-05').disabled).toBe(false);
-    expect(label('2026-10-05')).toBe(`lundi 5 octobre 2026${NBSP}: résolu à temps`);
+    expect(label('2026-10-05')).toBe(`lundi 5 octobre 2026, Reines${NBSP}: résolu à temps`);
     expect([button('Mois précédent').disabled, button('Mois suivant').disabled]).toEqual([true, false]);
 
     fireEvent.click(button('Mois suivant'));
@@ -206,27 +206,27 @@ describe('écran des archives', () => {
     // Partie commencée pendant que l’écran était masqué : relue au retour seulement.
     await saveJSON(dailyProgressKey('2026-11-09'), startedGame);
     await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(label('2026-11-09')).toBe(`lundi 9 novembre 2026${NBSP}: non joué`);
+    expect(label('2026-11-09')).toBe(`lundi 9 novembre 2026, Binairo${NBSP}: non joué`);
 
     setVisible(true);
     expect(document.querySelector('section')!.hidden).toBe(false);
-    expect(await screen.findByRole('button', { name: /^lundi 9 novembre 2026\s: en cours$/ })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: /^lundi 9 novembre 2026, Binairo\s: en cours$/ })).toBeTruthy();
 
     // Partie vidée entre-temps : le point disparaît au retour suivant.
     setVisible(false);
     await saveJSON(dailyProgressKey('2026-11-09'), untouchedGame);
     setVisible(true);
-    expect(await screen.findByRole('button', { name: /^lundi 9 novembre 2026\s: non joué$/ })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: /^lundi 9 novembre 2026, Binairo\s: non joué$/ })).toBeTruthy();
   });
 
   it('une partie terminée met à jour le résumé et l’état du jour', async () => {
     await saveJSON(dailyProgressKey('2026-11-10'), startedGame);
     renderScreen({ solved: result('2026-11-10', 'archive', '2026-11-18') });
-    expect(await screen.findByRole('button', { name: /^mardi 10 novembre 2026\s: en cours$/ })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: /^mardi 10 novembre 2026, Reines\s: en cours$/ })).toBeTruthy();
     expect(screen.getByText('2 jours résolus sur 18')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'record' }));
-    expect(await screen.findByRole('button', { name: /^mardi 10 novembre 2026\s: résolu plus tard$/ })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: /^mardi 10 novembre 2026, Reines\s: résolu plus tard$/ })).toBeTruthy();
     expect(screen.getByText('3 jours résolus sur 18')).toBeTruthy();
   });
 
@@ -262,7 +262,7 @@ describe('écran des archives', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Archive');
     expect(month()).toBe('November 2026');
     expect(screen.getByText('2 of 18 days solved')).toBeTruthy();
-    expect(label('2026-11-03')).toBe('Tuesday, November 3, 2026: solved later');
+    expect(label('2026-11-03')).toBe('Tuesday, November 3, 2026, Binairo: solved later');
     unmount();
 
     setToday(2026, 10, 5);

@@ -71,10 +71,10 @@ describe('archives verrouillées', () => {
     await saveJSON(dailyProgressKey('2026-11-05'), { marks: '0200000', past: ['0000000'] }); // partie entamée
     renderScreen();
 
-    expect(label('2026-11-18')).toBe(`mercredi 18 novembre 2026 (aujourd’hui)${NBSP}: non joué`);
-    expect(label('2026-11-11')).toBe(`mercredi 11 novembre 2026${NBSP}: non joué`); // 7 jours : encore libre
-    expect(label('2026-11-10')).toBe(`mardi 10 novembre 2026${NBSP}: verrouillé`); // 8 jours : verrouillé
-    expect(label('2026-11-09')).toBe(`lundi 9 novembre 2026${NBSP}: verrouillé`);
+    expect(label('2026-11-18')).toBe(`mercredi 18 novembre 2026 (aujourd’hui), Reines${NBSP}: non joué`);
+    expect(label('2026-11-11')).toBe(`mercredi 11 novembre 2026, Binairo${NBSP}: non joué`); // 7 jours : encore libre
+    expect(label('2026-11-10')).toBe(`mardi 10 novembre 2026, Reines${NBSP}: verrouillé`); // 8 jours : verrouillé
+    expect(label('2026-11-09')).toBe(`lundi 9 novembre 2026, Binairo${NBSP}: verrouillé`);
     expect(day('2026-11-10').dataset['status']).toBe('locked');
     expect(day('2026-11-10').querySelector('.archive-day__badge svg')).not.toBeNull(); // cadenas
     expect(day('2026-11-10').disabled).toBe(false);
@@ -86,15 +86,15 @@ describe('archives verrouillées', () => {
     expect(day('2026-11-11').hasAttribute('aria-describedby')).toBe(false);
 
     // Jamais verrouillés : résolu, entamé (lu du stockage), et le futur reste désactivé.
-    expect(label('2026-11-03')).toBe(`mardi 3 novembre 2026${NBSP}: résolu à temps`);
-    expect(await screen.findByRole('button', { name: /^jeudi 5 novembre 2026\s: en cours$/ })).toBeTruthy();
+    expect(label('2026-11-03')).toBe(`mardi 3 novembre 2026, Binairo${NBSP}: résolu à temps`);
+    expect(await screen.findByRole('button', { name: /^jeudi 5 novembre 2026, Binairo\s: en cours$/ })).toBeTruthy();
     expect(lockedDays()).toEqual(['2026-11-01', '2026-11-02', '2026-11-04', '2026-11-06', '2026-11-07', '2026-11-08', '2026-11-09', '2026-11-10']);
     expect(day('2026-11-19').disabled).toBe(true);
   });
 
   it('un jour gelé mais jamais joué est verrouillé comme les autres (le cadenas prend le pas)', () => {
     renderScreen();
-    expect(label('2026-11-04')).toBe(`mercredi 4 novembre 2026${NBSP}: verrouillé`);
+    expect(label('2026-11-04')).toBe(`mercredi 4 novembre 2026, Reines${NBSP}: verrouillé`);
   });
 
   it('légende et explication : « verrouillé » n’apparaît que si le mois affiché compte un jour verrouillé', () => {
@@ -133,8 +133,8 @@ describe('archives verrouillées', () => {
     expect(onOpen).toHaveBeenCalledWith('2026-11-10');
     expect(ads.showRewarded).toHaveBeenCalledTimes(1);
 
-    // Débloqué : plus de cadenas, plus de vidéo, et c'est enregistré.
-    expect(label('2026-11-10')).toBe(`mardi 10 novembre 2026${NBSP}: non joué`);
+    // Débloqué : plus de cadenas, plus de vidéo, et c'est enregistré (l'affichage suit l'ouverture).
+    await waitFor(() => expect(label('2026-11-10')).toBe(`mardi 10 novembre 2026, Reines${NBSP}: non joué`));
     expect(day('2026-11-10').dataset['status']).toBe('none');
     expect(lockedDays()).not.toContain('2026-11-10');
     expect(lockedDays()).toContain('2026-11-09'); // les autres jours restent verrouillés
@@ -156,7 +156,7 @@ describe('archives verrouillées', () => {
 
     expect(onOpen).not.toHaveBeenCalled();
     expect(ads.showRewarded).not.toHaveBeenCalled();
-    expect(label('2026-11-09')).toBe(`lundi 9 novembre 2026${NBSP}: verrouillé`);
+    expect(label('2026-11-09')).toBe(`lundi 9 novembre 2026, Binairo${NBSP}: verrouillé`);
     expect(await loadJSON(MONETIZATION_KEY)).toBeUndefined();
   });
 
@@ -174,7 +174,7 @@ describe('archives verrouillées', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 
     expect(onOpen).not.toHaveBeenCalled();
-    expect(label('2026-11-09')).toBe(`lundi 9 novembre 2026${NBSP}: verrouillé`);
+    expect(label('2026-11-09')).toBe(`lundi 9 novembre 2026, Binairo${NBSP}: verrouillé`);
     expect(await loadJSON(MONETIZATION_KEY)).toBeUndefined();
   });
 
@@ -183,7 +183,7 @@ describe('archives verrouillées', () => {
     const ads = fakeAds();
     setAdsServiceForTesting(ads);
     renderScreen({ onOpen, monetization: { ...EMPTY_MONETIZATION, unlocked: ['2026-11-08'] } });
-    expect(label('2026-11-08')).toBe(`dimanche 8 novembre 2026${NBSP}: non joué`);
+    expect(label('2026-11-08')).toBe(`dimanche 8 novembre 2026, Reines${NBSP}: non joué`);
     fireEvent.click(day('2026-11-08'));
     expect(onOpen).toHaveBeenCalledWith('2026-11-08');
     expect(ads.showRewarded).not.toHaveBeenCalled();
@@ -193,7 +193,7 @@ describe('archives verrouillées', () => {
     const onOpen = vi.fn();
     renderScreen({ onOpen, monetization: { ...EMPTY_MONETIZATION, premium: true } });
     expect(lockedDays()).toEqual([]);
-    expect(label('2026-11-02')).toBe(`lundi 2 novembre 2026${NBSP}: non joué`);
+    expect(label('2026-11-02')).toBe(`lundi 2 novembre 2026, Reines${NBSP}: non joué`);
     expect(legend().map((item) => item.dataset['status'])).toEqual(['solved', 'late', 'frozen', 'progress']);
     expect(screen.queryByText(/derniers jours sont libres/)).toBeNull();
     fireEvent.click(day('2026-11-02'));
@@ -204,7 +204,7 @@ describe('archives verrouillées', () => {
   it('mois précédent : presque tout est verrouillé, sauf le 5 octobre déjà résolu', () => {
     renderScreen();
     fireEvent.click(screen.getByRole('button', { name: 'Mois précédent' }));
-    expect(label('2026-10-05')).toBe(`lundi 5 octobre 2026${NBSP}: résolu à temps`);
+    expect(label('2026-10-05')).toBe(`lundi 5 octobre 2026, Reines${NBSP}: résolu à temps`);
     expect(lockedDays()).toHaveLength(27 - 1); // du 5 au 31 octobre, moins le jour résolu
     expect(lockedDays()).not.toContain('2026-10-05');
     expect(legend().at(-1)!.textContent).toBe('verrouillé');
@@ -213,7 +213,7 @@ describe('archives verrouillées', () => {
   it('anglais : statut, légende et explication traduits', async () => {
     await act(() => setLanguage('en'));
     renderScreen();
-    expect(label('2026-11-10')).toBe('Tuesday, November 10, 2026: locked');
+    expect(label('2026-11-10')).toBe('Tuesday, November 10, 2026, Queens: locked');
     expect(legend().at(-1)!.textContent).toBe('locked');
     expect(screen.getByText(/The last 7 days are free/)).toBeTruthy();
     fireEvent.click(day('2026-11-10'));

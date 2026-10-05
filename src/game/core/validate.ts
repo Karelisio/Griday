@@ -2,6 +2,7 @@
  * Puzzle généré (du jour ou illimité) relu du cache local : métadonnées et grille cohérentes,
  * sinon ignoré (régénéré). Commun à tous les types ; la grille est vérifiée par son type.
  */
+import type { GenerationTarget } from '../../../engine/core/types';
 import type { GameKindUI } from './kind';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -12,6 +13,14 @@ export interface StoredExpectation {
   readonly size?: number;
   /** Grille de secours temps réel acceptée (mode illimité seulement : jamais pour le puzzle du jour). */
   readonly allowEmergency?: boolean;
+}
+
+/**
+ * Cible de génération relue (préférences, partie illimitée) : taille entière (bornée par le type de la
+ * grille, vérifiée à part) et palier valides ; `sizes` : tailles proposées pour ce type.
+ */
+export function isGenerationTarget(v: unknown, sizes?: readonly number[]): v is GenerationTarget {
+  return isRecord(v) && Number.isInteger(v['size']) && (v['size'] as number) > 0 && (!sizes || sizes.includes(v['size'] as number)) && isTier(v['tier']);
 }
 
 export function isStoredGenerated<P>(v: unknown, kind: GameKindUI<P>, expect: StoredExpectation = {}): boolean {

@@ -1,15 +1,21 @@
 import { act, render } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BINAIRO_DEFINITION } from '../../../engine/binairo';
 import { generateDailyForVersion } from '../../../engine/core/pipeline';
 import { queensDailyV1 } from '../../../engine/queens/testing';
+import { haptic } from '../../platform';
 import { loadJSON } from '../../platform/storage';
 import { BINAIRO_RULES } from '../binairo/rules';
 import { QUEENS_RULES } from '../queens/rules';
 import type { GameRules } from './rules';
 import { useGameSession, type GameSession } from './useGameSession';
 
-afterEach(() => localStorage.clear());
+vi.mock('../../platform', async (orig) => ({ ...(await orig<typeof import('../../platform')>()), haptic: vi.fn(async () => {}) }));
+
+afterEach(() => {
+  localStorage.clear();
+  vi.mocked(haptic).mockClear();
+});
 
 const queens = queensDailyV1('2026-10-05');
 const binairo = generateDailyForVersion(BINAIRO_DEFINITION, 1, '2026-10-06').puzzle;
@@ -40,5 +46,18 @@ describe('session de jeu', () => {
       await new Promise((r) => setTimeout(r, 20));
     });
     expect(session?.game?.puzzle).toBe(binairo);
+  });
+
+  it('toucher une case donnée : rien ne change, une vibration le signale', async () => {
+    render(<Harness rules={BINAIRO_RULES as GameRules<unknown>} puzzle={binairo} storageKey="test.locked" />);
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 20));
+    });
+    const given = binairo.givens.findIndex((v) => v !== 0);
+    const before = session!.game!;
+    act(() => session!.gesture({ type: 'tap', cell: given }));
+    expect(session!.game!.marks).toEqual(before.marks);
+    expect(session!.game!.past).toHaveLength(0);
+    expect(vi.mocked(haptic)).toHaveBeenCalledWith('warning');
   });
 });

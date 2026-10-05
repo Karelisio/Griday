@@ -96,7 +96,11 @@
       "proposedMoon": "lune proposée par l’indice"
     },
     "actions": "Actions de jeu",
-    "resetAction": "Effacer"
+    "resetAction": "Effacer",
+    "intro": {
+      "title": "Première partie de {{puzzle}}",
+      "ok": "Compris"
+    }
   },
   "victory": {
     "title": "Bravo !",
@@ -278,6 +282,8 @@
     "nextMonth": "Mois suivant",
     "day": "{{date}} : {{status}}",
     "dayToday": "{{date}} (aujourd’hui) : {{status}}",
+    "dayPuzzle": "{{date}}, {{puzzle}} : {{status}}",
+    "dayTodayPuzzle": "{{date}} (aujourd’hui), {{puzzle}} : {{status}}",
     "status": {
       "solved": "résolu à temps",
       "late": "résolu plus tard",

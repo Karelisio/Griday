@@ -255,11 +255,13 @@ describe('activation par clic synthétique (lecteur d’écran)', () => {
     expect(onGesture).not.toHaveBeenCalled();
   });
 
-  it('une case donnée, la grille hors cases ou désactivée ne réagissent pas', () => {
+  it('la grille hors cases ou désactivée ne réagit pas ; une case donnée transmet le toucher (refusé par la session)', () => {
     const { grid, cell, onGesture, update } = setup();
-    fireEvent.click(cell(GIVEN), { detail: 0 });
     fireEvent.click(grid, { detail: 0 });
     expect(onGesture).not.toHaveBeenCalled();
+    fireEvent.click(cell(GIVEN), { detail: 0 });
+    expect(onGesture).toHaveBeenCalledExactlyOnceWith({ type: 'tap', cell: GIVEN });
+    onGesture.mockClear();
     update({ disabled: true });
     fireEvent.click(cell(FREE), { detail: 0 });
     expect(onGesture).not.toHaveBeenCalled();
@@ -321,11 +323,11 @@ describe('gestes tactiles : un toucher, jamais de glisser-peindre', () => {
     ]);
   });
 
-  it('une case donnée ne réagit jamais', () => {
+  it('une case donnée : le toucher est transmis, la session le refuse (avec une vibration)', () => {
     const { grid, onGesture } = setup();
     fireEvent.pointerDown(grid, { ...finger, ...at(GIVEN) });
     fireEvent.pointerUp(grid, { ...finger, ...at(GIVEN) });
-    expect(onGesture).not.toHaveBeenCalled();
+    expect(onGesture.mock.calls.map((c) => c[0])).toEqual([{ type: 'tap', cell: GIVEN }]);
   });
 
   it('un appui hors des cases ne fait rien', () => {
@@ -479,15 +481,19 @@ describe('clavier', () => {
     expect(tabbable(cells())).toEqual([0]);
   });
 
-  it('les cases données restent atteignables au clavier (lecture), mais sans action', () => {
+  it('les cases données restent atteignables au clavier (lecture) : pas de saisie, Entrée / Espace transmis (refusés par la session)', () => {
     const { cell, onGesture } = setup();
     focus(cell(0));
     expect(cell(0).getAttribute('aria-disabled')).toBe('true');
-    fireEvent.keyDown(cell(0), { key: 'Enter' });
-    fireEvent.keyDown(cell(0), { key: ' ' });
     fireEvent.keyDown(cell(0), { key: '1' });
     fireEvent.keyDown(cell(0), { key: 'Backspace' });
     expect(onGesture).not.toHaveBeenCalled();
+    fireEvent.keyDown(cell(0), { key: 'Enter' });
+    fireEvent.keyDown(cell(0), { key: ' ' });
+    expect(onGesture.mock.calls.map((c) => c[0])).toEqual([
+      { type: 'tap', cell: 0 },
+      { type: 'tap', cell: 0 },
+    ]);
   });
 
   it('un focus donné de l’extérieur (lecteur d’écran, programme) déplace la case tabulable', () => {

@@ -145,9 +145,9 @@ export const BinairoBoard = memo(function BinairoBoard(props: BinairoBoardProps)
     return Number.isInteger(cell) && cell >= 0 && cell < n * n ? cell : null;
   };
 
-  /** Toucher d'une case libre : une case donnée ne réagit jamais. */
+  /** Toucher : transmis même sur une case donnée (la session le refuse, avec un retour haptique). */
   const tap = (cell: number) => {
-    if (!disabled && !isGiven(cell)) onGesture({ type: 'tap', cell });
+    if (!disabled) onGesture({ type: 'tap', cell });
   };
 
   /** Saisie directe (clavier) : la case prend `to` en une seule entrée d'historique (même mécanisme que le glisser). */

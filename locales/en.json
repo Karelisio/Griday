@@ -96,7 +96,11 @@
       "proposedMoon": "moon suggested by the hint"
     },
     "actions": "Game actions",
-    "resetAction": "Clear"
+    "resetAction": "Clear",
+    "intro": {
+      "title": "Your first {{puzzle}} puzzle",
+      "ok": "Got it"
+    }
   },
   "victory": {
     "title": "Well done!",
@@ -278,6 +282,8 @@
     "nextMonth": "Next month",
     "day": "{{date}}: {{status}}",
     "dayToday": "{{date}} (today): {{status}}",
+    "dayPuzzle": "{{date}}, {{puzzle}}: {{status}}",
+    "dayTodayPuzzle": "{{date}} (today), {{puzzle}}: {{status}}",
     "status": {
       "solved": "solved on time",
       "late": "solved later",

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SCHEDULE } from '../../engine/config';
 import { compareISO, type ISODate } from '../../engine/core/date';
+import { typeForDate } from '../../engine/core/schedule';
 import { ArchiveCalendar } from '../archive/ArchiveCalendar';
 import { clampMonth, diffMonths, monthKey, monthOf, playableDays, type MonthRef } from '../archive/calendarModel';
 import { useMonetization } from '../monetization/MonetizationContext';
@@ -23,6 +24,8 @@ const FIRST_DAY = SCHEDULE.epoch;
 export function ArchiveScreen({ visible, onOpen }: { visible: boolean; onOpen: (date: ISODate) => void }) {
   const { t } = useTranslation();
   const { today, ready, history, streak } = useProgress();
+  // Les types alternent d'un jour à l'autre : le nom accessible de chaque jour dit lequel.
+  const puzzleName = useCallback((date: ISODate) => t(`puzzle.${typeForDate(SCHEDULE, date)}.name`), [t]);
   // Mois choisi par le joueur ; `null` tant qu'il reste sur le mois courant, que l'écran suit alors quand le calendrier
   // change de mois (app restée ouverte). S'il s'en est éloigné exprès, son choix est gardé.
   const [picked, setPicked] = useState<MonthRef | null>(null);
@@ -101,6 +104,7 @@ export function ArchiveScreen({ visible, onOpen }: { visible: boolean; onOpen: (
             first={FIRST_DAY}
             status={status}
             locked={locked}
+            puzzleName={puzzleName}
             onSelect={(date) => void select(date)}
           />
           {anyLocked && (

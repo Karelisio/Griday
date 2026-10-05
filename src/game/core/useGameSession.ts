@@ -121,8 +121,10 @@ export function useGameSession<P>(rules: GameRules<P>, { puzzle, storageKey, vis
 
   const act = useCallback((action: GameAction) => dispatch({ type: 'act', rules: rulesRef.current, action }), []);
 
-  // Chronomètre : tourne seulement si l'écran est visible et l'app au premier plan.
-  const running = visible && game !== null && !game.solved;
+  // Chronomètre : tourne seulement si l'écran est visible, l'app au premier plan et la partie pas mise en
+  // attente par la vue (règles affichées à la première partie d'un type, avant le premier coup).
+  const [onHold, setOnHold] = useState(false);
+  const running = visible && !onHold && game !== null && !game.solved;
   useEffect(() => {
     if (!running) return;
     if (appActive.current) act({ type: 'resume', now: now() });
@@ -197,8 +199,12 @@ export function useGameSession<P>(rules: GameRules<P>, { puzzle, storageKey, vis
       const before = gameRef.current;
       if (!before || before.solved) return;
       const t = now();
+      // Case donnée (verrouillée) : rien ne change, une vibration le signale.
+      if ((e.type === 'tap' || e.type === 'doubleTap') && rulesRef.current.locked(before.puzzle, e.cell)) {
+        void haptic('warning');
+        return;
+      }
       if (e.type === 'tap') {
-        if (rulesRef.current.locked(before.puzzle, e.cell)) return;
         const hold = rulesRef.current.holdConflictsAfterTap(before.marks[e.cell]!);
         if (hold) {
           setHeld(shownConflicts.current);
@@ -208,7 +214,6 @@ export function useGameSession<P>(rules: GameRules<P>, { puzzle, storageKey, vis
         act({ type: 'tap', cell: e.cell, now: t });
         void haptic(hold ? 'tap' : 'select');
       } else if (e.type === 'doubleTap') {
-        if (rulesRef.current.locked(before.puzzle, e.cell)) return;
         release();
         act({ type: 'doubleTap', cell: e.cell, now: t });
         void haptic('select');
@@ -265,6 +270,8 @@ export function useGameSession<P>(rules: GameRules<P>, { puzzle, storageKey, vis
     /** Joue les cases d'un indice (une seule entrée d'historique). */
     applyHint,
     elapsed: () => (gameRef.current ? elapsedAt(gameRef.current, now()) : 0),
+    /** Met le chronomètre en attente (vrai) ou le libère (faux). */
+    hold: setOnHold,
   };
 }
 

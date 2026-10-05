@@ -3,7 +3,7 @@
  * barre d'actions, chronomètre, indice expliqué (feuille du bas), règles, carte de victoire.
  */
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Language } from '../i18n';
 import { formatDuration } from '../i18n/format';
@@ -13,6 +13,7 @@ import { pushBackHandler } from '../platform';
 import { springs } from '../theme';
 import { BottomSheet, Button, Card, Dialog, ExtendedFab, IconButton, Icon, InfoChip, useSnackbar } from '../ui';
 import type { GameKindUI, HintInfo } from './core/kind';
+import { useRulesIntro } from './useRulesIntro';
 import type { Mark } from './core/rules';
 import type { GameSession } from './core/useGameSession';
 import { Timer } from './Timer';
@@ -101,6 +102,16 @@ export function GameView<P>({ kind, puzzle, session: api, victoryExtra, victoryC
   const [hintOpen, setHintOpen] = useState(false);
   const [hintLoading, setHintLoading] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  // Première partie de ce type : règles affichées dans la page jusqu'à « Compris » (ou ouverture du dialogue).
+  const intro = useRulesIntro(kind.id);
+  const introTitleId = useId();
+  // Le temps de lecture des règles ne compte pas : chronomètre en attente jusqu'au premier coup ou à « Compris ».
+  const introHold = intro.show && game !== null && !game.solved && game.past.length === 0;
+  const hold = api.hold;
+  useEffect(() => {
+    hold(introHold);
+    return () => hold(false);
+  }, [hold, introHold]);
   const [resetOpen, setResetOpen] = useState(false);
   const [victoryOpen, setVictoryOpen] = useState(true);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -210,6 +221,24 @@ export function GameView<P>({ kind, puzzle, session: api, victoryExtra, victoryC
         {announcement}
       </p>
 
+      {intro.show && !solved && (
+        <Card as="section" className="game__intro" aria-labelledby={introTitleId}>
+          <div className="game__intro-head">
+            <span className="game__intro-icon" aria-hidden="true">
+              <Icon name={kind.icon} size={22} />
+            </span>
+            <h2 id={introTitleId} className="md-typescale-title-medium">
+              {t('game.intro.title', { puzzle: t(`puzzle.${kind.id}.name`) })}
+            </h2>
+          </div>
+          <p className="md-typescale-body-medium">{t(`puzzle.${kind.id}.rules`)}</p>
+          <p className="md-typescale-body-medium game__intro-howto">{t(`puzzle.${kind.id}.howTo`)}</p>
+          <Button variant="tonal" icon="check" onClick={intro.markSeen} className="game__intro-ok">
+            {t('game.intro.ok')}
+          </Button>
+        </Card>
+      )}
+
       <div className="game__status">
         <span className="game__timer-wrap">
           <Icon name="timer" size={20} />
@@ -229,7 +258,14 @@ export function GameView<P>({ kind, puzzle, session: api, victoryExtra, victoryC
             </motion.span>
           )}
         </AnimatePresence>
-        <IconButton icon="help" label={t('game.rules')} onClick={() => setRulesOpen(true)} />
+        <IconButton
+          icon="help"
+          label={t('game.rules')}
+          onClick={() => {
+            setRulesOpen(true);
+            intro.markSeen();
+          }}
+        />
       </div>
 
       <div className="game__board" ref={boardRef}>
