@@ -1,0 +1,539 @@
+/*
+ * Statistiques : tuiles, carte de série, graphiques, tableau. Tout vient des jetons du thème (clair, sombre,
+ * couleurs dynamiques) ; aucune couleur en dur.
+ */
+
+/* ---------- Cartes : surface tonale commune (comme les listes des réglages) ---------- */
+.md-card.stats-card,
+.md-card.stat-tile,
+.md-card.stats-empty {
+  --md-card-container: var(--md-sys-color-surface-container-high);
+}
+
+/*
+ * Graphiques. La surface de la carte sert de référence aux teintes mélangées ci-dessous.
+ * Difficulté = rampe ordinale d'une seule teinte (la couleur primaire), du pâle (facile) à l'intense (expert).
+ * Chaque marche s'éloigne du fond : plus claire au départ en mode clair, plus lumineuse en mode sombre, sans
+ * réglage par mode. Validée au schéma de marque (clair et sombre) : écart de clarté ≥ 0,06 entre marches voisines
+ * et marche la plus pâle à plus de 2:1 du fond ; les valeurs sont aussi lues en toutes lettres (libellés, liste).
+ */
+.md-card.stats-card {
+  --stats-surface: var(--md-card-container);
+  --stats-tier-1: color-mix(in oklab, var(--md-sys-color-primary) 50%, var(--stats-surface));
+  --stats-tier-2: color-mix(in oklab, var(--md-sys-color-primary) 72%, var(--stats-surface));
+  --stats-tier-3: color-mix(in oklab, var(--md-sys-color-primary) 92%, var(--stats-surface));
+  --stats-tier-4: color-mix(in oklab, var(--md-sys-color-on-surface) 30%, var(--md-sys-color-primary));
+  /* Quadrillage et axe : un cran au-dessus de la surface, filets pleins de 1 px. */
+  --stats-grid: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  --stats-axis: color-mix(in srgb, var(--md-sys-color-on-surface) 32%, transparent);
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stats-card [data-tier='1'] {
+  --bar: var(--stats-tier-1);
+}
+
+.stats-card [data-tier='2'] {
+  --bar: var(--stats-tier-2);
+}
+
+.stats-card [data-tier='3'] {
+  --bar: var(--stats-tier-3);
+}
+
+.stats-card [data-tier='4'] {
+  --bar: var(--stats-tier-4);
+}
+
+.stats-card__title {
+  margin: 0;
+}
+
+@keyframes stats-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes stats-grow-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+/* ---------- Tuiles de chiffres clés ---------- */
+.stat-tiles {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.stat-tiles--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stat-tiles--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.md-card.stat-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px 14px 14px;
+  border-radius: var(--md-sys-shape-corner-large);
+}
+
+.stat-tile__label {
+  margin: 0;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.stat-tile__value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 8px;
+  margin: 0;
+  color: var(--md-sys-color-on-surface);
+}
+
+.stat-tile__detail {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Jauge de proportion : piste = la couleur de la jauge en plus pâle. */
+.stat-tile__meter {
+  display: block;
+  flex: 1 0 100%;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--md-sys-color-primary) 20%, transparent);
+}
+
+.stat-tile__meter > span {
+  display: block;
+  width: calc(var(--v) * 100%);
+  height: 100%;
+  border-radius: 3px;
+  background: var(--md-sys-color-primary);
+  transform-origin: left;
+  animation: stats-grow-x var(--md-sys-motion-duration-long2) var(--md-sys-motion-easing-emphasized-decelerate) backwards;
+}
+
+/* ---------- Carte de série (héros) ---------- */
+.md-card.streak-card {
+  /* Contenu ramené sur « on-primary-container » : contraste garanti sur ce fond (comme la carte de victoire). */
+  --md-sys-color-on-surface-variant: var(--md-sys-color-on-primary-container);
+  --md-sys-color-outline-variant: color-mix(in srgb, var(--md-sys-color-on-primary-container) 38%, transparent);
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.streak-card .md-chip {
+  --md-chip-icon: var(--md-sys-color-on-primary-container);
+}
+
+.streak-card__head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.streak-card__title {
+  margin: 0;
+}
+
+/* Pastille de flamme et chiffre héros sur une même ligne de 64 px (interligne du chiffre). */
+.streak-card__row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.streak-card__flame {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--md-sys-shape-corner-large-increased);
+  background: var(--md-sys-color-on-primary-container);
+  color: var(--md-sys-color-primary-container);
+}
+
+/* Chiffre héros : chasse proportionnelle (pas de chiffres tabulaires), même police que le reste. */
+.streak-card__count {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+}
+
+.streak-card__freezes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--md-sys-color-on-primary-container) 24%, transparent);
+}
+
+.streak-card__freezes-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.streak-card__freezes-head h3,
+.streak-card__explain {
+  margin: 0;
+}
+
+.streak-card__slots {
+  display: inline-flex;
+  gap: 8px;
+}
+
+/* Gel disponible : disque plein ; emplacement vide : anneau et flocon estompé (la forme porte l'état). */
+.streak-card__slot {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: color-mix(in srgb, var(--md-sys-color-on-primary-container) 55%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--md-sys-color-on-primary-container) 45%, transparent);
+}
+
+.streak-card__slot[data-filled] {
+  background: var(--md-sys-color-on-primary-container);
+  color: var(--md-sys-color-primary-container);
+  box-shadow: none;
+}
+
+.streak-card__status {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--md-sys-shape-corner-large);
+  background: color-mix(in srgb, var(--md-sys-color-on-primary-container) 12%, transparent);
+}
+
+/* ---------- Graphique 1 : temps moyen par difficulté ---------- */
+.tier-chart {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Lignes jointives (marge en padding) : le filet de base reste continu d'une ligne à l'autre. */
+.tier-chart__row {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  grid-template-areas:
+    'name track'
+    'count track';
+  align-items: center;
+  column-gap: 12px;
+  padding-block: 6px;
+}
+
+.tier-chart__name {
+  grid-area: name;
+  align-self: end;
+  color: var(--md-sys-color-on-surface);
+}
+
+.tier-chart__count {
+  grid-area: count;
+  align-self: start;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.tier-chart__track {
+  display: flex;
+  grid-area: track;
+  align-items: center;
+  align-self: stretch;
+  gap: 8px;
+  min-height: 32px;
+  border-inline-start: 1px solid var(--stats-axis);
+}
+
+/* Barre fine (16 px), droite à la base et arrondie au bout ; 3,5 rem réservés à la valeur, posée au bout. */
+.tier-chart__bar {
+  flex: none;
+  width: calc((100% - 3.5rem) * var(--v));
+  height: 16px;
+  border-radius: 0 4px 4px 0;
+  background: var(--bar);
+  transform-origin: left;
+  animation: stats-grow-x var(--md-sys-motion-duration-long2) var(--md-sys-motion-easing-emphasized-decelerate) backwards;
+  animation-delay: calc(var(--i) * 70ms);
+}
+
+.tier-chart__row[data-empty] .tier-chart__bar {
+  display: none;
+}
+
+.tier-chart__value {
+  color: var(--md-sys-color-on-surface);
+}
+
+.tier-chart__row[data-empty] .tier-chart__value {
+  padding-inline-start: 8px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* ---------- Graphique 2 : évolution des temps ---------- */
+.recent-chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.recent-chart__legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.recent-chart__swatch {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin-inline-end: 6px;
+  border-radius: 2px;
+  background: var(--bar, var(--md-sys-color-on-surface-variant));
+}
+
+.recent-chart__legend li .recent-chart__swatch {
+  margin-inline-end: 0;
+}
+
+/* Puzzle d'archive : hachures à 45° dans la couleur de la difficulté, cernées d'un filet de 1 px. */
+.stats-card [data-archive] {
+  --hatch: repeating-linear-gradient(135deg, var(--bar, currentColor) 0 1.5px, transparent 1.5px 3.5px);
+}
+
+.recent-chart__legend [data-archive] .recent-chart__swatch {
+  background: var(--hatch);
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+/* Détail du puzzle choisi : hauteur réservée pour que le tracé ne bouge pas pendant le glissement. */
+.recent-chart__readout {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 3.625rem;
+  margin: 0;
+}
+
+.recent-chart__readout > :first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--md-sys-color-on-surface);
+}
+
+.recent-chart__readout .recent-chart__swatch {
+  margin: 0;
+}
+
+.recent-chart__readout > :last-child {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.recent-chart {
+  --plot-h: 144px;
+
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 8px;
+  row-gap: 6px;
+}
+
+/* Graduations en flux normal (la colonne s'élargit avec le texte), centrées sur les filets du tracé. */
+.recent-chart__ticks {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: space-between;
+  height: calc(var(--plot-h) + 16px);
+  margin-block: -8px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.recent-chart__plot {
+  position: relative;
+  height: var(--plot-h);
+}
+
+/* Quadrillage : un filet en haut de chaque intervalle (--k intervalles), l'axe de base en bordure. */
+.recent-chart__bars {
+  display: flex;
+  height: 100%;
+  border-bottom: 1px solid var(--stats-axis);
+  background-image: linear-gradient(to bottom, var(--stats-grid) 1px, transparent 1px);
+  background-repeat: repeat-y;
+  background-size: 100% calc(100% / var(--k));
+}
+
+.recent-chart__slot {
+  display: flex;
+  flex: 1 1 0;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 0;
+  border-radius: 4px;
+}
+
+.recent-chart__slot[data-selected] {
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+}
+
+/* Colonne fine (24 px au plus), 2 px d'air entre voisines, arrondie en haut, posée sur l'axe. */
+.recent-chart__bar {
+  width: min(calc(100% - 2px), 24px);
+  height: calc(var(--h) * 100%);
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background: var(--bar);
+  transform-origin: bottom;
+  animation: stats-grow-y var(--md-sys-motion-duration-long2) var(--md-sys-motion-easing-emphasized-decelerate) backwards;
+  animation-delay: calc(var(--i) * 12ms);
+}
+
+.recent-chart__bar[data-archive] {
+  background: var(--hatch);
+  box-shadow: inset 0 0 0 1px var(--bar);
+}
+
+/* Temps hors échelle : colonne pleine hauteur, coupée d'une rupture en biais près du sommet. */
+.recent-chart__bar[data-clipped] {
+  -webkit-mask-image: linear-gradient(160deg, #000 0 8px, transparent 8px 11px, #000 11px);
+  mask-image: linear-gradient(160deg, #000 0 8px, transparent 8px 11px, #000 11px);
+}
+
+.recent-chart__axis {
+  display: flex;
+  grid-column: 2;
+  justify-content: space-between;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/*
+ * Curseur invisible sur tout le tracé : toucher, glissement, clavier et rôle « slider » sans code de gestes.
+ * Son curseur fait une colonne de large : sa course va du centre de la première au centre de la dernière,
+ * et chaque colonne correspond exactement à une valeur.
+ */
+.recent-chart__scrub {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  opacity: 0;
+  cursor: pointer;
+  touch-action: pan-y;
+  appearance: none;
+}
+
+.recent-chart__scrub::-webkit-slider-thumb {
+  width: calc(100% / var(--n));
+  height: 100%;
+  appearance: none;
+}
+
+.recent-chart__scrub::-moz-range-thumb {
+  width: calc(100% / var(--n));
+  height: 100%;
+  border: 0;
+}
+
+.recent-chart__scrub:focus-visible {
+  outline: none;
+}
+
+.recent-chart__plot:has(.recent-chart__scrub:focus-visible) {
+  border-radius: 4px;
+  outline: 3px solid var(--md-sys-color-secondary);
+  outline-offset: 2px;
+}
+
+/* ---------- Tableau par taille (mode illimité) ---------- */
+.size-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.size-table th,
+.size-table td {
+  padding: 10px 0 10px 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.size-table th:first-child {
+  padding-inline-start: 0;
+  text-align: start;
+}
+
+.size-table thead th {
+  color: var(--md-sys-color-on-surface-variant);
+  font-weight: inherit;
+  vertical-align: bottom;
+}
+
+.size-table tbody tr {
+  border-top: 1px solid var(--stats-grid);
+}
+
+.size-table tbody th {
+  font-weight: 500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stat-tile__meter > span,
+  .tier-chart__bar,
+  .recent-chart__bar {
+    animation: none;
+  }
+}
+
+/* Contraste forcé : les barres et jauges gardent leurs teintes (les fonds seraient sinon écrasés). */
+@media (forced-colors: active) {
+  .stat-tile__meter,
+  .stat-tile__meter > span,
+  .tier-chart__bar,
+  .recent-chart__bar,
+  .recent-chart__swatch,
+  .streak-card__slot {
+    forced-color-adjust: none;
+  }
+}

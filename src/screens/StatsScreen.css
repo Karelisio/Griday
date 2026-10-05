@@ -1,0 +1,45 @@
+/* Écran des statistiques : sections et état vide (tuiles et graphiques : `stats/stats.css`). */
+.stats__group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stats__section {
+  margin: 8px 4px 0;
+  color: var(--md-sys-color-primary);
+}
+
+.stats__note {
+  margin: 0 4px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.md-card.stats-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.stats-empty h2,
+.stats-empty p {
+  margin: 0;
+}
+
+.stats-empty p {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.stats-empty__icon {
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 80px;
+  margin-bottom: 8px;
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}

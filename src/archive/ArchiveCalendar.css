@@ -1,0 +1,245 @@
+/*
+ * Calendrier des archives — esprit du sélecteur de date M3 : disques de 40 px dans des cases de 48 px,
+ * état de chaque jour = couleur de conteneur + pastille de coin (la forme de l'icône double la couleur).
+ */
+.archive-cal {
+  --archive-cal-bg: var(--md-sys-color-surface-container);
+  --archive-day-size: 40px;
+
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 420px;
+  margin-inline: auto;
+  padding: 8px 8px 12px;
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  background: var(--archive-cal-bg);
+  color: var(--md-sys-color-on-surface);
+}
+
+/* --- Couleurs des états (jour du calendrier et légende) --- */
+.archive-cal [data-status='solved'] {
+  --status-bg: var(--md-sys-color-primary-container);
+  --status-fg: var(--md-sys-color-on-primary-container);
+  --badge-bg: var(--md-sys-color-primary);
+  --badge-fg: var(--md-sys-color-on-primary);
+}
+
+.archive-cal [data-status='late'] {
+  --status-bg: var(--md-sys-color-secondary-container);
+  --status-fg: var(--md-sys-color-on-secondary-container);
+  --badge-bg: var(--md-sys-color-secondary);
+  --badge-fg: var(--md-sys-color-on-secondary);
+}
+
+.archive-cal [data-status='frozen'] {
+  --status-bg: var(--md-sys-color-tertiary-container);
+  --status-fg: var(--md-sys-color-on-tertiary-container);
+  --badge-bg: var(--md-sys-color-tertiary);
+  --badge-fg: var(--md-sys-color-on-tertiary);
+}
+
+/* --- En-tête : mois précédent / titre / mois suivant --- */
+.archive-cal__header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 48px;
+}
+
+.archive-cal__title {
+  flex: 1;
+  margin: 0;
+  text-align: center;
+  color: var(--md-sys-color-on-surface);
+}
+
+.archive-cal__title::first-letter {
+  text-transform: uppercase;
+}
+
+/* --- Grille : lignes de sept colonnes ; le balayage horizontal est géré en JS, le défilement vertical reste natif --- */
+.archive-cal__grid {
+  touch-action: pan-y;
+}
+
+.archive-cal__row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.archive-cal__weekdays {
+  align-items: center;
+  height: 36px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.archive-cal__weekday {
+  text-align: center;
+}
+
+.archive-cal__cell {
+  display: flex;
+  justify-content: center;
+  height: 48px;
+}
+
+/* --- Jour --- */
+.archive-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.archive-day__disc {
+  --disc-bg: var(--status-bg, transparent);
+  --disc-fg: var(--status-fg, var(--md-sys-color-on-surface));
+  --disc-ring: transparent;
+
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  width: min(100%, var(--archive-day-size));
+  aspect-ratio: 1;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--disc-bg);
+  color: var(--disc-fg);
+  box-shadow: inset 0 0 0 2px var(--disc-ring);
+  transition:
+    border-radius var(--md-sys-motion-spring-fast-spatial-duration) var(--md-sys-motion-spring-fast-spatial),
+    background-color var(--md-sys-motion-spring-default-effects-duration) var(--md-sys-motion-spring-default-effects);
+}
+
+/* Aujourd'hui : contour ; sans fond d'état, le chiffre prend la couleur primaire. */
+.archive-day[data-today] .archive-day__disc {
+  --disc-ring: var(--md-sys-color-primary);
+}
+
+.archive-day[data-today]:is([data-status='none'], [data-status='progress']) .archive-day__disc {
+  --disc-fg: var(--md-sys-color-primary);
+}
+
+/* Jours hors de l'intervalle jouable. */
+.archive-day:disabled {
+  cursor: default;
+}
+
+.archive-day:disabled .archive-day__disc {
+  --disc-fg: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+
+/* Couche d'état (survol, focus clavier, appui) et forme qui se resserre à l'appui. */
+.archive-day__disc::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity var(--md-sys-motion-duration-short2) linear;
+}
+
+@media (hover: hover) {
+  .archive-day:hover:not(:disabled) .archive-day__disc::before {
+    opacity: var(--md-sys-state-hover-opacity);
+  }
+}
+
+.archive-day:focus-visible {
+  outline: none;
+}
+
+.archive-day:focus-visible .archive-day__disc {
+  outline: 3px solid var(--md-sys-color-secondary);
+  outline-offset: 2px;
+}
+
+.archive-day:focus-visible .archive-day__disc::before {
+  opacity: var(--md-sys-state-focus-opacity);
+}
+
+.archive-day:active:not(:disabled) .archive-day__disc {
+  border-radius: var(--md-sys-shape-corner-medium);
+}
+
+.archive-day:active:not(:disabled) .archive-day__disc::before {
+  opacity: var(--md-sys-state-pressed-opacity);
+}
+
+/* Pastille de coin (couronne, coche, flocon) : liseré de la couleur du fond pour la détacher du disque. */
+.archive-day__badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--badge-bg);
+  color: var(--badge-fg);
+  box-shadow: 0 0 0 2px var(--archive-cal-bg);
+}
+
+/* Partie entamée : point sous le chiffre. */
+.archive-day__dot {
+  position: absolute;
+  bottom: 7px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--md-sys-color-primary);
+}
+
+/* --- Légende --- */
+.archive-cal__legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 16px;
+  margin: 4px 8px 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+  list-style: none;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.archive-cal__key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.archive-cal__swatch {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--badge-bg, transparent);
+  color: var(--badge-fg);
+}
+
+.archive-cal__swatch .archive-day__dot {
+  position: static;
+}
+
+.archive-cal__label::first-letter {
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .archive-day__disc {
+    transition: none;
+  }
+}

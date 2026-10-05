@@ -1,0 +1,25 @@
+/* Archives : état vide (aucun jour passé), centré sous l'en-tête commun des écrans. */
+.archive__empty {
+  min-height: 50vh;
+  padding-inline: 16px;
+}
+
+.archive__empty-icon {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.archive__empty-title {
+  margin: 0;
+  color: var(--md-sys-color-on-surface);
+}
+
+.archive__empty p {
+  max-width: 28em;
+  margin: 0;
+}
