@@ -36,7 +36,12 @@ import { QUEENS_MAX_SIZE, QUEENS_MIN_SIZE, type QueensSolvedPuzzle } from './typ
 
 /** Réglages de forme. Les tailles sont relatives à n (taille moyenne d'une région = n cases). */
 export interface QueensShapeParams {
-  /** Taille minimale d'une région (1 = région réduite à sa reine permise). */
+  /**
+   * Nombre de régions réduites à leur reine [min, max] (reine donnée : levier principal des grilles
+   * faciles). Ces régions ne grandissent jamais ; minSize ne s'applique qu'aux autres.
+   */
+  readonly singleRegions: readonly [number, number];
+  /** Taille minimale des autres régions (1 = croissance libre ; ≥ 2 conseillé). */
   readonly minSize: number;
   /** Taille maximale souple, en % de n : dépassée seulement si rien d'autre n'est possible. */
   readonly maxSizePct: number;
@@ -63,6 +68,7 @@ export interface QueensShapeParams {
  */
 export const QUEENS_SHAPE_PRESETS: Readonly<Record<string, QueensShapeParams>> = freezePresets({
   easy: {
+    singleRegions: [1, 1],
     minSize: 2,
     maxSizePct: 220,
     smallRegions: [3, 4],
@@ -73,6 +79,7 @@ export const QUEENS_SHAPE_PRESETS: Readonly<Record<string, QueensShapeParams>> =
     diagonalPct: 100,
   },
   medium: {
+    singleRegions: [0, 0],
     minSize: 2,
     maxSizePct: 200,
     smallRegions: [1, 2],
@@ -83,6 +90,7 @@ export const QUEENS_SHAPE_PRESETS: Readonly<Record<string, QueensShapeParams>> =
     diagonalPct: 120,
   },
   hard: {
+    singleRegions: [0, 0],
     minSize: 3,
     maxSizePct: 180,
     smallRegions: [0, 1],
@@ -93,6 +101,7 @@ export const QUEENS_SHAPE_PRESETS: Readonly<Record<string, QueensShapeParams>> =
     diagonalPct: 100,
   },
   expert: {
+    singleRegions: [0, 0],
     minSize: 3,
     maxSizePct: 170,
     smallRegions: [0, 0],
@@ -108,6 +117,7 @@ function freezePresets(
   presets: Record<string, QueensShapeParams>,
 ): Readonly<Record<string, QueensShapeParams>> {
   for (const p of Object.values(presets)) {
+    Object.freeze(p.singleRegions);
     Object.freeze(p.smallRegions);
     Object.freeze(p.neighborWeights);
     Object.freeze(p);
@@ -131,6 +141,16 @@ const MAX_REPAIRS_PER_LINE = 4;
 const REPAIR_SCAN = 4;
 /** Vérifications max des stratégies a et b d'une réparation, par ligne de grille. */
 const REPAIR_CHECKS_PER_LINE = 3;
+/** Réparations sans nouveau record de cases libres avant une secousse. */
+const STALL_REPAIRS = 4;
+/** Rayon (Chebyshev) de la secousse autour d'une case bloquée. */
+const SHAKE_RADIUS = 2;
+/** Taille max d'une branche libérée par la secousse. */
+const SHAKE_MAX_BRANCH = 6;
+/** Déplacements max de l'équilibrage final, par ligne de grille. */
+const BALANCE_MOVES_PER_LINE = 3;
+/** Essais max par déplacement d'équilibrage. */
+const BALANCE_TRIES = 8;
 /** Pas max de la recherche de solution initiale. */
 const MAX_SOLUTION_STEPS = 100_000;
 /** Plafond d'un poids de tirage (somme < 2^32 garantie). */
@@ -158,6 +178,8 @@ function checkShape(s: QueensShapeParams): void {
   const int = (v: number, lo: number, hi: number, name: string): void => {
     if (!Number.isInteger(v) || v < lo || v > hi) throw new RangeError(`QueensShapeParams.${name} invalide : ${v}`);
   };
+  int(s.singleRegions[0], 0, QUEENS_MAX_SIZE, 'singleRegions[0]');
+  int(s.singleRegions[1], s.singleRegions[0], QUEENS_MAX_SIZE, 'singleRegions[1]');
   int(s.minSize, 1, 8, 'minSize');
   int(s.maxSizePct, 100, 1000, 'maxSizePct');
   int(s.smallRegions[0], 0, QUEENS_MAX_SIZE, 'smallRegions[0]');
@@ -227,6 +249,8 @@ class Builder {
   private readonly reg: Int8Array;
   private readonly size: Int16Array;
   private readonly target: Int16Array;
+  /** Régions réduites à leur reine : jamais agrandies. */
+  private readonly frozen: Uint8Array;
   private readonly maxSize: number;
   /** rowMask[g * n + r] : colonnes de la région g dans la ligne r. */
   private readonly rowMask: Int32Array;
@@ -308,6 +332,7 @@ class Builder {
     this.regWeight = new Int32Array(n);
 
     this.maxSize = Math.max(shape.minSize + 1, Math.ceil((shape.maxSizePct * n) / 100));
+    this.frozen = new Uint8Array(n);
     this.target = this.drawTargets();
     for (let r = 0; r < n; r++) {
       const x = r * n + sol[r]!;
@@ -325,14 +350,29 @@ class Builder {
     const maxRepairs = MAX_REPAIRS_PER_LINE * n;
     if (!this.growToMinSize()) return null;
     let repairs = 0;
+    let bestFree = this.cells;
+    let stall = 0;
     for (let step = 0; this.free > 0; step++) {
       if (this.aborted || step >= maxSteps || this.checks >= maxChecks) return null;
       if (this.fillPockets()) continue;
       if (this.growStep()) continue;
-      if (++repairs > maxRepairs || !this.repair()) return null;
+      if (++repairs > maxRepairs) return null;
+      // Blocage sans progrès (cycle de réparations) : secousse locale.
+      if (this.free < bestFree) {
+        bestFree = this.free;
+        stall = 0;
+      } else if (++stall >= STALL_REPAIRS) {
+        stall = 0;
+        if (this.shake()) continue;
+      }
+      if (!this.repair()) return null;
     }
+    if (this.aborted || !this.fillSmall(maxChecks)) return null;
+    this.balance(maxChecks);
     if (this.aborted) return null;
-    for (let g = 0; g < n; g++) if (this.size[g]! < this.shape.minSize) return null;
+    for (let g = 0; g < n; g++) {
+      if (this.frozen[g] ? this.size[g] !== 1 : this.size[g]! < this.shape.minSize) return null;
+    }
     // Contrôle final indépendant de l'invariant : grille complète, au plus 2 solutions.
     if (this.countAll(2) !== 1 || this.aborted) return null;
     for (let r = 0; r < n; r++) if (this.found[r] !== this.sol[r]) return null;
@@ -351,14 +391,22 @@ class Builder {
     const order: number[] = [];
     for (let g = 0; g < n; g++) order.push(g);
     rng.shuffle(order);
-    const small = Math.min(rng.range(shape.smallRegions[0], shape.smallRegions[1]), n - 1);
+    // Ordre tiré : d'abord les régions réduites à leur reine, puis les petites, puis les autres.
+    const singles = Math.min(rng.range(shape.singleRegions[0], shape.singleRegions[1]), n - 1);
+    const small = Math.min(rng.range(shape.smallRegions[0], shape.smallRegions[1]), n - 1 - singles);
     let rest = this.cells;
-    for (let i = 0; i < small; i++) {
+    for (let i = 0; i < singles; i++) {
+      t[order[i]!] = 1;
+      this.frozen[order[i]!] = 1;
+      rest--;
+    }
+    for (let i = singles; i < singles + small; i++) {
       const s = rng.range(shape.minSize, shape.smallMaxSize);
       t[order[i]!] = s;
       rest -= s;
     }
-    const m = n - small;
+    const first = singles + small;
+    const m = n - first;
     const w = new Int32Array(m);
     let wsum = 0;
     for (let i = 0; i < m; i++) {
@@ -367,12 +415,14 @@ class Builder {
     }
     let acc = 0;
     for (let i = 0; i < m; i++) {
-      const s = Math.floor((rest * w[i]!) / wsum);
-      t[order[small + i]!] = s;
+      const s = Math.floor((Math.max(rest, 0) * w[i]!) / wsum);
+      t[order[first + i]!] = s;
       acc += s;
     }
-    for (let i = 0; acc < rest; i++, acc++) t[order[small + (i % m)]!]!++;
-    for (let g = 0; g < n; g++) t[g] = Math.min(Math.max(t[g]!, shape.minSize), this.maxSize);
+    for (let i = 0; acc < rest; i++, acc++) t[order[first + (i % m)]!]!++;
+    for (let g = 0; g < n; g++) {
+      if (!this.frozen[g]) t[g] = Math.min(Math.max(t[g]!, shape.minSize), this.maxSize);
+    }
     return t;
   }
 
@@ -456,7 +506,7 @@ class Builder {
       const y = this.nb[x * 4 + d]!;
       if (y < 0) continue;
       const g = this.reg[y]!;
-      if (g < 0 || g === except || (seen >>> g) & 1) continue;
+      if (g < 0 || g === except || (seen >>> g) & 1 || this.frozen[g]) continue;
       seen |= 1 << g;
       out[k++] = g;
     }
@@ -565,7 +615,7 @@ class Builder {
       let ties = 0;
       for (let g = 0; g < n; g++) {
         const s = size[g]!;
-        if (s >= minSize) continue;
+        if (s >= minSize || this.frozen[g]) continue;
         const f = frontier[g]!;
         if (s < bestSize || (s === bestSize && f < bestFrontier)) {
           bestSize = s;
@@ -604,7 +654,7 @@ class Builder {
       }
       if (!placed) return false;
     }
-    for (let g = 0; g < n; g++) if (size[g]! < minSize) return false;
+    for (let g = 0; g < n; g++) if (size[g]! < minSize && !this.frozen[g]) return false;
     return true;
   }
 
@@ -653,7 +703,7 @@ class Builder {
           const z = nb[x * 4 + d]!;
           if (z >= 0 && reg[z]! >= 0) g = reg[z]!;
         }
-        if (g < 0 || this.blocked(x, g)) continue;
+        if (g < 0 || this.frozen[g] || this.blocked(x, g)) continue;
         if (this.tryPlace(x, g)) {
           this.free--;
           placed = progress = true;
@@ -686,7 +736,7 @@ class Builder {
         const g = reg[y]!;
         if (g < 0 || (seen >>> g) & 1) continue;
         seen |= 1 << g;
-        if (this.blocked(x, g)) continue;
+        if (this.frozen[g] || this.blocked(x, g)) continue;
         this.pairBuf[pairs++] = x * n + g;
         regionsWithPairs |= 1 << g;
       }
@@ -718,6 +768,93 @@ class Builder {
     const x = this.pairBuf[this.pickWeighted(count)]!;
     if (this.tryPlace(x, g)) this.free--;
     return true;
+  }
+
+  // ─── Équilibrage ───────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Régions passées sous minSize (réparation, passe 1) : une case voisine retirable les rejoint, si
+   * c'est sûr. Faux si une région reste trop petite.
+   */
+  private fillSmall(maxChecks: number): boolean {
+    const { n, nb, reg, size } = this;
+    for (let g = 0; g < n; g++) {
+      if (this.frozen[g]) continue;
+      while (size[g]! < this.shape.minSize) {
+        if (this.checks >= maxChecks) return false;
+        let count = 0;
+        for (let y = 0; y < this.cells; y++) {
+          const h = reg[y]!;
+          if (h < 0 || h === g) continue;
+          let adj = false;
+          for (let d = 0; d < 4 && !adj; d++) {
+            const z = nb[y * 4 + d]!;
+            adj = z >= 0 && reg[z] === g;
+          }
+          if (!adj || !this.removable(y)) continue;
+          this.pairBuf[count] = y;
+          this.weightBuf[count++] = this.shapeWeight(y, g);
+        }
+        let moved = false;
+        for (let t = 0; t < BALANCE_TRIES && count > 0 && !moved; t++) {
+          const i = this.pickWeighted(count);
+          moved = this.moveCell(this.pairBuf[i]!, g);
+          if (this.aborted) return false;
+          count--;
+          this.pairBuf[i] = this.pairBuf[count]!;
+          this.weightBuf[i] = this.weightBuf[count]!;
+        }
+        if (!moved) return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Grille complète et unique : la plus grande région au-delà de maxSize cède une case de bord à une
+   * voisine plus petite (≤ maxSize après coup), si c'est sûr. Une région qui ne peut rien céder est
+   * laissée telle quelle (maxSize reste souple). Borné en déplacements et en vérifications.
+   */
+  private balance(maxChecks: number): void {
+    const { n, nb, reg, size, maxSize } = this;
+    let skip = 0;
+    for (let move = 0; move < BALANCE_MOVES_PER_LINE * n && this.checks < maxChecks; move++) {
+      let big = -1;
+      for (let g = 0; g < n; g++) {
+        if ((skip >>> g) & 1 || size[g]! <= maxSize) continue;
+        if (big < 0 || size[g]! > size[big]!) big = g;
+      }
+      if (big < 0) return;
+      // Paires (y, h) : y de bord de `big`, retirable ; h voisine, plus petite d'au moins 2.
+      let count = 0;
+      for (let y = 0; y < this.cells; y++) {
+        if (reg[y] !== big) continue;
+        let seen = 0;
+        let ok = -1;
+        for (let d = 0; d < 4; d++) {
+          const z = nb[y * 4 + d]!;
+          if (z < 0) continue;
+          const h = reg[z]!;
+          if (h === big || (seen >>> h) & 1 || this.frozen[h] || size[h]! >= maxSize || size[h]! + 2 > size[big]!) continue;
+          seen |= 1 << h;
+          if (ok < 0) ok = this.removable(y) ? 1 : 0;
+          if (ok === 0) break;
+          this.pairBuf[count] = y * n + h;
+          this.weightBuf[count++] = this.shapeWeight(y, h);
+        }
+      }
+      let moved = false;
+      for (let t = 0; t < BALANCE_TRIES && count > 0 && !moved; t++) {
+        const i = this.pickWeighted(count);
+        const p = this.pairBuf[i]!;
+        moved = this.moveCell((p / n) | 0, p % n);
+        if (this.aborted) return;
+        count--;
+        this.pairBuf[i] = this.pairBuf[count]!;
+        this.weightBuf[i] = this.weightBuf[count]!;
+      }
+      if (!moved) skip |= 1 << big;
+    }
   }
 
   // ─── Réparation (blocage) ──────────────────────────────────────────────────────────────────────
@@ -774,6 +911,32 @@ class Builder {
     if (!this.tryPlace(y, h)) return false;
     this.invalidate(y);
     return true;
+  }
+
+  /**
+   * Secousse : libère les cases (hors reines) autour d'une case bloquée, avec leurs branches
+   * courtes ; la zone sera regrandie autrement. Toujours sûr (retirer n'ôte que des solutions).
+   */
+  private shake(): boolean {
+    if (this.stuckCells() === 0) return false;
+    const n = this.n;
+    const x = this.cellBuf2[0]!;
+    const r0 = (x / n) | 0;
+    const c0 = x % n;
+    let released = 0;
+    for (let r = Math.max(0, r0 - SHAKE_RADIUS); r <= Math.min(n - 1, r0 + SHAKE_RADIUS); r++) {
+      for (let c = Math.max(0, c0 - SHAKE_RADIUS); c <= Math.min(n - 1, c0 + SHAKE_RADIUS); c++) {
+        const z = r * n + c;
+        if (this.reg[z]! < 0) continue;
+        const cut = this.branchOf(z, 1);
+        if (cut < 0 || cut > SHAKE_MAX_BRANCH) continue;
+        const branch = this.cellBuf.slice(0, cut);
+        this.release(z);
+        for (let i = 0; i < cut; i++) this.release(branch[i]!);
+        released++;
+      }
+    }
+    return released > 0;
   }
 
   /** Le témoin de (x, g) passe-t-il par la case y ? */
