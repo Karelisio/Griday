@@ -61,14 +61,43 @@ jobs:
       - name: Keystore et identifiants AdMob
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
           ADMOB_REWARDED_ID: ${{ secrets.ADMOB_REWARDED_ID }}
           ADMOB_INTERSTITIAL_ID: ${{ secrets.ADMOB_INTERSTITIAL_ID }}
         run: |
           if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
-            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
-            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
-            echo "BUILD_TYPE=release" >> "$GITHUB_ENV"
+            keystore="$RUNNER_TEMP/release.jks"
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+            if [ -z "$ANDROID_KEYSTORE_PASSWORD" ]; then
+              echo "::error::Secret ANDROID_KEYSTORE_PASSWORD manquant (mot de passe du keystore)."
+              exit 1
+            fi
+            # (Sortie lue avant filtrage : sans pipefail, l'échec de keytool dans un tube passerait inaperçu.)
+            if ! listing=$(keytool -J-Duser.language=en -list -v -keystore "$keystore" -storepass "$ANDROID_KEYSTORE_PASSWORD" 2>&1); then
+              echo "::error::Keystore illisible : ANDROID_KEYSTORE_BASE64 (base64 -w0 du fichier .jks) ou ANDROID_KEYSTORE_PASSWORD incorrect."
+              exit 1
+            fi
+            aliases=$(printf '%s\n' "$listing" | sed -n 's/^Alias name: //p')
+            alias="$ANDROID_KEY_ALIAS"
+            if [ -z "$alias" ]; then
+              # Alias non fourni : celui de l'unique clé du keystore.
+              if [ "$(printf '%s\n' "$aliases" | grep -c .)" -ne 1 ]; then
+                echo "::error::Secret ANDROID_KEY_ALIAS manquant, et le keystore ne contient pas une seule clé (alias : $(echo $aliases))."
+                exit 1
+              fi
+              alias="$aliases"
+              echo "::notice::Alias de signature déduit du keystore : $alias"
+            elif ! printf '%s\n' "$aliases" | grep -qxF "$alias"; then
+              echo "::error::Alias « $alias » absent du keystore (secret ANDROID_KEY_ALIAS) ; alias présents : $(echo $aliases)."
+              exit 1
+            fi
+            {
+              echo "ANDROID_KEYSTORE_PATH=$keystore"
+              echo "ANDROID_KEY_ALIAS=$alias"
+              echo "BUILD_TYPE=release"
+            } >> "$GITHUB_ENV"
             if [ "$VITE_ADS" = true ]; then
               if [ -n "$ADMOB_APP_ID" ] && [ -n "$ADMOB_REWARDED_ID" ] && [ -n "$ADMOB_INTERSTITIAL_ID" ]; then
                 {
@@ -97,8 +126,8 @@ jobs:
       - name: Gradle
         working-directory: android
         env:
+          # (Alias : celui validé à l'étape « Keystore », déjà dans l'environnement.)
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           if [ "$BUILD_TYPE" = release ]; then

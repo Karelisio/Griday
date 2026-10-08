@@ -64,7 +64,9 @@ Version de release signée : définir `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE
 | Secret / variable | Rôle |
 | --- | --- |
 | `ANDROID_KEYSTORE_BASE64` | Keystore de publication encodé en base64 (`base64 -w0 release.jks`). Absent : APK de debug. |
-| `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | Mots de passe et alias de la clé. |
+| `ANDROID_KEYSTORE_PASSWORD` | Mot de passe du keystore (obligatoire avec le keystore). |
+| `ANDROID_KEY_ALIAS` | Alias de la clé ; facultatif si le keystore n'en contient qu'une (déduit, et signalé dans le build). |
+| `ANDROID_KEY_PASSWORD` | Mot de passe de la clé ; facultatif s'il est identique à celui du keystore. |
 | `ADMOB_APP_ID`, `ADMOB_REWARDED_ID`, `ADMOB_INTERSTITIAL_ID` | Identifiants AdMob réels (sinon : test). |
 | `PREMIUM_PRODUCT_ID` (variable) | Identifiant du produit Premium, s'il diffère de `griday_premium`. |
 
