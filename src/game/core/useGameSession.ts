@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { haptic, onAppActiveChange } from '../../platform';
 import { loadJSON, saveJSON } from '../../platform/storage';
-import { DOUBLE_TAP_MS, type GameGesture } from './kind';
+import type { GameGesture } from './kind';
 import { decodeMarks, encodeMarks, type GameRules, type Mark } from './rules';
 import { elapsedAt, newGameState, reduceGame, solvedGameState, type GameAction, type GameState } from './state';
 
@@ -87,9 +87,26 @@ export interface GameSessionOptions<P> {
   readonly onSolved?: (game: GameState<P>) => void;
   /** Sans sauvegarde : partie reconstituée gagnée (puzzle déjà résolu, sauvegarde nettoyée). */
   readonly solvedFallback?: { readonly timeMs: number; readonly hintsUsed: number } | null;
+  /**
+   * Conflits signalés pendant la partie (réglage, vrai par défaut). Faux : aucune alerte, seule une
+   * grille remplie mais fausse est signalée (`filledWrong`).
+   */
+  readonly showConflicts?: boolean;
 }
 
-export function useGameSession<P>(rules: GameRules<P>, { puzzle, storageKey, visible, onSolved, solvedFallback }: GameSessionOptions<P>) {
+/** Alertes retenues après un toucher : la case touchée et ce qui était signalé juste avant. */
+interface HeldAlerts {
+  readonly cell: number;
+  readonly conflicts: ReadonlySet<number>;
+  readonly filledWrong: boolean;
+}
+
+const NO_CELLS: readonly number[] = [];
+
+export function useGameSession<P>(
+  rules: GameRules<P>,
+  { puzzle, storageKey, visible, onSolved, solvedFallback, showConflicts = true }: GameSessionOptions<P>,
+) {
   const [state, dispatch] = useReducer(internalReducer<P>, { key: null, game: null });
   const key = useMemo(() => (puzzle && storageKey ? `${storageKey}|${rules.key(puzzle)}` : null), [rules, puzzle, storageKey]);
   const game = key !== null && state.key === key ? state.game : null;
@@ -171,28 +188,41 @@ export function useGameSession<P>(rules: GameRules<P>, { puzzle, storageKey, vis
     seen.current = { key, solved: game.solved };
   }, [game, key]);
 
-  // Conflits. Ceux d'un toucher qui peut encore être corrigé (double toucher, nouveau toucher)
-  // ne sont signalés qu'une fois la fenêtre écoulée : aucune alerte ne clignote en passant.
-  const rawConflicts = useMemo(() => (game ? rules.check(game.puzzle, game.marks).conflicts : []), [rules, game]);
-  const [held, setHeld] = useState<readonly number[] | null>(null);
+  // Alertes : conflits, ou (conflits non signalés) grille remplie mais fausse. Celles d'un toucher qui
+  // peut encore être corrigé (toucher suivant sur la même case) attendent la fin de sa fenêtre : aucune
+  // alerte ne clignote en passant. Entre-temps, une alerte déjà signalée reste tant qu'elle tient et
+  // s'efface dès qu'elle est réglée.
+  const checked = useMemo(() => (game ? rules.check(game.puzzle, game.marks) : null), [rules, game]);
+  const [held, setHeldState] = useState<HeldAlerts | null>(null);
+  const heldRef = useRef<HeldAlerts | null>(null);
+  const setHeld = useCallback((h: HeldAlerts | null) => {
+    heldRef.current = h;
+    setHeldState(h);
+  }, []);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const conflicts = held ?? rawConflicts;
-  const shownConflicts = useRef(conflicts);
-  shownConflicts.current = conflicts;
   const release = useCallback(() => {
     if (holdTimer.current) clearTimeout(holdTimer.current);
     holdTimer.current = null;
     setHeld(null);
-  }, []);
+  }, [setHeld]);
   useEffect(() => release, [release]);
   useEffect(release, [key, release]);
 
-  const prevConflicts = useRef<{ key: string | null; count: number }>({ key: null, count: 0 });
+  const conflicts = useMemo(() => {
+    const raw = checked?.conflicts ?? NO_CELLS;
+    if (!showConflicts || raw.length === 0) return NO_CELLS;
+    return held ? raw.filter((c) => held.conflicts.has(c)) : raw;
+  }, [checked, held, showConflicts]);
+  const filledWrong =
+    !showConflicts && game !== null && !game.solved && rules.filled(game.puzzle, game.marks) && (held === null || held.filledWrong);
+
+  // Vibration à chaque nouveau conflit signalé (pas quand le réglage fait réapparaître les conflits existants).
+  const prevConflicts = useRef<{ key: string | null; show: boolean; count: number }>({ key: null, show: showConflicts, count: 0 });
   useEffect(() => {
     const prev = prevConflicts.current;
-    if (prev.key === key && conflicts.length > prev.count) void haptic('warning');
-    prevConflicts.current = { key, count: conflicts.length };
-  }, [conflicts, key]);
+    if (prev.key === key && prev.show === showConflicts && conflicts.length > prev.count) void haptic('warning');
+    prevConflicts.current = { key, show: showConflicts, count: conflicts.length };
+  }, [conflicts, key, showConflicts]);
 
   const gesture = useCallback(
     (e: GameGesture) => {
@@ -205,14 +235,19 @@ export function useGameSession<P>(rules: GameRules<P>, { puzzle, storageKey, vis
         return;
       }
       if (e.type === 'tap') {
-        const hold = rulesRef.current.holdConflictsAfterTap(before.marks[e.cell]!);
-        if (hold) {
-          setHeld(shownConflicts.current);
+        const r = rulesRef.current;
+        const holdMs = r.conflictHoldAfterTap(before.marks[e.cell]!);
+        if (holdMs > 0) {
+          // Même case retouchée pendant sa fenêtre : on garde ce qui était signalé avant son premier toucher.
+          // Une autre case : le coup précédent est acquis, ses alertes sont signalées sans attendre.
+          if (heldRef.current?.cell !== e.cell) {
+            setHeld({ cell: e.cell, conflicts: new Set(r.check(before.puzzle, before.marks).conflicts), filledWrong: r.filled(before.puzzle, before.marks) });
+          }
           if (holdTimer.current) clearTimeout(holdTimer.current);
-          holdTimer.current = setTimeout(release, DOUBLE_TAP_MS);
+          holdTimer.current = setTimeout(release, holdMs);
         } else release();
         act({ type: 'tap', cell: e.cell, now: t });
-        void haptic(hold ? 'tap' : 'select');
+        void haptic(holdMs > 0 ? 'tap' : 'select');
       } else if (e.type === 'doubleTap') {
         release();
         act({ type: 'doubleTap', cell: e.cell, now: t });
@@ -223,7 +258,7 @@ export function useGameSession<P>(rules: GameRules<P>, { puzzle, storageKey, vis
         void haptic('select');
       }
     },
-    [act, release],
+    [act, release, setHeld],
   );
 
   // Un même indice redemandé (sans nouvelle déduction) n'est compté qu'une fois.
@@ -249,7 +284,10 @@ export function useGameSession<P>(rules: GameRules<P>, { puzzle, storageKey, vis
 
   return {
     game,
+    /** Cases en conflit signalées (vide si le réglage les masque). */
     conflicts,
+    /** Conflits masqués par le réglage : grille remplie mais fausse (sans dire où). */
+    filledWrong,
     gesture,
     undo: () => {
       release();

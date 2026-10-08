@@ -95,6 +95,7 @@
       "proposedSun": "soleil proposé par l’indice",
       "proposedMoon": "lune proposée par l’indice"
     },
+    "filledWrong": "Grille remplie, mais fausse",
     "actions": "Actions de jeu",
     "resetAction": "Effacer",
     "intro": {
@@ -224,6 +225,10 @@
     "haptics": {
       "title": "Vibrations",
       "description": "Retour haptique pendant le jeu"
+    },
+    "showConflicts": {
+      "title": "Signaler les erreurs",
+      "description": "Montrer les cases en conflit pendant la partie. Désactivé : seule une grille remplie mais fausse est signalée"
     },
     "autoCross": {
       "title": "Croix automatiques",

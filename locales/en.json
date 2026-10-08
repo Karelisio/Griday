@@ -95,6 +95,7 @@
       "proposedSun": "sun suggested by the hint",
       "proposedMoon": "moon suggested by the hint"
     },
+    "filledWrong": "Grid full, but not right",
     "actions": "Game actions",
     "resetAction": "Clear",
     "intro": {
@@ -224,6 +225,10 @@
     "haptics": {
       "title": "Vibration",
       "description": "Haptic feedback while playing"
+    },
+    "showConflicts": {
+      "title": "Show mistakes",
+      "description": "Highlight conflicting cells while you play. Off: only a full but wrong grid is pointed out"
     },
     "autoCross": {
       "title": "Automatic crosses",

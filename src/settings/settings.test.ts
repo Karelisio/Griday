@@ -16,12 +16,17 @@ describe('réglages', () => {
       dynamicColor: false,
       haptics: false,
       autoCross: true,
+      showConflicts: false,
       regionPatterns: true,
       reminder: true,
       reminderTime: '08:30',
       reminderPrompted: true,
     };
     expect(sanitizeSettings(s)).toEqual(s);
+  });
+
+  it('réglage absent (version précédente) : erreurs signalées', () => {
+    expect(sanitizeSettings({ language: 'fr', autoCross: true }).showConflicts).toBe(true);
   });
 
   it('heure de rappel invalide : valeur par défaut', () => {

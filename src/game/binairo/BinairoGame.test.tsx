@@ -6,7 +6,7 @@ import { SettingsProvider } from '../../settings/SettingsContext';
 import { DEFAULT_SETTINGS } from '../../settings/types';
 import { ThemeProvider } from '../../theme';
 import { SnackbarHost } from '../../ui';
-import { useGameSession } from '../core/useGameSession';
+import { useGameSession, type GameSession } from '../core/useGameSession';
 import { gameKind } from '../kinds';
 import { GameView } from '../GameView';
 import { isBinairoHighlight } from './explain';
@@ -19,17 +19,20 @@ const puzzle: BinairoSolvedPuzzle = {
   solution: [2, 1, 1, 2, 2, 1, 2, 1, 1, 2, 1, 2, 1, 2, 2, 1, 1, 2, 2, 1, 2, 1, 2, 1, 1, 2, 1, 2, 1, 2, 1, 2, 2, 1, 2, 1],
 };
 
-function Harness() {
-  const session = useGameSession(BINAIRO_KIND.rules, { puzzle, storageKey: 'test.binairo', visible: true });
+let current: GameSession<BinairoSolvedPuzzle> | null = null;
+
+function Harness({ showConflicts }: { showConflicts: boolean }) {
+  const session = useGameSession(BINAIRO_KIND.rules, { puzzle, storageKey: 'test.binairo', visible: true, showConflicts });
+  current = session;
   return session.game ? <GameView kind={BINAIRO_KIND} puzzle={puzzle} session={session} visible /> : null;
 }
 
-function renderGame(lang: 'fr' | 'en' = 'fr') {
+function renderGame(lang: 'fr' | 'en' = 'fr', showConflicts = true) {
   return render(
     <SettingsProvider initial={{ ...DEFAULT_SETTINGS, language: lang }}>
       <ThemeProvider mode={lang === 'fr' ? 'light' : 'dark'} dynamic={false}>
         <SnackbarHost closeLabel="Fermer">
-          <Harness />
+          <Harness showConflicts={showConflicts} />
         </SnackbarHost>
       </ThemeProvider>
     </SettingsProvider>,
@@ -116,6 +119,30 @@ describe('Binairo dans la vue de jeu commune', () => {
     });
     await waitFor(() => expect(stateOf(cell(2))).toBe('vide'), { timeout: 5_000 });
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Indice' })).toBeNull(), { timeout: 5_000 });
+  }, 30_000);
+
+  it('erreurs non signalées (réglage) : aucune case en conflit ; grille remplie mais fausse annoncée, sans dire où', async () => {
+    renderGame('fr', false);
+    const grid = await screen.findByRole('grid', {}, { timeout: 15_000 });
+    const cell = (i: number) => cellsOf(grid)[i]!;
+    // 2 . [2] 2 2 . : trois lunes de suite, rien n'est signalé.
+    act(() => cell(2).focus());
+    fireEvent.keyDown(cell(2), { key: '2' });
+    await waitFor(() => expect(stateOf(cell(2))).toBe('lune'));
+    await new Promise((r) => setTimeout(r, 1200));
+    expect(stateOf(cell(2))).toBe('lune');
+    expect(stateOf(cell(3))).toBe('lune, case donnée');
+    expect(document.querySelector('.game__conflicts')).toBeNull();
+
+    // Le reste rempli selon la solution : grille pleine mais fausse, signalée sans case désignée.
+    const moves = puzzle.givens.flatMap((g, i) => (g === 0 && i !== 2 ? [{ cell: i, mark: puzzle.solution[i]! }] : []));
+    act(() => current!.applyHint(moves));
+    expect(await screen.findByText('Grille remplie, mais fausse', { selector: '.game__conflicts' })).toBeTruthy();
+    expect(stateOf(cell(2))).toBe('lune');
+    // Corrigée : victoire.
+    fireEvent.keyDown(cell(2), { key: '1' });
+    expect(await screen.findByRole('heading', { name: /^Bravo/ })).toBeTruthy();
+    await waitFor(() => expect(document.querySelector('.game__conflicts')).toBeNull());
   }, 30_000);
 
   it('saisie directe au clavier : 2 pose une lune en une seule étape annulable', async () => {

@@ -18,6 +18,7 @@ import { dailyProgressKey, dailyPuzzleKey, dailyStartedKey } from '../persistenc
 import { loadJSON, saveJSON } from '../platform/storage';
 import { useProgress } from '../progress/ProgressContext';
 import type { DailyMode } from '../progress/types';
+import { useSettings } from '../settings/SettingsContext';
 
 export interface UseDailyGameOptions {
   readonly date: ISODate;
@@ -107,12 +108,14 @@ export function useDailyGame({ date, mode, visible, onRecorded }: UseDailyGameOp
   const recorded = history.get(date);
   const known = recorded && daily && (recorded.type ?? 'queens') === daily.type ? recorded : undefined;
   const kind: GameKindUI<unknown> | null = daily ? gameKind(daily.type) : null;
+  const { settings } = useSettings();
   const session = useGameSession(kind?.rules ?? NO_RULES, {
     puzzle: kind && daily ? daily.puzzle : null,
     storageKey: daily ? dailyProgressKey(date) : null,
     visible,
     onSolved,
     solvedFallback: known ? { timeMs: known.timeMs, hintsUsed: known.hintsUsed } : null,
+    showConflicts: settings.showConflicts,
   });
 
   // Premier coup : date notée une fois (après lecture de la valeur sauvegardée).

@@ -26,8 +26,13 @@ export interface GameRules<P> {
    * (`before`). Absent : un double toucher vaut deux touchers.
    */
   doubleTap?(before: Mark): Mark;
-  /** Après ce toucher, retenir l'alerte de conflit le temps d'un éventuel second toucher. */
-  holdConflictsAfterTap(before: Mark): boolean;
+  /**
+   * Après un toucher sur une case qui portait `before` : durée (ms) pendant laquelle une nouvelle
+   * alerte attend un éventuel toucher suivant sur la même case (0 : signalée aussitôt).
+   */
+  conflictHoldAfterTap(before: Mark): number;
+  /** Grille remplie (toutes les réponses posées), juste ou non. */
+  filled(p: P, marks: readonly Mark[]): boolean;
 }
 
 /** Marques compactes : un chiffre par case. */
@@ -47,5 +52,6 @@ export const NO_RULES: GameRules<unknown> = {
   locked: () => false,
   check: () => ({ conflicts: [], solved: false }),
   tap: (m) => m,
-  holdConflictsAfterTap: () => false,
+  conflictHoldAfterTap: () => 0,
+  filled: () => false,
 };

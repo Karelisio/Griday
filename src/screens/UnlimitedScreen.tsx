@@ -16,6 +16,7 @@ import { UNLIMITED_CURRENT_KEY, UNLIMITED_PREFS_KEY, unlimitedProgressKey } from
 import { pushBackHandler } from '../platform';
 import { loadJSON, removeKey, saveJSON } from '../platform/storage';
 import { useProgress } from '../progress/ProgressContext';
+import { useSettings } from '../settings/SettingsContext';
 import { ShareButton } from '../share/ShareButton';
 import { BottomSheet, Button, CircularProgress, Icon, InfoChip, SegmentedButton } from '../ui';
 import { useToday } from '../useToday';
@@ -208,11 +209,13 @@ export function UnlimitedScreen({ visible }: { visible: boolean }) {
     [played, playedType, recordUnlimited, notifySolved],
   );
   const kind = current ? gameKind(current.puzzle.type) : null;
+  const { settings } = useSettings();
   const api = useGameSession(kind?.rules ?? NO_RULES, {
     puzzle: kind && current ? current.puzzle.puzzle : null,
     storageKey: current ? unlimitedProgressKey(current.token) : null,
     visible,
     onSolved,
+    showConflicts: settings.showConflicts,
   });
 
   return (

@@ -142,3 +142,14 @@ describe('réglages : rappel quotidien', () => {
     expect((screen.getByLabelText('Reminder time') as HTMLInputElement).value).toBe('19:00');
   });
 });
+
+describe('réglages : signaler les erreurs', () => {
+  it('activé par défaut ; désactivé, le choix est enregistré', async () => {
+    const { saved } = renderSettings();
+    const toggle = () => screen.getByRole('switch', { name: 'Signaler les erreurs' });
+    expect(checked(toggle())).toBe('true');
+    fireEvent.click(toggle());
+    await waitFor(() => expect(checked(toggle())).toBe('false'));
+    expect(saved()).toMatchObject({ showConflicts: false });
+  });
+});

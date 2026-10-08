@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { initI18n } from './i18n';
 import { DEFAULT_SETTINGS } from './settings/types';
@@ -7,7 +7,13 @@ import { DEFAULT_SETTINGS } from './settings/types';
 beforeAll(async () => {
   await initI18n('fr');
 });
-beforeEach(() => localStorage.clear());
+// Jour de Reines (rotation : Reines les jours pairs depuis l'époque, Binairo les impairs) ; seule la date est simulée.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(2026, 9, 7, 10));
+  localStorage.clear();
+});
+afterEach(() => vi.useRealTimers());
 
 describe('application', () => {
   it('affiche le puzzle du jour, permet de poser une reine et de naviguer', async () => {

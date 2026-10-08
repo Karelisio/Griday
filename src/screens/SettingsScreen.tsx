@@ -1,5 +1,5 @@
 /**
- * Réglages : langue, thème, couleurs dynamiques, vibrations, croix automatiques, rappel quotidien, Premium
+ * Réglages : langue, thème, couleurs dynamiques, vibrations, signalement des erreurs, croix automatiques, rappel quotidien, Premium
  * (seulement dans un build avec publicités) et version.
  */
 import { useEffect, useState } from 'react';
@@ -119,6 +119,15 @@ export function SettingsScreen({ visible, dynamicSupported, onOpenPremium }: Set
           supporting={t('settings.haptics.description')}
           control
           trailing={<Switch checked={settings.haptics} onChange={(haptics) => update({ haptics })} aria-label={t('settings.haptics.title')} />}
+        />
+        <ListItem
+          leading={<Icon name="warning" />}
+          headline={t('settings.showConflicts.title')}
+          supporting={t('settings.showConflicts.description')}
+          control
+          trailing={
+            <Switch checked={settings.showConflicts} onChange={(showConflicts) => update({ showConflicts })} aria-label={t('settings.showConflicts.title')} />
+          }
         />
         <ListItem
           leading={<Icon name="close" />}

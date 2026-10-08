@@ -17,6 +17,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     dynamicColor: bool(s['dynamicColor'], DEFAULT_SETTINGS.dynamicColor),
     haptics: bool(s['haptics'], DEFAULT_SETTINGS.haptics),
     autoCross: bool(s['autoCross'], DEFAULT_SETTINGS.autoCross),
+    showConflicts: bool(s['showConflicts'], DEFAULT_SETTINGS.showConflicts),
     regionPatterns: bool(s['regionPatterns'], DEFAULT_SETTINGS.regionPatterns),
     reminder: bool(s['reminder'], DEFAULT_SETTINGS.reminder),
     reminderTime: isReminderTime(s['reminderTime']) ? s['reminderTime'] : DEFAULT_SETTINGS.reminderTime,

@@ -211,8 +211,15 @@ export function GameView<P>({ kind, puzzle, session: api, victoryExtra, victoryC
   const mistakesShown = sheetOpen && hintKind === 'mistake';
   const canApply = hintKind === 'step' || hintKind === 'reveal' || hintKind === 'mistake';
   const time = formatDuration(api.elapsed(), lang);
-  const conflictsText = t(`puzzle.${kind.id}.conflicts`, { count: api.conflicts.length });
-  const announcement = solved ? `${t('victory.title')} ${t('victory.time', { time })}` : api.conflicts.length > 0 ? conflictsText : '';
+  // Alerte du moment : cases en conflit, ou (conflits non signalés, réglage) grille remplie mais fausse.
+  const alertText = solved
+    ? null
+    : api.conflicts.length > 0
+      ? t(`puzzle.${kind.id}.conflicts`, { count: api.conflicts.length })
+      : api.filledWrong
+        ? t('game.filledWrong')
+        : null;
+  const announcement = solved ? `${t('victory.title')} ${t('victory.time', { time })}` : (alertText ?? '');
 
   return (
     <div className="game">
@@ -245,7 +252,7 @@ export function GameView<P>({ kind, puzzle, session: api, victoryExtra, victoryC
           <Timer elapsed={api.elapsed} running={visible && game.runningSince !== null} />
         </span>
         <AnimatePresence>
-          {api.conflicts.length > 0 && !solved && (
+          {alertText !== null && (
             <motion.span
               className="game__conflicts md-typescale-label-large"
               initial={{ opacity: 0, y: -4 }}
@@ -254,7 +261,7 @@ export function GameView<P>({ kind, puzzle, session: api, victoryExtra, victoryC
               aria-hidden="true"
             >
               <Icon name="warning" size={18} />
-              {conflictsText}
+              {alertText}
             </motion.span>
           )}
         </AnimatePresence>

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { BinairoSolvedPuzzle } from '../../../engine/binairo/types';
 import { newGameState, reduceGame, type GameState } from '../core/state';
 import { deserializeGame, serializeGame } from '../core/useGameSession';
-import { BINAIRO_RULES } from './rules';
+import { BINAIRO_RULES, CYCLE_HOLD_MS } from './rules';
 
 // Grille 6 × 6 à solution unique (1 = soleil, 2 = lune).
 const PUZZLE: BinairoSolvedPuzzle = {
@@ -35,8 +35,19 @@ describe('règles de jeu Binairo', () => {
   it('chaque toucher fait tourner vide → soleil → lune → vide ; pas de double toucher spécial', () => {
     expect([0, 1, 2].map((m) => R.tap(m as 0 | 1 | 2))).toEqual([1, 2, 0]);
     expect(R.doubleTap).toBeUndefined();
-    // Le joueur fait tourner la case : l'alerte de conflit attend dans tous les cas.
-    for (const m of [0, 1, 2] as const) expect(R.holdConflictsAfterTap(m)).toBe(true);
+    // Le joueur fait tourner la case : l'alerte attend le toucher suivant (vider une case n'en crée aucune).
+    expect([0, 1, 2].map((m) => R.conflictHoldAfterTap(m as 0 | 1 | 2))).toEqual([CYCLE_HOLD_MS, CYCLE_HOLD_MS, 0]);
+    expect(CYCLE_HOLD_MS).toBeGreaterThanOrEqual(800);
+  });
+
+  it('grille remplie : toutes les cases posées, justes ou non', () => {
+    expect(R.filled(PUZZLE, R.initial(PUZZLE))).toBe(false);
+    expect(R.filled(PUZZLE, R.solution(PUZZLE))).toBe(true);
+    const wrong = R.solution(PUZZLE);
+    wrong[1] = 2;
+    expect(R.filled(PUZZLE, wrong)).toBe(true);
+    wrong[1] = 0;
+    expect(R.filled(PUZZLE, wrong)).toBe(false);
   });
 
   it('check : aucune infraction au départ ; victoire sur la solution seulement', () => {
